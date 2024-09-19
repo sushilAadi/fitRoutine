@@ -19,6 +19,5 @@ const nextConfig = {
       https: true,
     },
   };
-  
-  module.exports = nextConfig;
-  
+
+export default nextConfig;
