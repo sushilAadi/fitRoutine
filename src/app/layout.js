@@ -33,7 +33,7 @@ export default function RootLayout({ children }) {
           <li>
             <a href="/bodyparts" className="text-blue-600 hover:text-blue-800">Body Parts</a>
           </li>
-          <li>
+          {/* <li>
             <a href="/equipment" className="text-blue-600 hover:text-blue-800">Equipment</a>
           </li>
           <li>
@@ -41,7 +41,7 @@ export default function RootLayout({ children }) {
           </li>
           <li>
             <a href="/bodyTarget" className="text-blue-600 hover:text-blue-800">Body Target</a>
-          </li>
+          </li> */}
           <li>
             <a href="/customPlan" className="text-blue-600 hover:text-blue-800">Custom Plan</a>
           </li>
