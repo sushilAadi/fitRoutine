@@ -177,19 +177,41 @@ const CustomPlanPage = () => {
       exerciseHistory: exerciseHistory
     };
 
-    localStorage.setItem(`workoutPlan_${planName}`, JSON.stringify(planToSave));
-    alert('Workout plan saved successfully!');
+    const storageKey = `workoutPlan_${planName}`;
 
-    // Clear form and generated plan
-    setPlanName('');
-    setWeeks(1);
-    setDaysPerWeek(1);
-    setWorkoutPlan([]);
-    setExerciseDetails({});
-    setExerciseHistory({});
+    if (isEditingExistingPlan) {
+      // Update existing plan
+      localStorage.setItem(storageKey, JSON.stringify(planToSave));
+      alert('Workout plan updated successfully!');
 
-    // Refresh saved plans list
-    setSavedPlans([...savedPlans, planToSave]);
+      // Update the plan in the savedPlans state
+      setSavedPlans(prevPlans => 
+        prevPlans.map(plan => plan.name === planName ? planToSave : plan)
+      );
+    } else {
+      // Check if a plan with this name already exists
+      if (localStorage.getItem(storageKey)) {
+        setNameError('A plan with this name already exists');
+        return;
+      }
+
+      // Save new plan
+      localStorage.setItem(storageKey, JSON.stringify(planToSave));
+      alert('Workout plan saved successfully!');
+
+      // Add the new plan to the savedPlans state
+      setSavedPlans(prevPlans => [...prevPlans, planToSave]);
+    }
+
+    // Clear form and reset state
+    if (!isEditingExistingPlan) {
+      setPlanName('');
+      setWeeks(1);
+      setDaysPerWeek(1);
+      setWorkoutPlan([]);
+      setExerciseDetails({});
+      setExerciseHistory({});
+    }
   };
 
   const loadPlan = (plan) => {
