@@ -212,24 +212,37 @@ const CustomPlanPage = () => {
     setIsEditingExistingPlan(false);
   };
 
+  const tabs = [
+    { value: 'create', label: 'Create New Plan' },
+    { value: 'saved', label: 'Saved Plans' }
+  ];
+
+  const isExerciseCompleted = (weekIndex, dayIndex, exerciseIndex) => {
+    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
+    return exerciseHistory[key] && exerciseHistory[key].length > 0;
+  };
+
   return (
     <div className="container p-6 mt-8">
       <div className="mb-4">
-        <button
-          onClick={() => {
-            setActiveTab('create');
-            startNewPlan();
-          }}
-          className={`mr-2 px-4 py-2 rounded ${activeTab === 'create' && !isEditingExistingPlan ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'}`}
-        >
-          Create New Plan
-        </button>
-        <button
-          onClick={() => setActiveTab('saved')}
-          className={`px-4 py-2 rounded ${activeTab === 'saved' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'}`}
-        >
-          Saved Plans
-        </button>
+        {tabs.map((tab) => (
+          <button
+            key={tab.value}
+            onClick={() => {
+              setActiveTab(tab.value);
+              if (tab.value === 'create') {
+                startNewPlan();
+              }
+            }}
+            className={`mr-2 px-4 py-2 rounded ${
+              activeTab === tab.value && (tab.value !== 'create' || !isEditingExistingPlan)
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-200 text-black'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {activeTab === 'create' ? (
@@ -295,7 +308,7 @@ const CustomPlanPage = () => {
               {week.map((day, dayIndex) => (
                 <div key={dayIndex} className="mb-4">
                   <h3 className="text-lg font-medium mb-2">Day {day.day}</h3>
-                  <div className="flex items-center mb-2">
+                  {!isEditingExistingPlan && <div className="flex items-center mb-2">
                     <input
                       type="text"
                       list="exerciseOptions"
@@ -321,79 +334,97 @@ const CustomPlanPage = () => {
                         />
                       ))}
                     </datalist>
-                  </div>
+                  </div>}
+                  
                   <ul className="list-disc pl-5">
                     {day.exercises.map((exercise, exerciseIndex) => (
                       <li key={exerciseIndex} className="mb-4">
                         <div className="flex items-center mb-2">
-                          <span>{exercise}</span>
-                          <button
+                          <span className='bg-gray-600 px-2 rounded-md'>{exercise}</span>
+                          {isEditingExistingPlan && isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && (
+                            <span className="ml-2 text-green-500" title="Completed">&#10004;</span>
+                          )}
+                          {!isEditingExistingPlan && <button
                             onClick={() => removeExercise(weekIndex, dayIndex, exerciseIndex)}
                             className="ml-2 text-red-500 text-sm"
                           >
                             Remove
-                          </button>
-                          <button
-                            onClick={() => addExerciseDetails(weekIndex, dayIndex, exerciseIndex)}
-                            className="ml-2 bg-green-500 text-white px-2 py-1 rounded text-sm"
-                          >
-                            Add Set
-                          </button>
-                        </div>
-                        {weekIndex > 0 && (
-                          <div className="text-sm text-gray-600 mb-2">
-                            Previous: {getPreviousRecord(weekIndex, dayIndex, exerciseIndex)?.map((set, index) => (
-                              <p key={index}>
-                                {set.weight && `${set.weight} lbs x `}{set.reps} reps
-                                {index < getPreviousRecord(weekIndex, dayIndex, exerciseIndex).length - 1 ? ', ' : ''}
-                              </p>
-                            ))}
-                          </div>
-                        )}
-                        {exerciseDetails[`${weekIndex}-${dayIndex}-${exerciseIndex}`]?.map((detail, detailIndex) => (
-                          <div key={detailIndex} className="flex items-center mb-2">
-                            {!isBodyWeightOrBandExercise(exercise) && (
-                              <input
-                                type="number"
-                                placeholder="Weight"
-                                value={detail.weight}
-                                onChange={(e) => updateExerciseDetail(weekIndex, dayIndex, exerciseIndex, detailIndex, 'weight', e.target.value)}
-                                className="w-20 p-1 border rounded mr-2"
-                              />
-                            )}
-                            <input
-                              type="number"
-                              placeholder="Reps"
-                              value={detail.reps}
-                              onChange={(e) => updateExerciseDetail(weekIndex, dayIndex, exerciseIndex, detailIndex, 'reps', e.target.value)}
-                              className="w-20 p-1 border rounded mr-2"
-                            />
+                          </button>}
+                          
+                          {isEditingExistingPlan && !isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && (
                             <button
-                              onClick={() => removeExerciseDetail(weekIndex, dayIndex, exerciseIndex, detailIndex)}
-                              className="text-red-500 text-sm"
+                              onClick={() => addExerciseDetails(weekIndex, dayIndex, exerciseIndex)}
+                              className="ml-2 bg-green-500 text-white px-2 py-1 rounded text-sm"
                             >
-                              Remove Set
+                              Add Set
                             </button>
-                          </div>
-                        ))}
-                        {areAllSetsComplete(weekIndex, dayIndex, exerciseIndex, exercise) && (
-                          <button
-                            onClick={() => submitExerciseDetails(weekIndex, dayIndex, exerciseIndex)}
-                            className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
-                          >
-                            Submit
-                          </button>
+                          )}
+                        </div>
+                        {weekIndex > 0 && (activeTab !== 'create' || isEditingExistingPlan) && (
+                          <>
+                            {getPreviousRecord(weekIndex, dayIndex, exerciseIndex) && (
+                              <div className="text-sm text-gray-600 mb-2">
+                                Previous: {getPreviousRecord(weekIndex, dayIndex, exerciseIndex).map((set, index) => (
+                                  <span key={index}>
+                                    {set.weight && `${set.weight} lbs x `}{set.reps} reps
+                                    {index < getPreviousRecord(weekIndex, dayIndex, exerciseIndex).length - 1 ? ', ' : ''}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </>
+                        )}
+                        {isEditingExistingPlan && !isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && (
+                          <>
+                            {exerciseDetails[`${weekIndex}-${dayIndex}-${exerciseIndex}`]?.map((detail, detailIndex) => (
+                              <div key={detailIndex} className="flex items-center mb-2">
+                                {!isBodyWeightOrBandExercise(exercise) && (
+                                  <input
+                                    type="number"
+                                    placeholder="Weight"
+                                    value={detail.weight}
+                                    onChange={(e) => updateExerciseDetail(weekIndex, dayIndex, exerciseIndex, detailIndex, 'weight', e.target.value)}
+                                    className="w-20 p-1 border rounded mr-2"
+                                  />
+                                )}
+                                <input
+                                  type="number"
+                                  placeholder="Reps"
+                                  value={detail.reps}
+                                  onChange={(e) => updateExerciseDetail(weekIndex, dayIndex, exerciseIndex, detailIndex, 'reps', e.target.value)}
+                                  className="w-20 p-1 border rounded mr-2"
+                                />
+                                <button
+                                  onClick={() => removeExerciseDetail(weekIndex, dayIndex, exerciseIndex, detailIndex)}
+                                  className="text-red-500 text-sm"
+                                >
+                                  Remove Set
+                                </button>
+                              </div>
+                            ))}
+                            {areAllSetsComplete(weekIndex, dayIndex, exerciseIndex, exercise) && (
+                              <button
+                                onClick={() => submitExerciseDetails(weekIndex, dayIndex, exerciseIndex)}
+                                className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
+                              >
+                                Submit
+                              </button>
+                            )}
+                          </>
                         )}
                         {exerciseHistory[`${weekIndex}-${dayIndex}-${exerciseIndex}`] && (
                           <div className="mt-2">
-                            <h4 className="text-sm font-semibold">Previous Records:</h4>
-                            <div className="flex flex-row space-x-4">
-                              {exerciseHistory[`${weekIndex}-${dayIndex}-${exerciseIndex}`].map((record, recordIndex) => (
-                                <div key={recordIndex} className="text-sm">
+                            {/* <h4 className="text-sm font-semibold">
+                              {isDayComplete(weekIndex, dayIndex) ? "Today's Completed Sets" : "Previous Workout Sets"}
+                            </h4> */}
+                            <div className="flex flex-row space-x-4 text-sm text-[#c5e1a5]">
+                            Completed Sets: {exerciseHistory[`${weekIndex}-${dayIndex}-${exerciseIndex}`].map((record, recordIndex) => (
+                                <div key={recordIndex} className="text-md ml-2">
                                   {record.map((set, setIndex) => (
-                                    <div key={setIndex}>
+                                    <span key={setIndex}>
                                       {set.weight && `${set.weight} lbs x `}{set.reps} reps
-                                    </div>
+                                      {setIndex < record.length - 1 && ', '}
+                                    </span>
                                   ))}
                                 </div>
                               ))}
