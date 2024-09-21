@@ -14,6 +14,8 @@ const CustomPlanPage = () => {
   const [exerciseHistory, setExerciseHistory] = useState({});
   const [savedPlans, setSavedPlans] = useState([]);
   const [isEditingExistingPlan, setIsEditingExistingPlan] = useState(false);
+  const [weekNames, setWeekNames] = useState([]);
+  const [dayNames, setDayNames] = useState([]);
 
   useEffect(() => {
     // Load saved plans on component mount
@@ -48,6 +50,8 @@ const CustomPlanPage = () => {
       newWorkoutPlan.push(weekPlan);
     }
     setWorkoutPlan(newWorkoutPlan);
+    setWeekNames(Array(weeks).fill('').map((_, i) => `Week ${i + 1}`));
+    setDayNames(Array(daysPerWeek).fill('').map((_, i) => `Day ${i + 1}`));
   };
 
   const addExerciseToDay = (weekIndex, dayIndex, exercise) => {
@@ -280,6 +284,18 @@ const CustomPlanPage = () => {
     return exerciseHistory[key] && exerciseHistory[key].length > 0;
   };
 
+  const updateWeekName = (index, newName) => {
+    const updatedWeekNames = [...weekNames];
+    updatedWeekNames[index] = newName;
+    setWeekNames(updatedWeekNames);
+  };
+
+  const updateDayName = (index, newName) => {
+    const updatedDayNames = [...dayNames];
+    updatedDayNames[index] = newName;
+    setDayNames(updatedDayNames);
+  };
+
   return (
     <div className="container p-6 mt-8">
       <div className="mb-4">
@@ -362,10 +378,36 @@ const CustomPlanPage = () => {
 
           {workoutPlan.map((week, weekIndex) => (
             <div key={weekIndex} className="mb-8">
-              <h2 className="text-xl font-semibold mb-4">Week {weekIndex + 1}</h2>
+              <div className="flex items-center mb-4">
+                <h2 className="text-xl font-semibold mr-2">
+                  {weekNames[weekIndex]}
+                </h2>
+                {!isEditingExistingPlan && (
+                  <i
+                    className="fa-regular fa-pen-to-square text-gray-500 cursor-pointer"
+                    onClick={() => {
+                      const newName = prompt('Enter new week name:', weekNames[weekIndex]);
+                      if (newName) updateWeekName(weekIndex, newName);
+                    }}
+                  />
+                )}
+              </div>
               {week.map((day, dayIndex) => (
                 <div key={dayIndex} className="mb-4">
-                  <h3 className="text-lg font-medium mb-2">Day {day.day}</h3>
+                  <div className="flex items-center mb-2">
+                    <h3 className="text-lg font-medium mr-2">
+                      {dayNames[dayIndex]}
+                    </h3>
+                    {!isEditingExistingPlan && (
+                      <i
+                        className="fa-regular fa-pen-to-square text-gray-500 cursor-pointer"
+                        onClick={() => {
+                          const newName = prompt('Enter new day name:', dayNames[dayIndex]);
+                          if (newName) updateDayName(dayIndex, newName);
+                        }}
+                      />
+                    )}
+                  </div>
                   {!isEditingExistingPlan && <div className="flex items-center mb-2">
                     <input
                       type="text"
