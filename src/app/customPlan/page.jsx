@@ -53,8 +53,8 @@ const CustomPlanPage = () => {
   const addExerciseToDay = (weekIndex, dayIndex, exercise) => {
     if (exercise) {
       const updatedWorkoutPlan = [...workoutPlan];
-      // Add the exercise to the same day in all weeks
-      for (let i = 0; i < updatedWorkoutPlan.length; i++) {
+      // Add the exercise to the current week and all subsequent weeks
+      for (let i = weekIndex; i < updatedWorkoutPlan.length; i++) {
         updatedWorkoutPlan[i][dayIndex].exercises.push(exercise);
       }
       setWorkoutPlan(updatedWorkoutPlan);
@@ -63,8 +63,8 @@ const CustomPlanPage = () => {
 
   const removeExercise = (weekIndex, dayIndex, exerciseIndex) => {
     const updatedWorkoutPlan = [...workoutPlan];
-    // Remove the exercise from the same day in all weeks
-    for (let i = 0; i < updatedWorkoutPlan.length; i++) {
+    // Remove the exercise from the current week and all subsequent weeks
+    for (let i = weekIndex; i < updatedWorkoutPlan.length; i++) {
       updatedWorkoutPlan[i][dayIndex].exercises.splice(exerciseIndex, 1);
     }
     setWorkoutPlan(updatedWorkoutPlan);
@@ -94,24 +94,53 @@ const CustomPlanPage = () => {
     return exercise && (exercise.equipment === "body weight" || exercise.equipment === "band");
   };
 
+  const updatePlan = (updatedHistory) => {
+    const updatedPlan = {
+      name: planName,
+      weeks: weeks,
+      daysPerWeek: daysPerWeek,
+      workoutPlan: workoutPlan,
+      exerciseHistory: updatedHistory
+    };
+    
+    // Update localStorage
+    localStorage.setItem(`workoutPlan_${planName}`, JSON.stringify(updatedPlan));
+    
+    // Update savedPlans state
+    setSavedPlans(prevPlans => 
+      prevPlans.map(plan => plan.name === planName ? updatedPlan : plan)
+    );
+
+    // Update exerciseHistory state
+    setExerciseHistory(updatedHistory);
+  };
+
   const submitExerciseDetails = (weekIndex, dayIndex, exerciseIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
     const details = exerciseDetails[key];
     if (details && details.length > 0) {
-      const updatedHistory = { ...exerciseHistory };
-      if (!updatedHistory[key]) {
-        updatedHistory[key] = [];
-      }
-      updatedHistory[key].push(details);
-      setExerciseHistory(updatedHistory);
+      const setCount = details.length;
+      const confirmMessage = `You have completed ${setCount} set${setCount > 1 ? 's' : ''}. Do you want to submit?`;
       
-      // Save to localStorage with plan name
-      localStorage.setItem(`exerciseHistory_${planName}`, JSON.stringify(updatedHistory));
+      if (window.confirm(confirmMessage)) {
+        const updatedHistory = { ...exerciseHistory };
+        if (!updatedHistory[key]) {
+          updatedHistory[key] = [];
+        }
+        updatedHistory[key].push(details);
+        
+        // Update the plan
+        if (isEditingExistingPlan) {
+          updatePlan(updatedHistory);
+        } else {
+          setExerciseHistory(updatedHistory);
+        }
 
-      // Clear current exercise details
-      const updatedExerciseDetails = { ...exerciseDetails };
-      updatedExerciseDetails[key] = [];
-      setExerciseDetails(updatedExerciseDetails);
+        // Clear current exercise details
+        const updatedExerciseDetails = { ...exerciseDetails };
+        updatedExerciseDetails[key] = [];
+        setExerciseDetails(updatedExerciseDetails);
+      }
     }
   };
 
@@ -232,6 +261,13 @@ const CustomPlanPage = () => {
     setExerciseDetails({});
     setExerciseHistory({});
     setIsEditingExistingPlan(false);
+  };
+
+  const deletePlan = (planName) => {
+    if (window.confirm(`Are you sure you want to delete the plan "${planName}"?`)) {
+      localStorage.removeItem(`workoutPlan_${planName}`);
+      setSavedPlans(prevPlans => prevPlans.filter(plan => plan.name !== planName));
+    }
   };
 
   const tabs = [
@@ -476,13 +512,16 @@ const CustomPlanPage = () => {
           {savedPlans.length > 0 ? (
             <ul>
               {savedPlans.map((plan, index) => (
-                <li key={index} className="mb-2">
+                <li key={index} className="mb-2 flex items-center">
                   <button
                     onClick={() => loadPlan(plan)}
-                    className="bg-blue-500 text-white px-4 py-2 rounded"
+                    className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
                   >
                     {plan.name} ({plan.weeks} weeks, {plan.daysPerWeek} days/week)
                   </button>
+                  <i class="fa-regular fa-trash-can text-red-500 cursor-pointer" onClick={() => deletePlan(plan.name)}/>
+                    
+                  
                 </li>
               ))}
             </ul>
