@@ -4,6 +4,7 @@ import GlobalContextProvider from "@/context/GloablContext";
 import "./globals.css";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from "@material-tailwind/react";
+import { Analytics } from '@vercel/analytics/react';
 
 
 const queryClient = new QueryClient();
@@ -50,6 +51,7 @@ export default function RootLayout({ children }) {
         {children}
       </GlobalContextProvider>
       </ThemeProvider>
+      <Analytics />
       </body>
     </html>
     </QueryClientProvider>
