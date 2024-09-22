@@ -16,6 +16,7 @@ const CustomPlanPage = () => {
   const [isEditingExistingPlan, setIsEditingExistingPlan] = useState(false);
   const [weekNames, setWeekNames] = useState([]);
   const [dayNames, setDayNames] = useState([]);
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     // Load saved plans on component mount
@@ -62,6 +63,13 @@ const CustomPlanPage = () => {
         updatedWorkoutPlan[i][dayIndex].exercises.push(exercise);
       }
       setWorkoutPlan(updatedWorkoutPlan);
+
+      // Clear the error for this day across all weeks
+      setErrors(prevErrors => {
+        const newErrors = { ...prevErrors };
+        delete newErrors[`day${dayIndex}`];
+        return newErrors;
+      });
     }
   };
 
@@ -196,9 +204,45 @@ const CustomPlanPage = () => {
     return true; // Always enable all days
   };
 
+  const validatePlan = () => {
+    const newErrors = {};
+
+    if (!planName.trim()) {
+      newErrors.planName = 'Plan name cannot be empty';
+    }
+
+    if (weeks < 1) {
+      newErrors.weeks = 'Number of weeks must be at least 1';
+    }
+
+    if (daysPerWeek < 1 || daysPerWeek > 7) {
+      newErrors.daysPerWeek = 'Days per week must be between 1 and 7';
+    }
+
+    for (let dayIndex = 0; dayIndex < daysPerWeek; dayIndex++) {
+      let hasExercises = false;
+      for (let weekIndex = 0; weekIndex < weeks; weekIndex++) {
+        if (workoutPlan[weekIndex][dayIndex].exercises.length > 0) {
+          hasExercises = true;
+          break;
+        }
+      }
+      if (!hasExercises) {
+        newErrors[`day${dayIndex}`] = 'Each day must have at least one exercise in any week';
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const savePlan = () => {
+    if (!validatePlan()) {
+      return;
+    }
+
     if (!planName) {
-      setNameError('Please enter a plan name');
+      setErrors(prev => ({ ...prev, planName: 'Please enter a plan name' }));
       return;
     }
 
@@ -213,30 +257,21 @@ const CustomPlanPage = () => {
     const storageKey = `workoutPlan_${planName}`;
 
     if (isEditingExistingPlan) {
-      // Update existing plan
       localStorage.setItem(storageKey, JSON.stringify(planToSave));
       alert('Workout plan updated successfully!');
-
-      // Update the plan in the savedPlans state
       setSavedPlans(prevPlans => 
         prevPlans.map(plan => plan.name === planName ? planToSave : plan)
       );
     } else {
-      // Check if a plan with this name already exists
       if (localStorage.getItem(storageKey)) {
-        setNameError('A plan with this name already exists');
+        setErrors(prev => ({ ...prev, planName: 'A plan with this name already exists' }));
         return;
       }
-
-      // Save new plan
       localStorage.setItem(storageKey, JSON.stringify(planToSave));
       alert('Workout plan saved successfully!');
-
-      // Add the new plan to the savedPlans state
       setSavedPlans(prevPlans => [...prevPlans, planToSave]);
     }
 
-    // Clear form and reset state
     if (!isEditingExistingPlan) {
       setPlanName('');
       setWeeks(1);
@@ -296,6 +331,33 @@ const CustomPlanPage = () => {
     setDayNames(updatedDayNames);
   };
 
+  const isExerciseEnabled = (weekIndex, dayIndex, exerciseIndex) => {
+    if (!isEditingExistingPlan) return true;
+    
+    // Check if it's the first exercise of the first day
+    if (weekIndex === 0 && dayIndex === 0 && exerciseIndex === 0) return true;
+    
+    // Check if the previous exercise is completed
+    if (exerciseIndex > 0) {
+      return isExerciseCompleted(weekIndex, dayIndex, exerciseIndex - 1);
+    }
+    
+    // Check if the last exercise of the previous day is completed
+    if (dayIndex > 0) {
+      const previousDay = workoutPlan[weekIndex][dayIndex - 1];
+      return isExerciseCompleted(weekIndex, dayIndex - 1, previousDay.exercises.length - 1);
+    }
+    
+    // Check if the last exercise of the last day of the previous week is completed
+    if (weekIndex > 0) {
+      const previousWeek = workoutPlan[weekIndex - 1];
+      const lastDay = previousWeek[previousWeek.length - 1];
+      return isExerciseCompleted(weekIndex - 1, previousWeek.length - 1, lastDay.exercises.length - 1);
+    }
+    
+    return false;
+  };
+
   return (
     <div className="container p-6 mt-8">
       <div className="mb-4">
@@ -336,11 +398,11 @@ const CustomPlanPage = () => {
                     value={planName}
                     onChange={(e) => {
                       setPlanName(e.target.value);
-                      setNameError('');
+                      setErrors({...errors, planName: ''});
                     }}
-                    className="w-full p-2 border rounded"
+                    className={`w-full p-2 border rounded ${errors.planName ? 'border-red-500' : ''}`}
                   />
-                  {nameError && <p className="text-red-500 text-sm mt-1">{nameError}</p>}
+                  {errors.planName && <p className="text-red-500 text-sm mt-1">{errors.planName}</p>}
                 </div>
                 <div className="mb-4">
                   <label htmlFor="weeks" className="block mb-2">Number of Weeks:</label>
@@ -348,10 +410,14 @@ const CustomPlanPage = () => {
                     type="number"
                     id="weeks"
                     value={weeks}
-                    onChange={(e) => setWeeks(parseInt(e.target.value))}
+                    onChange={(e) => {
+                      setWeeks(parseInt(e.target.value));
+                      setErrors({...errors, weeks: ''});
+                    }}
                     min="1"
-                    className="w-full p-2 border rounded"
+                    className={`w-full p-2 border rounded ${errors.weeks ? 'border-red-500' : ''}`}
                   />
+                  {errors.weeks && <p className="text-red-500 text-sm mt-1">{errors.weeks}</p>}
                 </div>
                 <div className="mb-4">
                   <label htmlFor="daysPerWeek" className="block mb-2">Days per Week:</label>
@@ -359,11 +425,15 @@ const CustomPlanPage = () => {
                     type="number"
                     id="daysPerWeek"
                     value={daysPerWeek}
-                    onChange={(e) => setDaysPerWeek(parseInt(e.target.value))}
+                    onChange={(e) => {
+                      setDaysPerWeek(parseInt(e.target.value));
+                      setErrors({...errors, daysPerWeek: ''});
+                    }}
                     min="1"
                     max="7"
-                    className="w-full p-2 border rounded"
+                    className={`w-full p-2 border rounded ${errors.daysPerWeek ? 'border-red-500' : ''}`}
                   />
+                  {errors.daysPerWeek && <p className="text-red-500 text-sm mt-1">{errors.daysPerWeek}</p>}
                 </div>
               </form>
               <button
@@ -440,18 +510,17 @@ const CustomPlanPage = () => {
                     {day.exercises.map((exercise, exerciseIndex) => (
                       <li key={exerciseIndex} className="mb-4">
                         <div className="flex items-center mb-2">
-                          <span className='bg-gray-600 px-2 rounded-md'>{exercise}</span>
+                          <span className={`bg-gray-600 px-2 rounded-md ${!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) ? 'opacity-50' : ''}`}>
+                            {exercise}
+                          </span>
                           {isEditingExistingPlan && isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && (
                             <span className="ml-2 text-green-500" title="Completed">&#10004;</span>
                           )}
-                          {!isEditingExistingPlan && <button
-                            onClick={() => removeExercise(weekIndex, dayIndex, exerciseIndex)}
-                            className="ml-2 text-red-500 text-sm"
-                          >
-                            Remove
-                          </button>}
+                          {!isEditingExistingPlan && 
+                            <i class="ml-2 fa-regular fa-trash-can text-red-500 cursor-pointer" onClick={() => removeExercise(weekIndex, dayIndex, exerciseIndex)}/>
+                          }
                           
-                          {isEditingExistingPlan && !isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && (
+                          {isEditingExistingPlan && !isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) && (
                             <button
                               onClick={() => addExerciseDetails(weekIndex, dayIndex, exerciseIndex)}
                               className="ml-2 bg-green-500 text-white px-2 py-1 rounded text-sm"
@@ -474,7 +543,7 @@ const CustomPlanPage = () => {
                             )}
                           </>
                         )}
-                        {isEditingExistingPlan && !isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && (
+                        {isEditingExistingPlan && !isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) && (
                           <>
                             {exerciseDetails[`${weekIndex}-${dayIndex}-${exerciseIndex}`]?.map((detail, detailIndex) => (
                               <div key={detailIndex} className="flex items-center mb-2">
@@ -534,6 +603,9 @@ const CustomPlanPage = () => {
                       </li>
                     ))}
                   </ul>
+                  {errors[`day${dayIndex}`] && (
+                    <p className="text-red-500 text-sm mt-1">{errors[`day${dayIndex}`]}</p>
+                  )}
                 </div>
               ))}
             </div>
