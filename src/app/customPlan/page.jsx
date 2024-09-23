@@ -644,7 +644,6 @@ const CustomPlanPage = () => {
         </>
       ) : (
         <div>
-          <h2 className="text-xl font-bold mb-4 text-black">Saved Plans</h2>
           {savedPlans.length > 0 ? (
             <div>
               {savedPlans.map((plan, index) => (
