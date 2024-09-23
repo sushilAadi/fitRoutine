@@ -6,56 +6,51 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from "@material-tailwind/react";
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
-
+import 'bootstrap/dist/css/bootstrap.min.css';
+import OffCanvasComp from "@/components/OffCanvas/OffCanvasComp";
+import { useState } from "react";
+import Sidebar from "@/components/Sidebar/Sidebar";
+import Image from "next/image";
+import logo from "@/assets/logo.jpg";
+import NavbarComponent from "@/components/Navbar/Navbar";
 
 const queryClient = new QueryClient();
 
 
 export default function RootLayout({ children }) {
+  const [show, setShow] = useState(false);
+
+  const handleOpenClose = () => setShow(!show);
+
   return (
     <QueryClientProvider client={queryClient}>
-    <html lang="en">
-    <head>
-        <link
-          rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
-          integrity="sha512-..."
-          crossOrigin="anonymous"
-          referrerPolicy="no-referrer"
-        />
-      </head>
-      <body >
-        <ThemeProvider>
-      <GlobalContextProvider>
-      <nav className="mb-8 fixed top-0 left-0 right-0 z-10 bg-gray-300 w-full">
-        <ul className="flex space-x-4">
-          <li>
-            <a href="/" className="text-blue-600 hover:text-blue-800">Home</a>
-          </li>
-          <li>
-            <a href="/bodyparts" className="text-blue-600 hover:text-blue-800">Body Parts</a>
-          </li>
-          {/* <li>
-            <a href="/equipment" className="text-blue-600 hover:text-blue-800">Equipment</a>
-          </li>
-          <li>
-            <a href="/exercise" className="text-blue-600 hover:text-blue-800">Exercises</a>
-          </li>
-          <li>
-            <a href="/bodyTarget" className="text-blue-600 hover:text-blue-800">Body Target</a>
-          </li> */}
-          <li>
-            <a href="/customPlan" className="text-blue-600 hover:text-blue-800">Custom Plan</a>
-          </li>
-        </ul>
-      </nav>
-        {children}
-      </GlobalContextProvider>
-      </ThemeProvider>
-      <Analytics />
-      <SpeedInsights />
-      </body>
-    </html>
+      <html lang="en">
+        <head>
+          <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css"
+            integrity="sha512-..."
+            crossOrigin="anonymous"
+            referrerPolicy="no-referrer"
+          />
+        </head>
+        <body >
+          <ThemeProvider>
+            <GlobalContextProvider>
+              <OffCanvasComp placement="end" name="sidebar" show={show} handleClose={handleOpenClose} customStyle="bg-transparent">
+                <Sidebar setOpenNav={handleOpenClose}/>
+              </OffCanvasComp>
+              <div>
+                
+                <NavbarComponent setOpenNav={handleOpenClose}/>
+              </div>
+              {children}
+            </GlobalContextProvider>
+          </ThemeProvider>
+          <Analytics />
+          <SpeedInsights />
+        </body>
+      </html>
     </QueryClientProvider>
   );
 }

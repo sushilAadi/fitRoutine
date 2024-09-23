@@ -2,6 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { exercises } from '../../utils/exercise';
+import InputCs from '@/components/InputCs/InputCs';
+import ButtonCs from '@/components/Button/ButtonCs';
+import {
+  Tabs,
+  TabsHeader,
+  TabsBody,
+  Tab,
+  TabPanel,
+} from "@material-tailwind/react";
 
 const CustomPlanPage = () => {
   const [activeTab, setActiveTab] = useState('create');
@@ -26,7 +35,8 @@ const CustomPlanPage = () => {
     setSavedPlans(plans);
   }, []);
 
-  const generateWorkoutPlan = () => {
+  const generateWorkoutPlan = (e) => {
+    e.preventDefault();
     if (!planName) {
       setNameError('Please enter a plan name');
       return;
@@ -359,69 +369,87 @@ const CustomPlanPage = () => {
   };
 
   return (
-    <div className="container p-6 mt-8">
+    <div className="px-4">
       <div className="mb-4">
-        {tabs.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => {
-              setActiveTab(tab.value);
-              if (tab.value === 'create') {
-                startNewPlan();
-              }
+        <Tabs value={activeTab}>
+          <TabsHeader
+            className="rounded-none border-b border-blue-gray-50 bg-transparent p-0"
+            indicatorProps={{
+              className:
+                "bg-transparent border-b-2 border-gray-900 shadow-none rounded-none",
             }}
-            className={`mr-2 px-4 py-2 rounded ${
-              activeTab === tab.value && (tab.value !== 'create' || !isEditingExistingPlan)
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-200 text-black'
-            }`}
           >
-            {tab.label}
-          </button>
-        ))}
+            {tabs.map((tab) => (
+              <Tab
+                key={tab.value}
+                value={tab.value}
+                onClick={() => {
+                  setActiveTab(tab.value);
+                  if (tab.value === 'create') {
+                    startNewPlan();
+                  }
+                }}
+                className={activeTab === tab.value ? "text-gray-900" : ""}
+              >
+                {tab.label}
+              </Tab>
+            ))}
+          </TabsHeader>
+          <TabsBody>
+            {/* Add TabPanel content here if needed */}
+          </TabsBody>
+        </Tabs>
       </div>
 
       {activeTab === 'create' ? (
         <>
-          <h1 className="text-2xl font-bold mb-4">
+          {isEditingExistingPlan && <h1 className="text-2xl font-bold mb-4">
             {isEditingExistingPlan ? `${planName}` : 'Create Custom Plan'}
-          </h1>
+          </h1>}
           
           {!isEditingExistingPlan && (
             <>
-              <form className="mb-6 flex gap-4">
-                <div className="mb-4">
-                  <label htmlFor="planName" className="block mb-2">Plan Name:</label>
-                  <input
-                    type="text"
-                    id="planName"
-                    value={planName}
-                    onChange={(e) => {
-                      setPlanName(e.target.value);
-                      setErrors({...errors, planName: ''});
-                    }}
-                    className={`w-full p-2 border rounded ${errors.planName ? 'border-red-500' : ''}`}
-                  />
-                  {errors.planName && <p className="text-red-500 text-sm mt-1">{errors.planName}</p>}
+              <form className="mb-6 " onSubmit={generateWorkoutPlan}>
+                <div className="mb-4 gap-3 flex flex-wrap">
+                  <div className='inputBox'>
+                    <label htmlFor="planName" className="block mb-2">Plan Name:</label>
+                    <InputCs
+                      type="text"
+                      id="planName"
+                      value={planName}
+                      placeholder="Enter Plan Name"
+                      onChange={(e) => {
+                        setPlanName(e.target.value);
+                        setErrors({...errors, planName: ''});
+                      }}
+                      className={` p-2 border rounded inputStyle ${errors.planName ? 'border-red-500' : ''}`}
+                      required
+                    />
+                    {errors.planName && <p className="text-red-500 text-sm mt-1">{errors.planName}</p>}
+                  </div>
+                  
                 </div>
-                <div className="mb-4">
-                  <label htmlFor="weeks" className="block mb-2">Number of Weeks:</label>
-                  <input
-                    type="number"
-                    id="weeks"
-                    value={weeks}
-                    onChange={(e) => {
-                      setWeeks(parseInt(e.target.value));
-                      setErrors({...errors, weeks: ''});
-                    }}
-                    min="1"
-                    className={`w-full p-2 border rounded ${errors.weeks ? 'border-red-500' : ''}`}
-                  />
-                  {errors.weeks && <p className="text-red-500 text-sm mt-1">{errors.weeks}</p>}
-                </div>
-                <div className="mb-4">
+                <div className="mb-4 flex gap-3 flex-wrap">
+                <div className='inputBox'>
+                    <label htmlFor="weeks" className="block mb-2">Number of Weeks:</label>
+                    <InputCs
+                      type="number"
+                      id="weeks"
+                      value={weeks}
+                      onChange={(e) => {
+                        setWeeks(parseInt(e.target.value));
+                        setErrors({...errors, weeks: ''});
+                      }}
+                      min="1"
+                      placeholder="Enter no of weeks"
+                      className={`w-full p-2 border rounded ${errors.weeks ? 'border-red-500' : ''}`}
+                      required
+                    />
+                    {errors.weeks && <p className="text-red-500 text-sm mt-1">{errors.weeks}</p>}
+                  </div>
+                  <div className='inputBox'>
                   <label htmlFor="daysPerWeek" className="block mb-2">Days per Week:</label>
-                  <input
+                  <InputCs
                     type="number"
                     id="daysPerWeek"
                     value={daysPerWeek}
@@ -431,18 +459,16 @@ const CustomPlanPage = () => {
                     }}
                     min="1"
                     max="7"
-                    className={`w-full p-2 border rounded ${errors.daysPerWeek ? 'border-red-500' : ''}`}
+                    placeholder="Enter no of Days"
+                    className={`w-full p-2 border rounded min-w-[184px] ${errors.daysPerWeek ? 'border-red-500' : ''}`}
+                    required
                   />
                   {errors.daysPerWeek && <p className="text-red-500 text-sm mt-1">{errors.daysPerWeek}</p>}
+                  </div>
                 </div>
+                <ButtonCs title="Generate Plan" type="submit" className="mt-[36px] btnStyle min-w-[184px]" />
               </form>
-              <button
-                type="button"
-                onClick={generateWorkoutPlan}
-                className="bg-blue-500 text-white px-4 py-2 rounded"
-              >
-                Generate Plan
-              </button>
+              
             </>
           )}
 
