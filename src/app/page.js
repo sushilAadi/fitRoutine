@@ -11,7 +11,6 @@ export default function Home() {
   return (
     <div className="px-4 h-screen">
       
-      <InputCs/>
       
       
     </div>
