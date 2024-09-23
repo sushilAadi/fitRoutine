@@ -505,7 +505,7 @@ const CustomPlanPage = () => {
                     )}
                   </div>
                   {!isEditingExistingPlan && <div className="flex items-center mb-2">
-                    <input
+                    <InputCs
                       type="text"
                       list="exerciseOptions"
                       onChange={(e) => {
@@ -518,7 +518,7 @@ const CustomPlanPage = () => {
                           e.target.value = '';
                         }
                       }}
-                      className="w-full p-2 border rounded mr-2"
+                      className=" p-2 border rounded mr-2 max-w-[386px] w-full mb-4"
                       placeholder="Search and select an exercise"
                     />
                     <datalist id="exerciseOptions">
@@ -638,33 +638,30 @@ const CustomPlanPage = () => {
           ))}
 
           {workoutPlan.length > 0 && (
-            <button
-              onClick={savePlan}
-              className="mt-6 bg-green-500 text-white px-4 py-2 rounded"
-            >
-              {isEditingExistingPlan ? 'Update Plan' : 'Save Plan'}
-            </button>
+            <ButtonCs onClick={savePlan} title={isEditingExistingPlan ? 'Update Plan' : 'Save Plan'} type="submit" className="mt-[36px] btnStyle min-w-[184px] mb-5" />
+           
           )}
         </>
       ) : (
         <div>
           <h2 className="text-xl font-bold mb-4 text-black">Saved Plans</h2>
           {savedPlans.length > 0 ? (
-            <ul>
+            <div>
               {savedPlans.map((plan, index) => (
                 <li key={index} className="mb-2 flex items-center">
-                  <button
+                  <ButtonCs title={`${plan.name} (${plan.weeks} weeks, ${plan.daysPerWeek} days/week)`} className="mb-2 mr-2 !text-sm" onClick={() => loadPlan(plan)}/>
+                  {/* <button
                     onClick={() => loadPlan(plan)}
                     className="bg-blue-500 text-white px-4 py-2 rounded mr-2"
                   >
                     {plan.name} ({plan.weeks} weeks, {plan.daysPerWeek} days/week)
-                  </button>
+                  </button> */}
                   <i class="fa-regular fa-trash-can text-red-500 cursor-pointer" onClick={() => deletePlan(plan.name)}/>
                     
                   
                 </li>
               ))}
-            </ul>
+            </div>
           ) : (
             <p>No saved plans found.</p>
           )}
