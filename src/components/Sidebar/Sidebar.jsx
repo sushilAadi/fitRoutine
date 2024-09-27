@@ -47,7 +47,7 @@ const Sidebar = ({setOpenNav}) => {
             <ListItemPrefix>
               <UserCircleIcon className="h-5 w-5" />
             </ListItemPrefix>
-            <Link href="/customPlan" className="text-inherit no-underline" onClick={setOpenNav}>
+            <Link href="/CreatePlan" className="text-inherit no-underline" onClick={setOpenNav}>
               Custom Plan
             </Link>
           </ListItem>

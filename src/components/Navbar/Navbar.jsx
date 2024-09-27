@@ -51,7 +51,7 @@ const NavbarComponent = ({setOpenNav}) => {
         color="blue-gray"
         className="p-1 font-normal"
       >
-        <Link href="/customPlan" className="text-inherit no-underline">
+        <Link href="/CreatePlan" className="text-inherit no-underline">
           Custom Plan
         </Link>
       </Typography>
