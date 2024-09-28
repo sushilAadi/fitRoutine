@@ -88,7 +88,9 @@ const PlanDetail = ({params}) => {
       weeks: weeks,
       daysPerWeek: daysPerWeek,
       workoutPlan: workoutPlan,
-      exerciseHistory: updatedHistory
+      exerciseHistory: updatedHistory,
+      weekNames: weekNames, // Include week names
+      dayNames: dayNames,   // Include day names
     };
 
     // Update localStorage
