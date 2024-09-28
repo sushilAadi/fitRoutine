@@ -425,10 +425,10 @@ const PlanDetail = ({params}) => {
           </div>
         ))}
 
-        {workoutPlan.length > 0 && (
+        {/* {workoutPlan.length > 0 && (
           <ButtonCs onClick={savePlan} title='Update Plan' type="submit" className="mt-[36px] btnStyle min-w-[184px] mb-5" />
 
-        )}
+        )} */}
       </>
 
       
