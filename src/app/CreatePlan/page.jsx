@@ -476,7 +476,7 @@ const CustomPlanPage = () => {
             <div key={weekIndex} className="mb-8">
               <div className="flex items-center mb-4">
                 <h2 className="text-xl font-semibold mr-2">
-                  {weekNames[weekIndex]}
+                  {weekNames[weekIndex]} {/* Display week name regardless of editing state */}
                 </h2>
                 {!isEditingExistingPlan && (
                   <i
@@ -492,7 +492,7 @@ const CustomPlanPage = () => {
                 <div key={dayIndex} className="mb-4">
                   <div className="flex items-center mb-2">
                     <h3 className="text-lg font-medium mr-2">
-                      {dayNames[dayIndex]}
+                      {dayNames[dayIndex]} {/* Display day name regardless of editing state */}
                     </h3>
                     {!isEditingExistingPlan && (
                       <i
