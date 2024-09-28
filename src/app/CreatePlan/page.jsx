@@ -42,7 +42,7 @@ const CustomPlanPage = () => {
       return;
     }
 
-    const existingPlan = localStorage.getItem(`exerciseHistory_${planName}`);
+    const existingPlan = localStorage.getItem(`workoutPlan_${planName}`);
     if (existingPlan) {
       setNameError('A plan with this name already exists');
       return;
