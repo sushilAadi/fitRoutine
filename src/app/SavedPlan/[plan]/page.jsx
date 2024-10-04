@@ -28,7 +28,7 @@ const PlanDetail = ({params}) => {
   const [dayNames, setDayNames] = useState([]);
   const [errors, setErrors] = useState({});
 
-  console.log("useParam",params?.plan)
+  
   const selectedPlan = params?.plan
 
   const loadPlan = (plan) => {
@@ -41,7 +41,7 @@ const PlanDetail = ({params}) => {
     setDayNames(plan.dayNames || []);   // Load day names from the plan
     setActiveTab('create');
     setIsEditingExistingPlan(true);
-    console.log("plan",plan)
+    
   };
 
   useEffect(() => {
@@ -49,7 +49,7 @@ const PlanDetail = ({params}) => {
     const plans = Object.keys(localStorage)
       .filter(key => key.startsWith('workoutPlan_'))
       .map(key => JSON.parse(localStorage.getItem(key)));
-      console.log("plans",plans)
+      
       const findPlan = plans?.find(i=>i?.name === selectedPlan)
       loadPlan(findPlan)
     // setSavedPlans(plans);

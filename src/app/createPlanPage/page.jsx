@@ -59,7 +59,7 @@ const createPlanPage = () => {
       }
       newWorkoutPlan.push(weekPlan);
     }
-    console.log("newWorkoutPlan", newWorkoutPlan)
+    
     setWorkoutPlan(newWorkoutPlan);
     setWeekNames(Array(weeks).fill('').map((_, i) => `Week ${i + 1}`));
     setDayNames(Array(daysPerWeek).fill('').map((_, i) => `Day ${i + 1}`));
@@ -408,7 +408,7 @@ const createPlanPage = () => {
             <ButtonCs onClick={handleOpenClose} title='Open Canvas' type="button" className="mt-[36px] btnStyle min-w-[184px] mb-5" />
           </div>
 
-          <OffCanvasComp placement="end" name="sidebar" show={show} handleClose={handleOpenClose} customStyle="py-4 px-2">
+          <OffCanvasComp placement="end" name="sidebar" show={show} handleClose={handleOpenClose} customStyle="py-4 px-2 canvasContainer">
           <ExerciseCard />
               </OffCanvasComp>
           
