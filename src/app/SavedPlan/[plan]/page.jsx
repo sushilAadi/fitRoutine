@@ -278,10 +278,10 @@ const PlanDetail = ({params}) => {
 
                 <ul className="pl-5">
                   {day.exercises.map((exercise, exerciseIndex) => (
-                    <li key={exerciseIndex} className="mb-4 cursor-pointer"   onClick={()=>{setExerciseDeatil(exercise);handleOpenClose()}}>
+                    <li key={exerciseIndex} className="mb-4 cursor-pointer"   >
                       <div className="flex items-center mb-2" >
                       <img src={exercise?.gifUrl} alt={exercise?.name} className={`w-[50px]  ${!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) ? 'opacity-50' : ''}`} />
-                        <span className={`font-semibold rounded-md px-3  ${!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) ? 'opacity-50' : ''}`} >
+                        <span onClick={()=>{setExerciseDeatil(exercise);handleOpenClose()}} className={`font-semibold rounded-md px-3  ${!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) ? 'opacity-50' : ''}`} >
                           {_.upperFirst(exercise?.name)}
                         </span>
                         {isEditingExistingPlan && isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && (
