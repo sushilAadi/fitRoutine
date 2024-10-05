@@ -45,9 +45,9 @@ const ExerciseCard = () => {
                     {sortedExercises.map(i => {
                         const image = i?.gifUrl
                         return (
-                            <div key={i.id} className="min-w-[165px] max-w-[165px] cursor-pointer rounded-md overflow-hidden h-[260px] relative imgFilter" style={{ backgroundImage: `url(${image})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', boxShadow: 'inset -3px -6px 6px 5px #dcdcdc' }}>
+                            <div key={i.id} className="min-w-[48%] max-w-[48%] cursor-pointer rounded-md overflow-hidden h-[260px] relative imgFilter" style={{ backgroundImage: `url(${image})`, backgroundSize: 'contain', backgroundRepeat: 'no-repeat', boxShadow: 'inset -3px -6px 6px 5px #dcdcdc' }}>
                                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t to-transparent from-[#032238] bg-opacity-50 p-2" >
-                                    <h6 className="text-black font-bold text-[13px] mb-0 mt-3">{_.upperFirst(i.name)}</h6>
+                                    <h6 className="text-black font-bold text-[13px] mb-0 mt-5">{_.upperFirst(i.name)}</h6>
                                     <p className="text-white text-[11px] mb-0">{_.upperFirst(i.target)} ({i.secondaryMuscles.join(', ')})</p>
                                 </div>
                             </div>
