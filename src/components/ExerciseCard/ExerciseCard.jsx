@@ -28,7 +28,7 @@ const ExerciseCard = () => {
 
     return (
         <div className='w-full flex flex-column '>
-            <div className="flex sticky top-0 bg-white z-10 ">
+            <div className="flex sticky top-0 bg-white z-10 pb-2 ">
                 <PillButton onClick={() => setFilterToggle(!filterToggle)} className="!bg-gray-200 mr-2 h-[36px] flex items-center justify-center" title="Filter" icon={<i className="fa-solid fa-arrow-right-arrow-left mr-2" />} />
                 <div className='flex  overflow-y-scroll no-scrollbar rounded-pill'>{filterToggle && shortedFilter?.map(i => (
                     <PillButton onClick={() => {setSelectedFilter(i);setSearchTerm('')}} className={` ${i === selectedFilter ? "bg-black text-white" : "bg-white"} borderOne mr-2 h-[36px] flex items-center justify-center w-100`} title={_.upperFirst(i)} />
@@ -41,7 +41,7 @@ const ExerciseCard = () => {
             </div>
             <div className='bodyWrapper mt-3'>
                 <h6 className='font-semibold'>{_.upperFirst(selectedFilter)} ({sortedExercises?.length})</h6>
-                <div className='flex overflow-auto no-scrollbar gap-3 flex-wrap justify-between '>
+                <div className='flex overflow-auto no-scrollbar gap-3 flex-wrap  justify-between '>
                     {sortedExercises.map(i => {
                         const image = i?.gifUrl
                         return (
