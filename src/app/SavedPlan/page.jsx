@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import ButtonCs from '@/components/Button/ButtonCs';
 import { useRouter } from 'next/navigation';
+import _ from 'lodash';
 
 const CustomPlanPage = () => {
   const router = useRouter()
@@ -34,7 +35,7 @@ const CustomPlanPage = () => {
           <div>
             {savedPlans.map((plan, index) => (
               <li key={index} className="mb-2 flex items-center">
-                <ButtonCs title={`${plan.name} (${plan.weeks} weeks, ${plan.daysPerWeek} days/week)`} className="mb-2 mr-2 !text-sm" onClick={() => router.push(`/SavedPlan/${plan.name}`)} />
+                <ButtonCs title={`${_.upperFirst(plan.name)} (${plan.weeks} weeks, ${plan.daysPerWeek} days/week)`} className="mb-2 mr-2 !text-sm" onClick={() => router.push(`/SavedPlan/${plan.name}`)} />
                 <i class="fa-regular fa-trash-can text-red-500 cursor-pointer" onClick={() => deletePlan(plan.name)} />
               </li>
             ))}

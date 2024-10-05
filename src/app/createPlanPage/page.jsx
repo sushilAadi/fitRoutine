@@ -23,6 +23,8 @@ const createPlanPage = () => {
   const [dayNames, setDayNames] = useState([]);
   const [errors, setErrors] = useState({});
   const [show, setShow] = useState(false);
+  const [selectedWeekIndex, setSelectedWeekIndex] = useState(null);
+  const [selectedDayIndex, setSelectedDayIndex] = useState(null);
 
   const handleOpenClose = () => setShow(!show);
 
@@ -59,7 +61,7 @@ const createPlanPage = () => {
       }
       newWorkoutPlan.push(weekPlan);
     }
-    
+
     setWorkoutPlan(newWorkoutPlan);
     setWeekNames(Array(weeks).fill('').map((_, i) => `Week ${i + 1}`));
     setDayNames(Array(daysPerWeek).fill('').map((_, i) => `Day ${i + 1}`));
@@ -238,84 +240,86 @@ const createPlanPage = () => {
     return false;
   };
 
+  console.log("day",workoutPlan)
+
   return (
     <div className="px-4">
       <>
         <h1 className="text-2xl font-bold mb-4">Create Custom Plan</h1>
         <div className='flex'>
-        <div className='mr-5'>
-        <>
-          <form className="mb-6 " onSubmit={generateWorkoutPlan}>
-            <div className="mb-4 gap-3 flex flex-wrap">
-              <div className='inputBox'>
-                <label htmlFor="planName" className="block mb-2">Plan Name:</label>
-                <InputCs
-                  type="text"
-                  id="planName"
-                  value={planName}
-                  placeholder="Enter Plan Name"
-                  onChange={(e) => {
-                    const newName = e.target.value;
-                    setPlanName(newName);
+          <div className='mr-5'>
+            <>
+              <form className="mb-6 " onSubmit={generateWorkoutPlan}>
+                <div className="mb-4 gap-3 flex flex-wrap">
+                  <div className='inputBox'>
+                    <label htmlFor="planName" className="block mb-2">Plan Name:</label>
+                    <InputCs
+                      type="text"
+                      id="planName"
+                      value={planName}
+                      placeholder="Enter Plan Name"
+                      onChange={(e) => {
+                        const newName = e.target.value;
+                        setPlanName(newName);
 
-                    // Live validation for existing plan names
-                    const existingPlan = localStorage.getItem(`workoutPlan_${newName}`);
-                    if (existingPlan) {
-                      setNameError('A plan with this name already exists');
-                    } else {
-                      setNameError('');
-                    }
-                  }}
-                  className={` p-2 border rounded inputStyle ${nameError ? 'border-red-500' : ''}`}
-                  required
-                />
-                {nameError && <p className="text-red-500 text-sm mt-1">{nameError}</p>}
-              </div>
+                        // Live validation for existing plan names
+                        const existingPlan = localStorage.getItem(`workoutPlan_${newName}`);
+                        if (existingPlan) {
+                          setNameError('A plan with this name already exists');
+                        } else {
+                          setNameError('');
+                        }
+                      }}
+                      className={` p-2 border rounded inputStyle ${nameError ? 'border-red-500' : ''}`}
+                      required
+                    />
+                    {nameError && <p className="text-red-500 text-sm mt-1">{nameError}</p>}
+                  </div>
 
-            </div>
-            <div className="mb-4 flex gap-3 flex-wrap">
-              <div className='inputBox'>
-                <label htmlFor="weeks" className="block mb-2">Number of Weeks:</label>
-                <InputCs
-                  type="number"
-                  id="weeks"
-                  value={weeks}
-                  onChange={(e) => {
-                    setWeeks(parseInt(e.target.value));
-                    setErrors({ ...errors, weeks: '' });
-                  }}
-                  min="1"
-                  placeholder="Enter no of weeks"
-                  className={`w-full p-2 border rounded ${errors.weeks ? 'border-red-500' : ''}`}
-                  required
-                />
-                {errors.weeks && <p className="text-red-500 text-sm mt-1">{errors.weeks}</p>}
-              </div>
-              <div className='inputBox'>
-                <label htmlFor="daysPerWeek" className="block mb-2">Days per Week:</label>
-                <InputCs
-                  type="number"
-                  id="daysPerWeek"
-                  value={daysPerWeek}
-                  onChange={(e) => {
-                    setDaysPerWeek(parseInt(e.target.value));
-                    setErrors({ ...errors, daysPerWeek: '' });
-                  }}
-                  min="1"
-                  max="7"
-                  placeholder="Enter no of Days"
-                  className={`w-full p-2 border rounded min-w-[184px] ${errors.daysPerWeek ? 'border-red-500' : ''}`}
-                  required
-                />
-                {errors.daysPerWeek && <p className="text-red-500 text-sm mt-1">{errors.daysPerWeek}</p>}
-              </div>
-            </div>
-            <ButtonCs title="Generate Plan" type="submit" className="mt-[36px] btnStyle min-w-[184px]" />
-          </form>
+                </div>
+                <div className="mb-4 flex gap-3 flex-wrap">
+                  <div className='inputBox'>
+                    <label htmlFor="weeks" className="block mb-2">Number of Weeks:</label>
+                    <InputCs
+                      type="number"
+                      id="weeks"
+                      value={weeks}
+                      onChange={(e) => {
+                        setWeeks(parseInt(e.target.value));
+                        setErrors({ ...errors, weeks: '' });
+                      }}
+                      min="1"
+                      placeholder="Enter no of weeks"
+                      className={`w-full p-2 border rounded ${errors.weeks ? 'border-red-500' : ''}`}
+                      required
+                    />
+                    {errors.weeks && <p className="text-red-500 text-sm mt-1">{errors.weeks}</p>}
+                  </div>
+                  <div className='inputBox'>
+                    <label htmlFor="daysPerWeek" className="block mb-2">Days per Week:</label>
+                    <InputCs
+                      type="number"
+                      id="daysPerWeek"
+                      value={daysPerWeek}
+                      onChange={(e) => {
+                        setDaysPerWeek(parseInt(e.target.value));
+                        setErrors({ ...errors, daysPerWeek: '' });
+                      }}
+                      min="1"
+                      max="7"
+                      placeholder="Enter no of Days"
+                      className={`w-full p-2 border rounded min-w-[184px] ${errors.daysPerWeek ? 'border-red-500' : ''}`}
+                      required
+                    />
+                    {errors.daysPerWeek && <p className="text-red-500 text-sm mt-1">{errors.daysPerWeek}</p>}
+                  </div>
+                </div>
+                <ButtonCs title="Generate Plan" type="submit" className="mt-[36px] btnStyle min-w-[184px]" />
+              </form>
 
-        </>
-        
-          
+            </>
+
+
             {workoutPlan.map((week, weekIndex) => (
               <div key={weekIndex} className="mb-8">
                 <div className="flex items-center mb-4">
@@ -349,7 +353,7 @@ const createPlanPage = () => {
                       )}
                     </div>
                     {!isEditingExistingPlan && <div className="flex items-center mb-2">
-                      <InputCs
+                      {/* <InputCs
                         type="text"
                         list="exerciseOptions"
                         onChange={(e) => {
@@ -373,7 +377,16 @@ const createPlanPage = () => {
                             disabled={day.exercises.includes(ex.name)}
                           />
                         ))}
-                      </datalist>
+                      </datalist> */}
+                      <button
+                        className="p-2 bg-blue-500 text-white rounded"
+                        onClick={() => {
+                          handleOpenClose(); setSelectedWeekIndex(weekIndex);
+                          setSelectedDayIndex(dayIndex);
+                        }}
+                      >
+                        Add Exercise
+                      </button>
                     </div>}
 
                     <ul className="list-disc pl-5">
@@ -381,7 +394,7 @@ const createPlanPage = () => {
                         <li key={exerciseIndex} className="mb-4">
                           <div className="flex items-center mb-2">
                             <span className={`bg-gray-600 px-2 rounded-md ${!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) ? 'opacity-50' : ''}`}>
-                              {exercise}
+                              {exercise?.name}
                             </span>
 
                             {!isEditingExistingPlan &&
@@ -403,15 +416,18 @@ const createPlanPage = () => {
 
             {workoutPlan.length > 0 && (
               <ButtonCs onClick={savePlan} title='Save Plan' type="submit" className="mt-[36px] btnStyle min-w-[184px] mb-5" />
-              
+
             )}
-            <ButtonCs onClick={handleOpenClose} title='Open Canvas' type="button" className="mt-[36px] btnStyle min-w-[184px] mb-5" />
+            {/* <ButtonCs onClick={handleOpenClose} title='Open Canvas' type="button" className="mt-[36px] btnStyle min-w-[184px] mb-5" /> */}
           </div>
 
-          <OffCanvasComp placement="end" name="sidebar" show={show} handleClose={handleOpenClose} customStyle="py-4 px-2 canvasContainer">
-          <ExerciseCard />
-              </OffCanvasComp>
-          
+          <OffCanvasComp placement="end" name="sidebar" show={show} handleClose={handleOpenClose} customStyle="pl-4 py-4">
+            <ExerciseCard handleClose={handleOpenClose} onSelectExercise={(exercise) => {
+              addExerciseToDay(selectedWeekIndex, selectedDayIndex, exercise);
+
+            }} />
+          </OffCanvasComp>
+
         </div>
       </>
 

@@ -12,6 +12,9 @@ import {
   TabPanel,
 } from "@material-tailwind/react";
 import { exercises } from '@/utils/exercise';
+import OffCanvasComp from '@/components/OffCanvas/OffCanvasComp';
+import ExerciseDeatil from './ExerciseDeatil';
+import _ from 'lodash';
 
 const PlanDetail = ({params}) => {
   const [activeTab, setActiveTab] = useState('create');
@@ -27,6 +30,10 @@ const PlanDetail = ({params}) => {
   const [weekNames, setWeekNames] = useState([]);
   const [dayNames, setDayNames] = useState([]);
   const [errors, setErrors] = useState({});
+  const [exerciseDetail,setExerciseDeatil] = useState(null)
+  const [show, setShow] = useState(false);
+
+  const handleOpenClose = () => setShow(!show);
 
   
   const selectedPlan = params?.plan
@@ -203,62 +210,7 @@ const PlanDetail = ({params}) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const savePlan = () => {
-    if (!validatePlan()) {
-      return;
-    }
-
-    if (!planName) {
-      setErrors(prev => ({ ...prev, planName: 'Please enter a plan name' }));
-      return;
-    }
-
-    const planToSave = {
-      name: planName,
-      weeks: weeks,
-      daysPerWeek: daysPerWeek,
-      workoutPlan: workoutPlan,
-      exerciseHistory: exerciseHistory
-    };
-
-    const storageKey = `workoutPlan_${planName}`;
-
-    if (isEditingExistingPlan) {
-      localStorage.setItem(storageKey, JSON.stringify(planToSave));
-      alert('Workout plan updated successfully!');
-      setSavedPlans(prevPlans =>
-        prevPlans.map(plan => plan.name === planName ? planToSave : plan)
-      );
-    } else {
-      if (localStorage.getItem(storageKey)) {
-        setErrors(prev => ({ ...prev, planName: 'A plan with this name already exists' }));
-        return;
-      }
-      localStorage.setItem(storageKey, JSON.stringify(planToSave));
-      alert('Workout plan saved successfully!');
-      setSavedPlans(prevPlans => [...prevPlans, planToSave]);
-    }
-
-    if (!isEditingExistingPlan) {
-      setPlanName('');
-      setWeeks(1);
-      setDaysPerWeek(1);
-      setWorkoutPlan([]);
-      setExerciseDetails({});
-      setExerciseHistory({});
-    }
-  };
-
-  
-
  
-
-  const deletePlan = (planName) => {
-    if (window.confirm(`Are you sure you want to delete the plan "${planName}"?`)) {
-      localStorage.removeItem(`workoutPlan_${planName}`);
-      setSavedPlans(prevPlans => prevPlans.filter(plan => plan.name !== planName));
-    }
-  };
 
 
 
@@ -297,9 +249,9 @@ const PlanDetail = ({params}) => {
   };
 
   return (
-    <div className="px-4">
+    <div className="px-4 flex justify-between">
 
-      <>
+      <div className='no-scrollbar'>
         <h1 className="text-2xl font-bold mb-4">
           {planName}
         </h1>
@@ -324,12 +276,13 @@ const PlanDetail = ({params}) => {
                 </div>
 
 
-                <ul className="list-disc pl-5">
+                <ul className="pl-5">
                   {day.exercises.map((exercise, exerciseIndex) => (
-                    <li key={exerciseIndex} className="mb-4">
-                      <div className="flex items-center mb-2">
-                        <span className={`bg-gray-600 px-2 rounded-md ${!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) ? 'opacity-50' : ''}`}>
-                          {exercise}
+                    <li key={exerciseIndex} className="mb-4 cursor-pointer"   onClick={()=>{setExerciseDeatil(exercise);handleOpenClose()}}>
+                      <div className="flex items-center mb-2" >
+                      <img src={exercise?.gifUrl} alt={exercise?.name} className={`w-[50px]  ${!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) ? 'opacity-50' : ''}`} />
+                        <span className={`font-semibold rounded-md px-3  ${!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) ? 'opacity-50' : ''}`} >
+                          {_.upperFirst(exercise?.name)}
                         </span>
                         {isEditingExistingPlan && isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && (
                           <span className="ml-2 text-green-500" title="Completed">&#10004;</span>
@@ -339,7 +292,7 @@ const PlanDetail = ({params}) => {
                         {isEditingExistingPlan && !isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) && (
                           <button
                             onClick={() => addExerciseDetails(weekIndex, dayIndex, exerciseIndex)}
-                            className="ml-2 bg-green-500 text-white px-2 py-1 rounded text-sm"
+                            className=" bg-green-500 text-white px-2 py-1 rounded text-sm"
                           >
                             Add Set
                           </button>
@@ -351,7 +304,7 @@ const PlanDetail = ({params}) => {
                             <div className="text-sm text-gray-600 mb-2">
                               Previous: {getPreviousRecord(weekIndex, dayIndex, exerciseIndex).map((set, index) => (
                                 <span key={index}>
-                                  {set.weight && `${set.weight} lbs x `}{set.reps} reps
+                                  {set.weight && `${set.weight} Kg x `}{set.reps} reps
                                   {index < getPreviousRecord(weekIndex, dayIndex, exerciseIndex).length - 1 ? ', ' : ''}
                                 </span>
                               ))}
@@ -363,7 +316,7 @@ const PlanDetail = ({params}) => {
                         <>
                           {exerciseDetails[`${weekIndex}-${dayIndex}-${exerciseIndex}`]?.map((detail, detailIndex) => (
                             <div key={detailIndex} className="flex items-center mb-2">
-                              {!isBodyWeightOrBandExercise(exercise) && (
+                              {!isBodyWeightOrBandExercise(exercise?.name) && (
                                 <input
                                   type="number"
                                   placeholder="Weight"
@@ -387,7 +340,7 @@ const PlanDetail = ({params}) => {
                               </button>
                             </div>
                           ))}
-                          {areAllSetsComplete(weekIndex, dayIndex, exerciseIndex, exercise) && (
+                          {areAllSetsComplete(weekIndex, dayIndex, exerciseIndex, exercise?.name) && (
                             <button
                               onClick={() => submitExerciseDetails(weekIndex, dayIndex, exerciseIndex)}
                               className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
@@ -402,12 +355,12 @@ const PlanDetail = ({params}) => {
                           {/* <h4 className="text-sm font-semibold">
                               {isDayComplete(weekIndex, dayIndex) ? "Today's Completed Sets" : "Previous Workout Sets"}
                             </h4> */}
-                          <div className="flex flex-row space-x-4 text-sm text-[#c5e1a5]">
+                          <div className="flex flex-row space-x-4 text-sm text-[#456f16]">
                             Completed Sets: {exerciseHistory[`${weekIndex}-${dayIndex}-${exerciseIndex}`].map((record, recordIndex) => (
                               <div key={recordIndex} className="text-md ml-2">
                                 {record.map((set, setIndex) => (
                                   <span key={setIndex}>
-                                    {set.weight && `${set.weight} lbs x `}{set.reps} reps
+                                    {set.weight && `${set.weight} Kg x `}{set.reps} reps
                                     {setIndex < record.length - 1 && ', '}
                                   </span>
                                 ))}
@@ -427,13 +380,11 @@ const PlanDetail = ({params}) => {
           </div>
         ))}
 
-        {/* {workoutPlan.length > 0 && (
-          <ButtonCs onClick={savePlan} title='Update Plan' type="submit" className="mt-[36px] btnStyle min-w-[184px] mb-5" />
+      </div>
 
-        )} */}
-      </>
-
-      
+      <OffCanvasComp placement="end" name="sidebar" show={show} handleClose={handleOpenClose} customStyle="pl-4 py-4 canvasContainer ">
+            <ExerciseDeatil handleClose={handleOpenClose} data={exerciseDetail}/>
+          </OffCanvasComp>
 
     </div>
   );
