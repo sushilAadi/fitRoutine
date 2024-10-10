@@ -29,8 +29,8 @@ const Sidebar = ({setOpenNav}) => {
     <div className='overflow-y-auto h-full p-4'>
       <Card className="h-full w-full p-3 ">
         <div className=" px-4 flex justify-between items-center">
-        <Image src={logo} alt="logo" width={46} height={46} />
-        <i className="fa-solid fa-xmark text-red-500 cursor-pointer" onClick={setOpenNav}/>
+            <Image src={logo} alt="logo" width={45} height={45} />
+            <i className="fa-solid fa-xmark text-red-500 cursor-pointer" onClick={setOpenNav}/>
         </div>
         <List>
           
