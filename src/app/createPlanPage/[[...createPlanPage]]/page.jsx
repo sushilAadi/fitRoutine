@@ -25,11 +25,11 @@ const createPlanPage = () => {
   const [weekNames, setWeekNames] = useState([]);
   const [dayNames, setDayNames] = useState([]);
   const [errors, setErrors] = useState({});
-  const [show, setShow] = useState(false);
+  const [showExe, setShowExe] = useState(false);
   const [selectedWeekIndex, setSelectedWeekIndex] = useState(null);
   const [selectedDayIndex, setSelectedDayIndex] = useState(null);
 
-  const handleOpenClose = () => setShow(!show);
+  const handleOpenClose = () => setShowExe(!showExe);
 
   useEffect(() => {
     // Load saved plans on component mount
@@ -286,7 +286,7 @@ const createPlanPage = () => {
                             setNameError("");
                           }
                         }}
-                        className={` p-2 border rounded inputStyle ${
+                        className={` border rounded inputStyle ${
                           nameError ? "border-red-500" : ""
                         }`}
                         required
@@ -386,6 +386,7 @@ const createPlanPage = () => {
                             {/* Display day name regardless of editing state */}
                           </h3>
                           {!isEditingExistingPlan && (
+                            <>
                             <i
                               className="text-gray-500 cursor-pointer fa-regular fa-pen-to-square"
                               onClick={() => {
@@ -396,6 +397,8 @@ const createPlanPage = () => {
                                 if (newName) updateDayName(dayIndex, newName);
                               }}
                             />
+                            
+                            </>
                           )}
                         </div>
                         {!isEditingExistingPlan && (
@@ -490,9 +493,9 @@ const createPlanPage = () => {
             
 
             <OffCanvasComp
-              placement="end"
-              name="sidebar"
-              show={show}
+              placement="top"
+              name="createPlan"
+              showProps={showExe}
               handleClose={handleOpenClose}
               customStyle="pl-4 py-4"
             >

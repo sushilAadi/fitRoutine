@@ -75,6 +75,7 @@ export default function RootLayout({ children }) {
                     placement="end"
                     name="sidebar"
                     customStyle="bg-transparent"
+                    sidebar={true}
                   >
                     <Sidebar />
                   </OffCanvasComp>

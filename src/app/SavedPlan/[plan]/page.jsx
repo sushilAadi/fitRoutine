@@ -837,8 +837,8 @@ const PlanDetail = ({ params }) => {
 
       <OffCanvasComp
         placement="end"
-        name="sidebar"
-        show={show}
+        name="savePlan"
+        showProps={show}
         handleClose={handleOpenClose}
         customStyle="pl-4 py-4"
       >
