@@ -1,74 +1,90 @@
-'use client';
-
+'use client'
 import React, { useState, useEffect } from 'react';
-
-import InputCs from '@/components/InputCs/InputCs';
-import ButtonCs from '@/components/Button/ButtonCs';
-import {
-  Tabs,
-  TabsHeader,
-  TabsBody,
-  Tab,
-  TabPanel,
-} from "@material-tailwind/react";
-import { exercises } from '@/utils/exercise';
+import _ from 'lodash';
 import OffCanvasComp from '@/components/OffCanvas/OffCanvasComp';
 import ExerciseDeatil from './ExerciseDeatil';
-import _ from 'lodash';
 
-const PlanDetail = ({params}) => {
-  const [activeTab, setActiveTab] = useState('create');
-  const [weeks, setWeeks] = useState(1);
-  const [daysPerWeek, setDaysPerWeek] = useState(1);
-  const [planName, setPlanName] = useState('');
-  const [nameError, setNameError] = useState('');
-  const [workoutPlan, setWorkoutPlan] = useState([]);
+const TabButton = ({ active, onClick, children, disabled }) => (
+  <button
+    className={`px-4 py-2 mx-1 rounded-t-lg ${
+      active 
+        ? 'bg-black text-white border-b-2 border-red-500' 
+        : disabled 
+          ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+          : 'bg-gray-100 hover:bg-gray-200'
+    }`}
+    onClick={onClick}
+    disabled={disabled}
+  >
+    {children}
+  </button>
+);
+
+const PlanDetail = ({ params }) => {
+  const [workoutData, setWorkoutData] = useState(null);
+  const [selectedWeek, setSelectedWeek] = useState(0);
+  const [selectedDay, setSelectedDay] = useState(0);
   const [exerciseDetails, setExerciseDetails] = useState({});
-  const [exerciseHistory, setExerciseHistory] = useState({});
-  const [savedPlans, setSavedPlans] = useState([]);
-  const [isEditingExistingPlan, setIsEditingExistingPlan] = useState(false);
-  const [weekNames, setWeekNames] = useState([]);
-  const [dayNames, setDayNames] = useState([]);
-  const [errors, setErrors] = useState({});
-  const [exerciseDetail,setExerciseDeatil] = useState(null)
+  const [selectedExercise,setSelectedExercise] = useState(null)
   const [show, setShow] = useState(false);
-
   const handleOpenClose = () => setShow(!show);
 
-  
-  const selectedPlan = params?.plan
-
-  const loadPlan = (plan) => {
-    setPlanName(plan.name);
-    setWeeks(plan.weeks);
-    setDaysPerWeek(plan.daysPerWeek);
-    setWorkoutPlan(plan.workoutPlan);
-    setExerciseHistory(plan.exerciseHistory);
-    setWeekNames(plan.weekNames || []); // Load week names from the plan
-    setDayNames(plan.dayNames || []);   // Load day names from the plan
-    setActiveTab('create');
-    setIsEditingExistingPlan(true);
-    
-  };
+  console.log("selectedExercise",selectedExercise)
 
   useEffect(() => {
-    // Load saved plans on component mount
     const plans = Object.keys(localStorage)
       .filter(key => key.startsWith('workoutPlan_'))
       .map(key => JSON.parse(localStorage.getItem(key)));
-      
-    const findPlan = plans?.find(i => i?.name === selectedPlan);
+    
+    const findPlan = plans?.find(i => i?.name === params?.plan);
     if (findPlan) {
-      loadPlan(findPlan);
-      console.log("Loaded plan:", findPlan);
-      console.log("Exercise history:", findPlan.exerciseHistory);
-    } else {
-      console.log("No plan found with name:", selectedPlan);
+      setWorkoutData(findPlan);
     }
-  }, []);
+  }, [params?.plan]);
 
+  const isExerciseCompleted = (weekIndex, dayIndex, exerciseIndex) => {
+    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
+    return workoutData?.exerciseHistory[key] && workoutData.exerciseHistory[key].length > 0;
+  };
 
+  const isExerciseEnabled = (weekIndex, dayIndex, exerciseIndex) => {
+    // First exercise is always enabled
+    if (exerciseIndex === 0) return true;
 
+    // Check if previous exercise is completed
+    return isExerciseCompleted(weekIndex, dayIndex, exerciseIndex - 1);
+  };
+
+  const isDayCompleted = (weekIndex, dayIndex) => {
+    const exercises = workoutData?.workoutPlan[weekIndex][dayIndex].exercises || [];
+    return exercises.every((_, index) => isExerciseCompleted(weekIndex, dayIndex, index));
+  };
+
+  const isWeekCompleted = (weekIndex) => {
+    return Array.from({ length: workoutData?.daysPerWeek || 0 }).every((_, dayIndex) => 
+      isDayCompleted(weekIndex, dayIndex)
+    );
+  };
+
+  const isDayAccessible = (weekIndex, dayIndex) => {
+    if (weekIndex === 0 && dayIndex === 0) return true;
+    if (dayIndex === 0) return isWeekCompleted(weekIndex - 1);
+    return isDayCompleted(weekIndex, dayIndex - 1);
+  };
+
+  const isWeekAccessible = (weekIndex) => {
+    if (weekIndex === 0) return true;
+    return isWeekCompleted(weekIndex - 1);
+  };
+
+  const moveToNextDay = () => {
+    if (selectedDay < workoutData.daysPerWeek - 1) {
+      setSelectedDay(selectedDay + 1);
+    } else if (selectedWeek < workoutData.weeks - 1) {
+      setSelectedWeek(selectedWeek + 1);
+      setSelectedDay(0);
+    }
+  };
 
   const addExerciseDetails = (weekIndex, dayIndex, exerciseIndex) => {
     const updatedExerciseDetails = { ...exerciseDetails };
@@ -89,56 +105,43 @@ const PlanDetail = ({params}) => {
     setExerciseDetails(updatedExerciseDetails);
   };
 
-  const isBodyWeightOrBandExercise = (exerciseName) => {
-    const exercise = exercises.find(ex => ex.name === exerciseName);
-    return exercise && (exercise.equipment === "body weight" || exercise.equipment === "band");
+  const removeExerciseDetail = (weekIndex, dayIndex, exerciseIndex, detailIndex) => {
+    const updatedExerciseDetails = { ...exerciseDetails };
+    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
+    updatedExerciseDetails[key].splice(detailIndex, 1);
+    setExerciseDetails(updatedExerciseDetails);
   };
 
-  const updatePlan = (updatedHistory) => {
-    const updatedPlan = {
-      name: planName,
-      weeks: weeks,
-      daysPerWeek: daysPerWeek,
-      workoutPlan: workoutPlan,
-      exerciseHistory: updatedHistory,
-      weekNames: weekNames, // Include week names
-      dayNames: dayNames,   // Include day names
-    };
-
-    // Update localStorage
-    localStorage.setItem(`workoutPlan_${planName}`, JSON.stringify(updatedPlan));
-
-    // Update savedPlans state
-    setSavedPlans(prevPlans =>
-      prevPlans.map(plan => plan.name === planName ? updatedPlan : plan)
+  const areAllSetsComplete = (details, exercise) => {
+    if (!details || details.length === 0) return false;
+    return details.every(detail => 
+      detail.reps && (!exercise || exercise.equipment === "body weight" || exercise.equipment === "band" || detail.weight)
     );
-
-    // Update exerciseHistory state
-    setExerciseHistory(updatedHistory);
   };
 
   const submitExerciseDetails = (weekIndex, dayIndex, exerciseIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
     const details = exerciseDetails[key];
-    if (details && details.length > 0) {
+    const exercise = workoutData.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
+
+    if (details && details.length > 0 && areAllSetsComplete(details, exercise)) {
       const setCount = details.length;
       const confirmMessage = `You have completed ${setCount} set${setCount > 1 ? 's' : ''}. Do you want to submit?`;
 
       if (window.confirm(confirmMessage)) {
-        const updatedHistory = { ...exerciseHistory };
+        const updatedHistory = { ...workoutData.exerciseHistory };
         if (!updatedHistory[key]) {
           updatedHistory[key] = [];
         }
         updatedHistory[key].push(details);
 
-        // Update the plan
-        if (isEditingExistingPlan) {
-          updatePlan(updatedHistory);
-        } else {
-          setExerciseHistory(updatedHistory);
-        }
+        const updatedWorkoutData = {
+          ...workoutData,
+          exerciseHistory: updatedHistory
+        };
+        localStorage.setItem(`workoutPlan_${workoutData.name}`, JSON.stringify(updatedWorkoutData));
+        setWorkoutData(updatedWorkoutData);
 
-        // Clear current exercise details
         const updatedExerciseDetails = { ...exerciseDetails };
         updatedExerciseDetails[key] = [];
         setExerciseDetails(updatedExerciseDetails);
@@ -147,273 +150,182 @@ const PlanDetail = ({params}) => {
   };
 
   const getPreviousRecord = (weekIndex, dayIndex, exerciseIndex) => {
-    console.log(`Searching for previous record: Week ${weekIndex}, Day ${dayIndex}, Exercise ${exerciseIndex}`);
-    
-    if (weekIndex === 0) {
-      console.log("First week, no previous record");
-      return null; // No previous record for the first week
-    }
-    
-    const currentExercise = workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
-    console.log("Current exercise:", currentExercise);
+    if (!workoutData || weekIndex === 0) return null;
 
-    // Look for the same exercise in the previous weeks
+    const currentExercise = workoutData.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
+    
     for (let i = weekIndex - 1; i >= 0; i--) {
-      console.log(`Checking week ${i}`);
-      if (workoutPlan[i] && workoutPlan[i][dayIndex] && 
-          workoutPlan[i][dayIndex].exercises[exerciseIndex] &&
-          workoutPlan[i][dayIndex].exercises[exerciseIndex].name === currentExercise.name) {
-        
+      if (workoutData.workoutPlan[i]?.[dayIndex]?.exercises[exerciseIndex]?.name === currentExercise.name) {
         const key = `${i}-${dayIndex}-${exerciseIndex}`;
-        console.log(`Found matching exercise in week ${i}, checking key: ${key}`);
-        const records = exerciseHistory[key];
-        
-        if (records && records.length > 0) {
-          console.log(`Found previous record:`, records[records.length - 1]);
-          return records[records.length - 1];
-        }
+        const records = workoutData.exerciseHistory[key];
+        if (records?.length > 0) return records[records.length - 1];
       }
     }
-    
-    console.log("No previous record found");
-    return null; // No previous record found for this exercise
-  };
-  
-
-  const removeExerciseDetail = (weekIndex, dayIndex, exerciseIndex, detailIndex) => {
-    const updatedExerciseDetails = { ...exerciseDetails };
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-    updatedExerciseDetails[key].splice(detailIndex, 1);
-    setExerciseDetails(updatedExerciseDetails);
+    return null;
   };
 
-  const isSetComplete = (detail, exercise) => {
-    if (isBodyWeightOrBandExercise(exercise)) {
-      return detail.reps !== '';
-    }
-    return detail.weight !== '' && detail.reps !== '';
-  };
-
-  const areAllSetsComplete = (weekIndex, dayIndex, exerciseIndex, exercise) => {
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-    const details = exerciseDetails[key];
-    return details && details.length > 0 && details.every(detail => isSetComplete(detail, exercise));
-  };
-
-
-  const validatePlan = () => {
-    const newErrors = {};
-
-    if (!planName.trim()) {
-      newErrors.planName = 'Plan name cannot be empty';
-    }
-
-    if (weeks < 1) {
-      newErrors.weeks = 'Number of weeks must be at least 1';
-    }
-
-    if (daysPerWeek < 1 || daysPerWeek > 7) {
-      newErrors.daysPerWeek = 'Days per week must be between 1 and 7';
-    }
-
-    for (let dayIndex = 0; dayIndex < daysPerWeek; dayIndex++) {
-      let hasExercises = false;
-      for (let weekIndex = 0; weekIndex < weeks; weekIndex++) {
-        if (workoutPlan[weekIndex][dayIndex].exercises.length > 0) {
-          hasExercises = true;
-          break;
-        }
-      }
-      if (!hasExercises) {
-        newErrors[`day${dayIndex}`] = 'Each day must have at least one exercise in any week';
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
- 
-
-
-
-  const isExerciseCompleted = (weekIndex, dayIndex, exerciseIndex) => {
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-    return exerciseHistory[key] && exerciseHistory[key].length > 0;
-  };
-
-
-
-  const isExerciseEnabled = (weekIndex, dayIndex, exerciseIndex) => {
-    if (!isEditingExistingPlan) return true;
-
-    // Check if it's the first exercise of the first day
-    if (weekIndex === 0 && dayIndex === 0 && exerciseIndex === 0) return true;
-
-    // Check if the previous exercise is completed
-    if (exerciseIndex > 0) {
-      return isExerciseCompleted(weekIndex, dayIndex, exerciseIndex - 1);
-    }
-
-    // Check if the last exercise of the previous day is completed
-    if (dayIndex > 0) {
-      const previousDay = workoutPlan[weekIndex][dayIndex - 1];
-      return isExerciseCompleted(weekIndex, dayIndex - 1, previousDay.exercises.length - 1);
-    }
-
-    // Check if the last exercise of the last day of the previous week is completed
-    if (weekIndex > 0) {
-      const previousWeek = workoutPlan[weekIndex - 1];
-      const lastDay = previousWeek[previousWeek.length - 1];
-      return isExerciseCompleted(weekIndex - 1, previousWeek.length - 1, lastDay.exercises.length - 1);
-    }
-
-    return false;
-  };
-
-  console.log(workoutPlan,"workoutPlan")
+  if (!workoutData) return <div>Loading...</div>;
 
   return (
-    <div className="px-4 flex justify-between">
-
-      <div className='no-scrollbar'>
-        <h1 className="text-2xl font-bold mb-4">
-          {planName}
-        </h1>
-
-
-
-        {workoutPlan.map((week, weekIndex) => (
-          <div key={weekIndex} className="mb-8">
-            <div className="flex items-center mb-4">
-              <h2 className="text-xl font-semibold mr-2">
-                {weekNames[weekIndex]} {/* Display week name regardless of editing state */}
-              </h2>
-
-            </div>
-            {week.map((day, dayIndex) => (
-              <div key={dayIndex} className="mb-4">
-                <div className="flex items-center mb-2">
-                  <h3 className="text-lg font-medium mr-2">
-                    {dayNames[dayIndex]} {/* Display day name regardless of editing state */}
-                  </h3>
-
-                </div>
-
-
-                <ul className="pl-5">
-                  {day.exercises.map((exercise, exerciseIndex) => (
-                    <li key={exerciseIndex} className="mb-4 cursor-pointer"   >
-                      <div className="flex items-center mb-2" >
-                      <img src={exercise?.gifUrl}  className={`w-[50px]  ${!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) ? 'opacity-50' : ''}`} />
-                        <span onClick={()=>{setExerciseDeatil(exercise);handleOpenClose()}} className={`font-semibold rounded-md px-3  ${!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) ? 'opacity-50' : ''}`} >
-                          {_.upperFirst(exercise?.name)}
-                        </span>
-                        {isEditingExistingPlan && isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && (
-                          <span className="ml-2 text-green-500" title="Completed">&#10004;</span>
-                        )}
-
-
-                        {isEditingExistingPlan && !isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) && (
-                          <button
-                            onClick={() => addExerciseDetails(weekIndex, dayIndex, exerciseIndex)}
-                            className=" bg-green-500 text-white px-2 py-1 rounded text-sm"
-                          >
-                            Add Set
-                          </button>
-                        )}
-                      </div>
-                      {weekIndex > 0 && (
-                      <>
-                        {getPreviousRecord(weekIndex, dayIndex, exerciseIndex) && (
-                          <div className="text-sm text-black mb-2">
-                            Previous: {getPreviousRecord(weekIndex, dayIndex, exerciseIndex).map((set, index) => (
-                              <span key={index}>
-                                {set.weight && `${set.weight} lbs x `}{set.reps} reps
-                                {index < getPreviousRecord(weekIndex, dayIndex, exerciseIndex).length - 1 ? ', ' : ''}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    )}
-                      {isEditingExistingPlan && !isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) && (
-                        <>
-                          {exerciseDetails[`${weekIndex}-${dayIndex}-${exerciseIndex}`]?.map((detail, detailIndex) => (
-                            <div key={detailIndex} className="flex items-center mb-2">
-                              {!isBodyWeightOrBandExercise(exercise?.name) && (
-                                <input
-                                  type="number"
-                                  placeholder="Weight"
-                                  value={detail.weight}
-                                  onChange={(e) => updateExerciseDetail(weekIndex, dayIndex, exerciseIndex, detailIndex, 'weight', e.target.value)}
-                                  className="w-20 p-1 border rounded mr-2"
-                                />
-                              )}
-                              <input
-                                type="number"
-                                placeholder="Reps"
-                                value={detail.reps}
-                                onChange={(e) => updateExerciseDetail(weekIndex, dayIndex, exerciseIndex, detailIndex, 'reps', e.target.value)}
-                                className="w-20 p-1 border rounded mr-2"
-                              />
-                              <button
-                                onClick={() => removeExerciseDetail(weekIndex, dayIndex, exerciseIndex, detailIndex)}
-                                className="text-red-500 text-sm !ml-2"
-                              >
-                                <i className="fa-solid fa-trash-can "></i>
-                              </button>
-                            </div>
-                          ))}
-                          {areAllSetsComplete(weekIndex, dayIndex, exerciseIndex, exercise?.name) && (
-                            <button
-                              onClick={() => submitExerciseDetails(weekIndex, dayIndex, exerciseIndex)}
-                              className="bg-blue-500 text-white px-2 py-1 rounded text-sm"
-                            >
-                              Submit
-                            </button>
-                          )}
-                        </>
-                      )}
-                      {exerciseHistory[`${weekIndex}-${dayIndex}-${exerciseIndex}`] && (
-                        <div className="mt-2">
-                          {/* <h4 className="text-sm font-semibold">
-                              {isDayComplete(weekIndex, dayIndex) ? "Today's Completed Sets" : "Previous Workout Sets"}
-                            </h4> */}
-                          <div className="flex flex-row space-x-4 text-sm text-[#456f16]">
-                            Completed Sets: {exerciseHistory[`${weekIndex}-${dayIndex}-${exerciseIndex}`].map((record, recordIndex) => (
-                              <div key={recordIndex} className="text-md ml-2">
-                                {record.map((set, setIndex) => (
-                                  <span key={setIndex}>
-                                    {set.weight && `${set.weight} Kg x `}{set.reps} reps
-                                    {setIndex < record.length - 1 && ', '}
-                                  </span>
-                                ))}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-                {errors[`day${dayIndex}`] && (
-                  <p className="text-red-500 text-sm mt-1">{errors[`day${dayIndex}`]}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
-
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-6">{workoutData.name}</h1>
+      
+      {/* Week Tabs */}
+      <div className=" mb-4">
+        <div className="flex">
+          {workoutData.weekNames.map((weekName, index) => (
+            <TabButton
+              key={index}
+              active={selectedWeek === index}
+              onClick={() => setSelectedWeek(index)}
+              disabled={!isWeekAccessible(index)}
+            >
+              {weekName}
+            </TabButton>
+          ))}
+        </div>
       </div>
 
-      <OffCanvasComp placement="end" name="sidebar" show={show} handleClose={handleOpenClose} customStyle="pl-4 py-4 canvasContainer ">
-            <ExerciseDeatil handleClose={handleOpenClose} data={exerciseDetail}/>
-          </OffCanvasComp>
+      {/* Day Tabs */}
+      <div className="mb-4">
+        <div className="flex">
+          {workoutData.dayNames.map((dayName, index) => (
+            <TabButton
+              key={index}
+              active={selectedDay === index}
+              onClick={() => setSelectedDay(index)}
+              disabled={!isDayAccessible(selectedWeek, index)}
+            >
+              {dayName}
+            </TabButton>
+          ))}
+        </div>
+      </div>
 
+      {/* Exercise List */}
+      <div className="space-y-4">
+        {workoutData.workoutPlan[selectedWeek][selectedDay].exercises.map((exercise, exerciseIndex) => (
+          <div 
+            key={exerciseIndex} 
+            className={`border rounded-lg p-4 bg-white shadow-sm mb-3 ${
+              !isExerciseEnabled(selectedWeek, selectedDay, exerciseIndex) 
+                ? 'opacity-50' 
+                : ''
+            }`}
+          >
+            <div className="flex items-center gap-4">
+              <img 
+                src={exercise.gifUrl} 
+                alt={exercise.name} 
+                className="w-16 h-16 object-cover rounded"
+                onClick={()=>{setSelectedExercise(exercise);handleOpenClose()}}
+              />
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg" onClick={()=>{setSelectedExercise(exercise);handleOpenClose()}}>
+                  {_.upperFirst(exercise.name)}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Target: {exercise.target}
+                </p>
+              </div>
+              {!isExerciseCompleted(selectedWeek, selectedDay, exerciseIndex) && (
+                <button
+                  onClick={() => addExerciseDetails(selectedWeek, selectedDay, exerciseIndex)}
+                  className="bg-black text-white px-4 py-2 rounded hover:bg-blue-600"
+                  disabled={!isExerciseEnabled(selectedWeek, selectedDay, exerciseIndex)}
+                >
+                  Add Set
+                </button>
+              )}
+            </div>
+
+            {/* Exercise Details Input */}
+            {exerciseDetails[`${selectedWeek}-${selectedDay}-${exerciseIndex}`]?.map((detail, detailIndex) => (
+              <div key={detailIndex} className="flex items-center gap-2 mt-2">
+                {exercise.equipment !== "body weight" && exercise.equipment !== "band" && (
+                  <input
+                    type="number"
+                    placeholder="Weight"
+                    value={detail.weight}
+                    onChange={(e) => updateExerciseDetail(selectedWeek, selectedDay, exerciseIndex, detailIndex, 'weight', e.target.value)}
+                    className="w-24 p-2 border rounded"
+                  />
+                )}
+                <input
+                  type="number"
+                  placeholder="Reps"
+                  value={detail.reps}
+                  onChange={(e) => updateExerciseDetail(selectedWeek, selectedDay, exerciseIndex, detailIndex, 'reps', e.target.value)}
+                  className="w-24 p-2 border rounded"
+                />
+                <button
+                  onClick={() => removeExerciseDetail(selectedWeek, selectedDay, exerciseIndex, detailIndex)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <i className="fa-solid fa-xmark text-red-500 cursor-pointer" />
+                </button>
+              </div>
+            ))}
+
+            {exerciseDetails[`${selectedWeek}-${selectedDay}-${exerciseIndex}`]?.length > 0 && 
+             areAllSetsComplete(exerciseDetails[`${selectedWeek}-${selectedDay}-${exerciseIndex}`], exercise) && (
+              <button
+                onClick={() => submitExerciseDetails(selectedWeek, selectedDay, exerciseIndex)}
+                className="mt-2 bg-black text-white px-4 py-2 rounded"
+              >
+                Submit Sets
+              </button>
+            )}
+
+            {/* Previous Record */}
+            {selectedWeek > 0 && getPreviousRecord(selectedWeek, selectedDay, exerciseIndex) && (
+              <div className="mt-2 text-sm text-gray-600">
+                Previous: {getPreviousRecord(selectedWeek, selectedDay, exerciseIndex).map((set, index) => (
+                  <span key={index}>
+                    {set.weight && `${set.weight} lbs x `}{set.reps} reps
+                    {index < getPreviousRecord(selectedWeek, selectedDay, exerciseIndex).length - 1 ? ', ' : ''}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Completed Sets */}
+            {workoutData.exerciseHistory[`${selectedWeek}-${selectedDay}-${exerciseIndex}`] && (
+              <div className="mt-2 text-sm text-green-600">
+                Completed Sets: {workoutData.exerciseHistory[`${selectedWeek}-${selectedDay}-${exerciseIndex}`].map((record, recordIndex) => (
+                  <span key={recordIndex}>
+                    {record.map((set, setIndex) => (
+                      <span key={setIndex}>
+                        {set.weight && `${set.weight} Kg x `}{set.reps} reps
+                        {setIndex < record.length - 1 ? ', ' : ''}
+                      </span>
+                    ))}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Next Day/Week Button */}
+      {isDayCompleted(selectedWeek, selectedDay) && (
+        (selectedDay < workoutData.daysPerWeek - 1 || selectedWeek < workoutData.weeks - 1) && (
+          <button
+            onClick={moveToNextDay}
+            className="mt-4 bg-black text-white px-6 py-2 rounded-lg  float-right"
+          >
+            {selectedDay < workoutData.daysPerWeek - 1 
+              ? `Next Day (${workoutData.dayNames[selectedDay + 1]})` 
+              : `Next Week (${workoutData.weekNames[selectedWeek + 1]}, ${workoutData.dayNames[0]})`}
+          </button>
+        )
+      )}
+      <OffCanvasComp placement="end" name="sidebar" show={show} handleClose={handleOpenClose} customStyle="pl-4 py-4">
+            <ExerciseDeatil handleClose={handleOpenClose} data={selectedExercise}/>
+          </OffCanvasComp>
     </div>
   );
 };
 
-export default PlanDetail
-;
+export default PlanDetail;

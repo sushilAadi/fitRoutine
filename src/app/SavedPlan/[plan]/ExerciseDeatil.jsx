@@ -26,12 +26,15 @@ const ExerciseDeatil = ({handleClose,data}) => {
   return (
     <div>
         <span className='cursor-pointer sticky top-0 z-10 bg-white block' onClick={handleClose}><i className="fa-solid fa-angle-left  pr-2" />{_.upperFirst("Go back")}</span>
-        <img src={data?.gifUrl} alt={data?.name} width={"100%"} />
+        <div className='bgImage p-3 ' >
+    <img src={data?.gifUrl} alt={data?.name} width={"100%"} />
+</div>
+
 <div className="glasss">
-    <p className='text-[12px]'>{_.upperFirst(data?.target)} <span className='text-gray-500 pl-2'>(secondaryMuscles: {data.secondaryMuscles.join(', ')})</span></p>
+    <p className='text-[12px]'>{_.upperFirst(data?.target)} <span className='text-gray-500 pl-2'>(secondaryMuscles: {data.secondaryMuscles?.join(', ')})</span></p>
     <h3 className=''>{_.upperFirst(data?.name)}</h3>
     <ul className='list-disc pl-5 mt-4'>
-      {data?.instructions.map((instruction, index) => (
+      {data?.instructions?.map((instruction, index) => (
         <li key={index} className='mb-2 text-gray-700 text-[12px]'>
           {instruction}
         </li>
