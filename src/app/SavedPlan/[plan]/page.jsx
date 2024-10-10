@@ -57,9 +57,14 @@ const PlanDetail = ({params}) => {
       .filter(key => key.startsWith('workoutPlan_'))
       .map(key => JSON.parse(localStorage.getItem(key)));
       
-      const findPlan = plans?.find(i=>i?.name === selectedPlan)
-      loadPlan(findPlan)
-    // setSavedPlans(plans);
+    const findPlan = plans?.find(i => i?.name === selectedPlan);
+    if (findPlan) {
+      loadPlan(findPlan);
+      console.log("Loaded plan:", findPlan);
+      console.log("Exercise history:", findPlan.exerciseHistory);
+    } else {
+      console.log("No plan found with name:", selectedPlan);
+    }
   }, []);
 
 
@@ -142,20 +147,38 @@ const PlanDetail = ({params}) => {
   };
 
   const getPreviousRecord = (weekIndex, dayIndex, exerciseIndex) => {
-    if (weekIndex === 0) return null; // No previous record for the first week
+    console.log(`Searching for previous record: Week ${weekIndex}, Day ${dayIndex}, Exercise ${exerciseIndex}`);
+    
+    if (weekIndex === 0) {
+      console.log("First week, no previous record");
+      return null; // No previous record for the first week
+    }
+    
     const currentExercise = workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
+    console.log("Current exercise:", currentExercise);
 
-    // Look for the same exercise in the previous week
+    // Look for the same exercise in the previous weeks
     for (let i = weekIndex - 1; i >= 0; i--) {
-      const key = `${i}-${dayIndex}-${exerciseIndex}`;
-      const records = exerciseHistory[key];
-      if (records && workoutPlan[i][dayIndex].exercises[exerciseIndex] === currentExercise) {
-        return records[records.length - 1];
+      console.log(`Checking week ${i}`);
+      if (workoutPlan[i] && workoutPlan[i][dayIndex] && 
+          workoutPlan[i][dayIndex].exercises[exerciseIndex] &&
+          workoutPlan[i][dayIndex].exercises[exerciseIndex].name === currentExercise.name) {
+        
+        const key = `${i}-${dayIndex}-${exerciseIndex}`;
+        console.log(`Found matching exercise in week ${i}, checking key: ${key}`);
+        const records = exerciseHistory[key];
+        
+        if (records && records.length > 0) {
+          console.log(`Found previous record:`, records[records.length - 1]);
+          return records[records.length - 1];
+        }
       }
     }
-
+    
+    console.log("No previous record found");
     return null; // No previous record found for this exercise
   };
+  
 
   const removeExerciseDetail = (weekIndex, dayIndex, exerciseIndex, detailIndex) => {
     const updatedExerciseDetails = { ...exerciseDetails };
@@ -248,6 +271,8 @@ const PlanDetail = ({params}) => {
     return false;
   };
 
+  console.log(workoutPlan,"workoutPlan")
+
   return (
     <div className="px-4 flex justify-between">
 
@@ -280,7 +305,7 @@ const PlanDetail = ({params}) => {
                   {day.exercises.map((exercise, exerciseIndex) => (
                     <li key={exerciseIndex} className="mb-4 cursor-pointer"   >
                       <div className="flex items-center mb-2" >
-                      <img src={exercise?.gifUrl} alt={exercise?.name} className={`w-[50px]  ${!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) ? 'opacity-50' : ''}`} />
+                      <img src={exercise?.gifUrl}  className={`w-[50px]  ${!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) ? 'opacity-50' : ''}`} />
                         <span onClick={()=>{setExerciseDeatil(exercise);handleOpenClose()}} className={`font-semibold rounded-md px-3  ${!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) ? 'opacity-50' : ''}`} >
                           {_.upperFirst(exercise?.name)}
                         </span>
@@ -298,20 +323,20 @@ const PlanDetail = ({params}) => {
                           </button>
                         )}
                       </div>
-                      {weekIndex > 0 && (activeTab !== 'create' || isEditingExistingPlan) && (
-                        <>
-                          {getPreviousRecord(weekIndex, dayIndex, exerciseIndex) && (
-                            <div className="text-sm text-gray-600 mb-2">
-                              Previous: {getPreviousRecord(weekIndex, dayIndex, exerciseIndex).map((set, index) => (
-                                <span key={index}>
-                                  {set.weight && `${set.weight} Kg x `}{set.reps} reps
-                                  {index < getPreviousRecord(weekIndex, dayIndex, exerciseIndex).length - 1 ? ', ' : ''}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </>
-                      )}
+                      {weekIndex > 0 && (
+                      <>
+                        {getPreviousRecord(weekIndex, dayIndex, exerciseIndex) && (
+                          <div className="text-sm text-black mb-2">
+                            Previous: {getPreviousRecord(weekIndex, dayIndex, exerciseIndex).map((set, index) => (
+                              <span key={index}>
+                                {set.weight && `${set.weight} lbs x `}{set.reps} reps
+                                {index < getPreviousRecord(weekIndex, dayIndex, exerciseIndex).length - 1 ? ', ' : ''}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
                       {isEditingExistingPlan && !isExerciseCompleted(weekIndex, dayIndex, exerciseIndex) && isExerciseEnabled(weekIndex, dayIndex, exerciseIndex) && (
                         <>
                           {exerciseDetails[`${weekIndex}-${dayIndex}-${exerciseIndex}`]?.map((detail, detailIndex) => (
@@ -334,9 +359,9 @@ const PlanDetail = ({params}) => {
                               />
                               <button
                                 onClick={() => removeExerciseDetail(weekIndex, dayIndex, exerciseIndex, detailIndex)}
-                                className="text-red-500 text-sm"
+                                className="text-red-500 text-sm !ml-2"
                               >
-                                Remove Set
+                                <i className="fa-solid fa-trash-can "></i>
                               </button>
                             </div>
                           ))}
