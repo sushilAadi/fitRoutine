@@ -48,7 +48,7 @@ export default function Home() {
       </>
     )
   }
-console.log("userDetailData",userDetailData)
+
   return (
     <>
       <Dashboard/>
