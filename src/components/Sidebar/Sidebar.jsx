@@ -37,7 +37,7 @@ const Sidebar = ({setOpenNav}) => {
           
           <ListItem>
             <ListItemPrefix>
-            <i className="fa-solid fa-person-half-dress"></i>
+            <i className="fa-solid fa-person-half-dress !mr-2"></i>
             </ListItemPrefix>
             <Link href="/bodyparts" className="text-inherit no-underline" onClick={setOpenNav}>
               Body Parts
@@ -45,7 +45,7 @@ const Sidebar = ({setOpenNav}) => {
           </ListItem>
           <ListItem>
             <ListItemPrefix>
-              <UserCircleIcon className="h-5 w-5" />
+              <UserCircleIcon className="h-5 w-5 !mr-2" />
             </ListItemPrefix>
             <Link href="/createPlanPage" className="text-inherit no-underline" onClick={setOpenNav}>
               Create Plan
@@ -53,7 +53,7 @@ const Sidebar = ({setOpenNav}) => {
           </ListItem>
           <ListItem>
             <ListItemPrefix>
-              <UserCircleIcon className="h-5 w-5" />
+            <i className="fa-regular fa-floppy-disk !mr-2"></i>
             </ListItemPrefix>
             <Link href="/SavedPlan" className="text-inherit no-underline" onClick={setOpenNav}>
               Saved Plan
@@ -61,13 +61,13 @@ const Sidebar = ({setOpenNav}) => {
           </ListItem>
           <ListItem>
             <ListItemPrefix>
-              <Cog6ToothIcon className="h-5 w-5" />
+              <Cog6ToothIcon className="h-5 w-5 !mr-2"  />
             </ListItemPrefix>
             Profile
           </ListItem>
           <ListItem>
             <ListItemPrefix>
-              <PowerIcon className="h-5 w-5" />
+              <PowerIcon className="h-5 w-5 !mr-2" />
             </ListItemPrefix>
             Log Out
           </ListItem>
