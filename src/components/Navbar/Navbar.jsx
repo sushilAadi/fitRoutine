@@ -1,27 +1,24 @@
 'use client'
 import React from "react";
 import {
-  Navbar,
   Typography,
   IconButton,
-  Button,
-  Menu,
-  MenuHandler,
-  MenuList,
-  MenuItem,
+
 } from "@material-tailwind/react";
 import {
-  UserCircleIcon,
-  Cog6ToothIcon,
-  InboxIcon,
-  PowerIcon,
   Bars3Icon,
 } from "@heroicons/react/24/solid";
 import Link from "next/link";
 import Image from "next/image";
 import logo from "@/assets/logo.jpg";
+import {
+  SignInButton,
+  SignedIn,
+  SignedOut,
+  UserButton
+} from '@clerk/nextjs'
 
-const NavbarComponent = ({setOpenNav}) => {
+const NavbarComponent = ({ setOpenNav }) => {
   return (
     <div className="px-4">
       <div className="flex items-center justify-between ">
@@ -34,49 +31,52 @@ const NavbarComponent = ({setOpenNav}) => {
           <Image src={logo} alt="logo" width={46} height={46} />
         </Typography>
         <div className="hidden lg:block">
-        <ul className="mb-4 mt-2 flex flex-col gap-2 lg:mb-0 lg:mt-0 lg:flex-row lg:items-center lg:gap-6">
-      <Typography
-        as="li"
-        variant="small"
-        color="blue-gray"
-        className="p-1 font-normal"
-      >
-        <Link href="/bodyparts" className="text-inherit no-underline">
-          Body Parts
-        </Link>
-      </Typography>
-      <Typography
-        as="li"
-        variant="small"
-        color="blue-gray"
-        className="p-1 font-normal"
-      >
-        <Link href="/createPlanPage" className="text-inherit no-underline">
-          Create Plan
-        </Link>
-      </Typography>
-      <Typography
-        as="li"
-        variant="small"
-        color="blue-gray"
-        className="p-1 font-normal"
-      >
-        <Link href="/SavedPlan" className="text-inherit no-underline">
-          Saved Plan
-        </Link>
-      </Typography>
-      
-    </ul>
+            <ul className="flex flex-col gap-2 mt-2 mb-4 lg:mb-0 lg:mt-0 lg:flex-row lg:items-center lg:gap-6">
+              <Typography
+                as="li"
+                variant="small"
+                color="blue-gray"
+                className="p-1 font-normal"
+              >
+                <Link href="/bodyparts" className="no-underline text-inherit">
+                  Body Parts
+                </Link>
+              </Typography>
+              <Typography
+                as="li"
+                variant="small"
+                color="blue-gray"
+                className="p-1 font-normal"
+              >
+                <Link href="/createPlanPage" className="no-underline text-inherit">
+                  Create Plan
+                </Link>
+              </Typography>
+              <Typography
+                as="li"
+                variant="small"
+                color="blue-gray"
+                className="p-1 font-normal"
+              >
+                <Link href="/SavedPlan" className="no-underline text-inherit">
+                  Saved Plan
+                </Link>
+              </Typography>
+
+              <UserButton />
+
+            </ul>
         </div>
         <IconButton
           variant="text"
-          className="ml-auto h-6 w-6 text-inherit hover:bg-transparent focus:bg-transparent active:bg-transparent lg:hidden"
+          className="w-6 h-6 ml-auto text-inherit hover:bg-transparent focus:bg-transparent active:bg-transparent lg:hidden"
           ripple={false}
           onClick={setOpenNav}
         >
-          <Bars3Icon className="h-6 w-6" />
+          <Bars3Icon className="w-6 h-6" />
         </IconButton>
       </div>
+
     </div>
   );
 }

@@ -17,6 +17,7 @@ import {
 import logo from "@/assets/logo.jpg";
 import Link from "next/link";
 import Image from "next/image";
+import { UserButton } from "@clerk/nextjs";
 
 const Sidebar = ({setOpenNav}) => {
   const [open, setOpen] = React.useState(0);
@@ -26,7 +27,7 @@ const Sidebar = ({setOpenNav}) => {
   };
  
   return (
-    <div className='overflow-y-auto h-full p-4'>
+    <div className='overflow-y-auto h-full p-4 overflow-x-hidden'>
       <Card className="h-full w-full p-3 ">
         <div className=" px-4 flex justify-between items-center">
             <Image src={logo} alt="logo" width={45} height={45} />
@@ -37,7 +38,7 @@ const Sidebar = ({setOpenNav}) => {
           
           <ListItem>
             <ListItemPrefix>
-            <i className="fa-solid fa-person-half-dress !mr-2"></i>
+            <i className="fa-sharp-duotone fa-solid fa-skeleton-ribs"></i>
             </ListItemPrefix>
             <Link href="/bodyparts" className="text-inherit no-underline" onClick={setOpenNav}>
               Body Parts
@@ -66,10 +67,7 @@ const Sidebar = ({setOpenNav}) => {
             Profile
           </ListItem>
           <ListItem>
-            <ListItemPrefix>
-              <PowerIcon className="h-5 w-5 !mr-2" />
-            </ListItemPrefix>
-            Log Out
+            <UserButton />
           </ListItem>
         </List>
       </Card>

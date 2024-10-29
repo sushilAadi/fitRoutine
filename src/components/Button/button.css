@@ -9,6 +9,17 @@
     border-radius: 5px;
     transition: all .4s;
    }
+   .btnCsDisabled {
+    /* width: 130px; */
+    height: 40px;
+    font-size: 1.1em;
+    cursor: pointer;
+    background-color: #626262;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    transition: all .4s;
+   }
    
    .btnCs:hover {
     border-radius: 5px;

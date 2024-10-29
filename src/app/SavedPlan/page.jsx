@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import ButtonCs from '@/components/Button/ButtonCs';
 import { useRouter } from 'next/navigation';
 import _ from 'lodash';
+import SecureComponent from '@/components/SecureComponent/[[...SecureComponent]]/SecureComponent';
 
 const CustomPlanPage = () => {
   const router = useRouter()
@@ -25,6 +26,7 @@ const CustomPlanPage = () => {
   };
 
   return (
+    <SecureComponent>
     <div className="px-4">
       <h1 className="text-2xl font-bold mb-4">
         Saved Plan
@@ -46,6 +48,7 @@ const CustomPlanPage = () => {
       </div>
 
     </div>
+    </SecureComponent>
   );
 };
 
