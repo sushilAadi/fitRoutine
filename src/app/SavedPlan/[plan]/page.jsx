@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import _ from "lodash";
 import OffCanvasComp from "@/components/OffCanvas/OffCanvasComp";
 import ExerciseDeatil from "./ExerciseDeatil";
+import { useRouter } from "next/navigation";
 
 const TabButton = ({ active, onClick, children, disabled }) => (
   <button
@@ -21,6 +22,7 @@ const TabButton = ({ active, onClick, children, disabled }) => (
 );
 
 const PlanDetail = ({ params }) => {
+  const router = useRouter()
   const initializedRef = useRef(false);
   const [workoutData, setWorkoutData] = useState(null);
   const [selectedWeek, setSelectedWeek] = useState(0);
@@ -407,6 +409,7 @@ const PlanDetail = ({ params }) => {
       (isBodyWeightOrBand || details?.[detailIndex]?.weight);
 
     if (isValidSet) {
+      const currentDate = new Date().toLocaleString();
       const updatedHistory = { ...workoutData.exerciseHistory };
       if (!updatedHistory[key]) {
         updatedHistory[key] = [];
@@ -415,7 +418,8 @@ const PlanDetail = ({ params }) => {
       updatedHistory[key][detailIndex] = {
         weight: details[detailIndex].weight,
         reps: details[detailIndex].reps,
-        restTime: null, // Initialize rest time as null
+        restTime: null, 
+        date: currentDate
       };
 
       const updatedWorkoutData = {
@@ -439,6 +443,15 @@ const PlanDetail = ({ params }) => {
         "Please fill in all required fields before saving the set."
       );
     }
+  };
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   const formatTime = (seconds) => {
@@ -466,11 +479,23 @@ const PlanDetail = ({ params }) => {
           ?.name === currentExercise.name
       ) {
         const key = `${i}-${dayIndex}-${exerciseIndex}`;
-        const records = workoutData.exerciseHistory[key];
+        const records = workoutData?.exerciseHistory[key];
         if (records?.length > 0) return records;
       }
     }
     return null;
+  };
+  const isEntirePlanCompleted = () => {
+    if (!workoutData) return false;
+    
+    for (let week = 0; week < workoutData.weeks; week++) {
+      for (let day = 0; day < workoutData.daysPerWeek; day++) {
+        if (!isDayCompleted(week, day)) {
+          return false;
+        }
+      }
+    }
+    return true;
   };
 
   const toggleLockPreviousTabs = () => {
@@ -495,6 +520,8 @@ const PlanDetail = ({ params }) => {
   };
 
   if (!workoutData) return <div>Loading...</div>;
+
+  console.log("formatDate",workoutData?.exerciseHistory)
 
   return (
     <div className="container p-4 mx-auto">
@@ -729,6 +756,7 @@ const PlanDetail = ({ params }) => {
                             )}
                           </span>
                         )}
+                        
                       </div>
                     )}
                   </div>
@@ -787,14 +815,23 @@ const PlanDetail = ({ params }) => {
         (selectedDay < workoutData.daysPerWeek - 1 ||
           selectedWeek < workoutData.weeks - 1) && (
           <button
-            onClick={moveToNextDay}
-            className="float-right px-6 py-2 mt-4 text-white bg-black rounded-lg"
+            onClick={()=>{moveToNextDay();router.push("/SavedPlan")}}
+            className="float-right px-6 py-2 mt-4 mb-2 text-white bg-black rounded-lg"
           >
-            {selectedDay < workoutData.daysPerWeek - 1
+            {/* {selectedDay < workoutData.daysPerWeek - 1
               ? `Next Day (${workoutData.dayNames[selectedDay + 1]})`
               : `Next Week (${workoutData.weekNames[selectedWeek + 1]}, ${
                   workoutData.dayNames[0]
-                })`}
+                })`} */}
+                Complete Workout
+          </button>
+        )}
+        {isEntirePlanCompleted() && (
+          <button
+            onClick={() => router.push("/createPlanPage")}
+            className="px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
+          >
+            Finish Plan
           </button>
         )}
 
