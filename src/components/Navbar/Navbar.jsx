@@ -1,5 +1,5 @@
 'use client'
-import React from "react";
+import React, { useContext } from "react";
 import {
   Typography,
   IconButton,
@@ -17,8 +17,11 @@ import {
   SignedOut,
   UserButton
 } from '@clerk/nextjs'
+import { GlobalContext } from "@/context/GloablContext";
 
-const NavbarComponent = ({ setOpenNav }) => {
+const NavbarComponent = () => {
+  const {handleOpenClose} = useContext(GlobalContext)
+
   return (
     <div className="px-4">
       <div className="flex items-center justify-between ">
@@ -71,7 +74,7 @@ const NavbarComponent = ({ setOpenNav }) => {
           variant="text"
           className="w-6 h-6 ml-auto text-inherit hover:bg-transparent focus:bg-transparent active:bg-transparent lg:hidden"
           ripple={false}
-          onClick={setOpenNav}
+          onClick={handleOpenClose}
         >
           <Bars3Icon className="w-6 h-6" />
         </IconButton>

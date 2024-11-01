@@ -1,5 +1,5 @@
 'use client'
-import React from "react";
+import React, { useContext } from "react";
 import {
   Card,
   Typography,
@@ -18,20 +18,17 @@ import logo from "@/assets/logo.jpg";
 import Link from "next/link";
 import Image from "next/image";
 import { UserButton } from "@clerk/nextjs";
+import { GlobalContext } from "@/context/GloablContext";
 
-const Sidebar = ({setOpenNav}) => {
-  const [open, setOpen] = React.useState(0);
- 
-  const handleOpen = (value) => {
-    setOpen(open === value ? 0 : value);
-  };
- 
+const Sidebar = ({}) => {
+  const {handleOpenClose,fullName} = useContext(GlobalContext)
+
   return (
-    <div className='overflow-y-auto h-full p-4 overflow-x-hidden'>
-      <Card className="h-full w-full p-3 ">
-        <div className=" px-4 flex justify-between items-center">
+    <div className='h-full p-4 overflow-x-hidden overflow-y-auto'>
+      <Card className="w-full h-full p-3 ">
+        <div className="flex items-center justify-between px-4 ">
             <Image src={logo} alt="logo" width={45} height={45} />
-            <i className="fa-solid fa-xmark text-red-500 cursor-pointer" onClick={setOpenNav}/>
+            <i className="text-red-500 cursor-pointer fa-solid fa-xmark" onClick={handleOpenClose}/>
         </div>
         <List>
           
@@ -40,7 +37,7 @@ const Sidebar = ({setOpenNav}) => {
             <ListItemPrefix>
             <i className="fa-sharp-duotone fa-solid fa-skeleton-ribs"></i>
             </ListItemPrefix>
-            <Link href="/bodyparts" className="text-inherit no-underline" onClick={setOpenNav}>
+            <Link href="/bodyparts" className="no-underline text-inherit" onClick={handleOpenClose}>
               Body Parts
             </Link>
           </ListItem>
@@ -48,7 +45,7 @@ const Sidebar = ({setOpenNav}) => {
             <ListItemPrefix>
               <UserCircleIcon className="h-5 w-5 !mr-2" />
             </ListItemPrefix>
-            <Link href="/createPlanPage" className="text-inherit no-underline" onClick={setOpenNav}>
+            <Link href="/createPlanPage" className="no-underline text-inherit" onClick={handleOpenClose}>
               Create Plan
             </Link>
           </ListItem>
@@ -56,7 +53,7 @@ const Sidebar = ({setOpenNav}) => {
             <ListItemPrefix>
             <i className="fa-regular fa-floppy-disk !mr-2"></i>
             </ListItemPrefix>
-            <Link href="/SavedPlan" className="text-inherit no-underline" onClick={setOpenNav}>
+            <Link href="/SavedPlan" className="no-underline text-inherit" onClick={handleOpenClose}>
               Saved Plan
             </Link>
           </ListItem>

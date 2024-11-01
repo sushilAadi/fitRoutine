@@ -521,7 +521,7 @@ const PlanDetail = ({ params }) => {
 
   if (!workoutData) return <div>Loading...</div>;
 
-  console.log("formatDate",workoutData?.exerciseHistory)
+  
 
   return (
     <div className="container p-4 mx-auto">

@@ -44,6 +44,7 @@ export default function GlobalContextProvider({ children }) {
   const userDetailData = userDetail?.[0] || {}
 
 
+  const [fullName, setFullName] = useState("sushil");
   const [gender, setGender] = useState(null);
   const [weight, setWeight] = useState(50);
   const [height, setHeight] = useState(152);
@@ -72,6 +73,10 @@ export default function GlobalContextProvider({ children }) {
     setSelectedExercises(prev => [...prev, exercise]);
   };
 
+  const [show, setShow] = useState(false);
+
+  const handleOpenClose = () => setShow(!show);
+
   const contextValue = useMemo(() => {
     return {
       selectedExercises,
@@ -82,9 +87,12 @@ export default function GlobalContextProvider({ children }) {
       age, setAge,
       userDetailData,
       userRefetch,
-      isFetching
+      isFetching,
+      fullName, setFullName,
+      handleOpenClose,
+      show
     };
-  }, [selectedExercises, gender, weight, height, age,userDetailData,isFetching]);
+  }, [selectedExercises, gender, weight, height, age,userDetailData,isFetching,fullName,show]);
 
   return (
    

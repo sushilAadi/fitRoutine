@@ -246,16 +246,16 @@ const createPlanPage = () => {
   return (
     <SecureComponent>
           
-    <div className="px-4">
+    <div className="h-screen p-4 ">
       <>
-        <h1 className="mb-4 text-2xl font-bold">Create Custom Plan</h1>
-        <div className='flex'>
-          <div className='mr-5'>
+        
+        <div className='flex justify-center'>
+          <div className=''>
             <>
               <form className="mb-6 " onSubmit={generateWorkoutPlan}>
                 <div className="flex flex-wrap gap-3 mb-4">
                   <div className='inputBox'>
-                    <label htmlFor="planName" className="block mb-2">Plan Name:</label>
+                    <label htmlFor="planName" className="block mb-2 ">Plan Name:</label>
                     <InputCs
                       type="text"
                       id="planName"

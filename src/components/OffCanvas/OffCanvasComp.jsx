@@ -1,11 +1,14 @@
 'use client'
-import React from 'react'
+import { GlobalContext } from '@/context/GloablContext';
+import React, { useContext } from 'react'
 import Offcanvas from 'react-bootstrap/Offcanvas';
 
-const OffCanvasComp = ({show, handleClose,customStyle, children, ...props}) => {
+const OffCanvasComp = ({customStyle, children, ...props}) => {
+  const {handleOpenClose,show,fullName} = useContext(GlobalContext)
+  
   return (
-    <Offcanvas className={`${customStyle}`} show={show} onHide={handleClose} {...props}>
-        <Offcanvas.Body className='m-0 p-0'>
+    <Offcanvas className={`${customStyle}`} show={show} onHide={handleOpenClose} {...props}>
+        <Offcanvas.Body className='p-0 m-0'>
           {children}
         </Offcanvas.Body>
       </Offcanvas>

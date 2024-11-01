@@ -175,7 +175,7 @@ border: 1px solid rgba( 255, 255, 255, 0.18 );
   height: calc(var(--vh, 1vh) * 100);
 }
 .logScreen{
-  height: calc(100vh - 54px);
+  height: calc(100vh - 110px);
 }
 
 
