@@ -1,4 +1,4 @@
-.input {
+/* .input {
     padding: 0.500rem;
     font-size: 1rem;
     border: 1.5px solid #000;
@@ -11,4 +11,39 @@
   
   .input:focus {
     box-shadow: 5.5px 7px 0 black;
-  }
+  } */
+
+
+
+  /* From Uiverse.io by kamehame-ha */ 
+.coolinput {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  position: static;
+  
+}
+
+.coolinput label.text {
+  font-size: 1rem;
+  color: black;
+  font-weight: 500;
+  position: relative;
+  top: 0.80rem;
+  margin: 0 0 0 7px;
+  padding: 0 3px;
+  background: white;
+  width: fit-content;
+}
+
+.coolinput input[type=text].input {
+  padding: 11px 10px;
+  font-size: 1cap;
+  border: 2px black solid;
+  border-radius: 0;
+  background: white;
+}
+
+.coolinput input[type=text].input:focus {
+  outline: none;
+}
