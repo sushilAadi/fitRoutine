@@ -35,7 +35,7 @@ const NavbarComponent = () => {
         </Typography>
         <div className="hidden lg:block">
             <ul className="flex flex-col gap-2 mt-2 mb-4 lg:mb-0 lg:mt-0 lg:flex-row lg:items-center lg:gap-6">
-              <Typography
+              {/* <Typography
                 as="li"
                 variant="small"
                 color="blue-gray"
@@ -44,7 +44,7 @@ const NavbarComponent = () => {
                 <Link href="/bodyparts" className="no-underline text-inherit">
                   Body Parts
                 </Link>
-              </Typography>
+              </Typography> */}
               <Typography
                 as="li"
                 variant="small"
