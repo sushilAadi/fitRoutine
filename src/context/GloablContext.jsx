@@ -44,34 +44,13 @@ export default function GlobalContextProvider({ children }) {
   const userDetailData = userDetail?.[0] || {}
 
 
-  const [fullName, setFullName] = useState("sushil");
   const [gender, setGender] = useState(null);
   const [weight, setWeight] = useState(50);
   const [height, setHeight] = useState(152);
   const [age, setAge] = useState(18);
   
-  const [selectedExercises, setSelectedExercises] = useState([]);
 
-  // Load exercises from IndexedDB on component mount
-  useEffect(() => {
-    const loadExercises = async () => {
-      const storedExercises = await db.exercises.toArray();
-      setSelectedExercises(storedExercises);
-    };
-    loadExercises();
-  }, []);
 
-  const addExercise = async (exercise) => {
-    const isExerciseAlreadyAdded = selectedExercises.some(e => e.id === exercise.id);
-    if (isExerciseAlreadyAdded) {
-      alert("Exercise already added.");
-      return;
-    }
-    
-    // Add exercise to IndexedDB and update state
-    await db.exercises.add(exercise);
-    setSelectedExercises(prev => [...prev, exercise]);
-  };
 
   const [show, setShow] = useState(false);
 
@@ -79,8 +58,7 @@ export default function GlobalContextProvider({ children }) {
 
   const contextValue = useMemo(() => {
     return {
-      selectedExercises,
-      addExercise,
+
       gender, setGender,
       weight, setWeight,
       height, setHeight,
@@ -88,11 +66,10 @@ export default function GlobalContextProvider({ children }) {
       userDetailData,
       userRefetch,
       isFetching,
-      fullName, setFullName,
       handleOpenClose,
       show
     };
-  }, [selectedExercises, gender, weight, height, age,userDetailData,isFetching,fullName,show]);
+  }, [ gender, weight, height, age,userDetailData,isFetching,show]);
 
   return (
    

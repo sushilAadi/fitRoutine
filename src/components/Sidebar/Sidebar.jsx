@@ -24,7 +24,7 @@ const Sidebar = ({}) => {
   const {handleOpenClose,fullName} = useContext(GlobalContext)
 
   return (
-    <div className='h-full p-4 overflow-x-hidden overflow-y-auto'>
+    <div className='h-full p-4 overflow-x-hidden overflow-y-auto '>
       <Card className="w-full h-full p-3 ">
         <div className="flex items-center justify-between px-4 ">
             <Image src={logo} alt="logo" width={45} height={45} />
@@ -33,14 +33,14 @@ const Sidebar = ({}) => {
         <List>
           
           
-          <ListItem>
+          {/* <ListItem>
             <ListItemPrefix>
             <i className="fa-sharp-duotone fa-solid fa-skeleton-ribs"></i>
             </ListItemPrefix>
             <Link href="/bodyparts" className="no-underline text-inherit" onClick={handleOpenClose}>
               Body Parts
             </Link>
-          </ListItem>
+          </ListItem> */}
           <ListItem>
             <ListItemPrefix>
               <UserCircleIcon className="h-5 w-5 !mr-2" />
