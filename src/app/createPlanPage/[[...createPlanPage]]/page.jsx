@@ -11,6 +11,7 @@ import SecureComponent from "@/components/SecureComponent/[[...SecureComponent]]
 import InputCsTwo from "@/components/InputCs/InputCsTwo";
 import BlurryBlob from "@/components/BlurryBlob/BlurryBlob";
 import Image from "next/image";
+import CCard from "@/components/CCard";
 
 const createPlanPage = () => {
   const [toggleForm, setToggleForm] = useState(true);
@@ -287,9 +288,8 @@ const createPlanPage = () => {
                         setNameError("");
                       }
                     }}
-                    className={` border rounded inputStyle ${
-                      nameError ? "border-red-500" : ""
-                    }`}
+                    className={` border rounded inputStyle ${nameError ? "border-red-500" : ""
+                      }`}
                     required
                   />
                   {nameError && (
@@ -310,9 +310,8 @@ const createPlanPage = () => {
                     }}
                     min="1"
                     placeholder="Enter no of weeks"
-                    className={`w-full p-2 border rounded ${
-                      errors.weeks ? "border-red-500" : ""
-                    }`}
+                    className={`w-full p-2 border rounded ${errors.weeks ? "border-red-500" : ""
+                      }`}
                     required
                   />
                   {errors.weeks && (
@@ -332,9 +331,8 @@ const createPlanPage = () => {
                     min="1"
                     max="7"
                     placeholder="Enter no of Days"
-                    className={`w-full p-2 border rounded min-w-[184px] ${
-                      errors.daysPerWeek ? "border-red-500" : ""
-                    }`}
+                    className={`w-full p-2 border rounded min-w-[184px] ${errors.daysPerWeek ? "border-red-500" : ""
+                      }`}
                     required
                   />
                   {errors.daysPerWeek && (
@@ -375,7 +373,7 @@ const createPlanPage = () => {
                 )}
               </div>
               {week.map((day, dayIndex) => (
-                <div key={dayIndex} className={` p-2 ${day.exercises?.length > 0 && "border bg-white rounded-md mb-2 "} `}>
+                <div key={dayIndex} className={` p-2 ${day.exercises?.length > 0 && " bg-white  "} `}>
                   <div className="flex items-center gap-2 mb-2">
                     <h3 className="text-lg font-medium ">
                       {dayNames[dayIndex]}{" "}
@@ -401,85 +399,30 @@ const createPlanPage = () => {
                       </>
                     )}
                   </div>
-                  {!isEditingExistingPlan && (
-                    <div className="flex items-center mb-2">
-                      {/* <InputCs
-                        type="text"
-                        list="exerciseOptions"
-                        onChange={(e) => {
-                          const selectedExercise = exercises.find(ex => ex.name === e.target.value);
-                          if (selectedExercise && !day.exercises.includes(selectedExercise.name)) {
-                            addExerciseToDay(weekIndex, dayIndex, selectedExercise.name);
-                            e.target.value = '';
-                          } else if (selectedExercise) {
-                            alert("This exercise is already added to this day.");
-                            e.target.value = '';
-                          }
-                        }}
-                        className=" p-2 border rounded mr-2 max-w-[386px] w-full mb-4"
-                        placeholder="Search and select an exercise"
-                      />
-                      <datalist id="exerciseOptions">
-                        {exercises.map((ex) => (
-                          <option
-                            key={ex.id}
-                            value={ex.name}
-                            disabled={day.exercises.includes(ex.name)}
-                          />
-                        ))}
-                      </datalist> */}
-                      {/* <button
-                        className="p-2 text-white bg-blue-500 rounded"
-                        onClick={() => {
-                          handleOpenClose();
-                          setSelectedWeekIndex(weekIndex);
-                          setSelectedDayIndex(dayIndex);
-                        }}
-                      >
-                        Add Exercise
-                      </button> */}
-                    </div>
-                  )}
-
-                  <ul className="p-0">
+                  
+                  <ul className="flex overflow-y-auto  mb-0 p-0">
                     {day.exercises.map((exercise, exerciseIndex) => (
-                      <li key={exerciseIndex} className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center">
-                        <Image src={exercise.gifUrl} alt={exercise.name} width={36} height={36} className="overflow-hidden border rounded-full max-w-[36px] min-w-[36px] max-h-[36px] min-h-[36px] object-cover" />
-                          <span
-                            className={` px-2 rounded-md ${
-                              !isExerciseEnabled(
-                                weekIndex,
-                                dayIndex,
-                                exerciseIndex
-                              )
-                                ? "opacity-50"
-                                : ""
-                            }`}
-                            title={exercise?.name}
-                          >
-                            {exercise?.name}
-                          </span>
-                        </div>
-                       
-
-                          {!isEditingExistingPlan && (
-                            <i
-                              class="ml-2 fa-solid fa-xmark text-red-500 cursor-pointer"
-                              onClick={() =>
-                                removeExercise(
-                                  weekIndex,
-                                  dayIndex,
-                                  exerciseIndex
-                                )
+                      <>
+                        <li key={exerciseIndex} className={`relative ${exerciseIndex !== 0 ? 'ml-5' : ''}`}>
+                          <CCard key={exerciseIndex} img={exercise.gifUrl} bgColor="bg-[#DBFE02]" parentStyle="w-full min-w-[180px] max-w-[180px]" caption={exercise?.bodyPart} title={exercise?.target} name={exercise?.name}  />
+                          {!isEditingExistingPlan &&
+                            <div className="absolute w-[30px] h-[20px] rounded-l-lg bg-red-500 top-[44px] right-[0] flex justify-center items-center"  onClick={() => {
+                              if (!isEditingExistingPlan) {
+                                removeExercise(weekIndex, dayIndex, exerciseIndex);
                               }
-                            />
-                          )}
-                        </div>
-                      </li>
+                            }}>
+                              <i
+                                class="fa-solid fa-xmark text-white cursor-pointer"
+                               
+                              />
+                            </div>}
+
+                        </li>
+                      </>
                     ))}
                   </ul>
+
+
                 </div>
               ))}
             </div>

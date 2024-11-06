@@ -7,6 +7,7 @@ import HeightSelection from '@/Feature/Splash/HeightSelection';
 import AgeSelection from '@/Feature/Splash/AgeSelection';
 import { GlobalContext } from '@/context/GloablContext';
 import { useAuth } from '@clerk/nextjs'
+import CCard from '@/components/CCard';
 
 export default function Home() {
   const { userDetailData, isFetching } = useContext(GlobalContext);
@@ -38,8 +39,9 @@ export default function Home() {
   }
 
   return (
-    <div className="overflow-hidden p-4">
+    <div className="p-4 overflow-hidden">
       Hello {userName} your email is {userEmail}
+      
     </div>
   );
 }

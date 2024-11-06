@@ -16,7 +16,7 @@ const OffCanvasComp = ({customStyle,sidebar,handleClose,showProps, children, ...
   
   return (
     <Offcanvas className={`${customStyle}`} show={sidebar?show:showProps} onHide={handleCloseProps} {...props}>
-        <Offcanvas.Body className='p-0 m-0'>
+        <Offcanvas.Body className='p-0 mr-3 '>
           {children}
         </Offcanvas.Body>
       </Offcanvas>
