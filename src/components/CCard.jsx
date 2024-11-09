@@ -2,7 +2,8 @@
 import React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import HighlightText from "./HeadingHighlight/HighLightText";
+import HighlightText from "./HeadingHighlight/HighlightText";
+
 
 const CCard = ({img,parentStyle,title,caption,name,bgColor="bg-[#DBFE02]",onClick}) => {
   const router = useRouter();
