@@ -37,7 +37,8 @@ const createPlanPage = () => {
   const formData =  {
     planName,
     weeks,
-    daysPerWeek
+    daysPerWeek,
+    workoutPlan
   }
 
   useEffect(() => {

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 // import { exercises } from '@/utils/exercise';
 import _ from "lodash";
 import PillButton from "../Button/PillButton";
@@ -13,8 +13,21 @@ const ExerciseCard = ({ onSelectExercise, handleClose,formData }) => {
   const {
     planName,
     weeks,
-    daysPerWeek
+    daysPerWeek,
+    workoutPlan
   } = formData
+  console.log("workoutPlan",workoutPlan)
+
+  const [buttonText, setButtonText] = useState("Please select and proceed");
+
+  useEffect(() => {
+    // Check if all exercises in all days of all weeks are empty
+    const allExercisesEmpty = workoutPlan.every(week =>
+      week.every(day => day.exercises.length === 0)
+    );
+
+    setButtonText(allExercisesEmpty ? "Please select and proceed" : "Complete");
+  }, [workoutPlan]);
 
   const {
     data: exercisesData,
@@ -81,11 +94,12 @@ const ExerciseCard = ({ onSelectExercise, handleClose,formData }) => {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <div className="top-0 p-3 bg-black sticky-top">
-        {/* <span className="block mb-2 cursor-pointer" onClick={handleClose}>
-          <i className="pr-2 fa-solid fa-angle-left" />
-          {_.upperFirst("Go back")}
-        </span> */}
-        <h1 className="mt-2 text-white">{planName}</h1>
+        
+        <div className="flex items-center cursor-pointer" onClick={handleClose}>
+          <i className="pr-2 text-gray-400 fa-solid fa-angle-left" />       
+          <h1 className="text-white ">{planName}</h1>
+        </div>
+        
         <p className="my-2 text-gray-400"> {weeks} weeks | {daysPerWeek} days per week</p>
         <div className="flex gap-1">
           <PillButton
@@ -140,7 +154,7 @@ const ExerciseCard = ({ onSelectExercise, handleClose,formData }) => {
         {sortedExercises.map((i) => {
           const image = i?.gifUrl;
           return (
-            <>
+            <div className="relative">
               <CCard
                 key={i.id}
                 onClick={() => onSelectExercise(i)}
@@ -151,18 +165,15 @@ const ExerciseCard = ({ onSelectExercise, handleClose,formData }) => {
                 title={i?.target}
                 name={i?.name}
               />
-              {/* <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t to-transparent from-[#032238] bg-opacity-50 p-2" >
-                                    <h6 className="text-black font-bold text-[13px] mb-0 mt-5">{_.upperFirst(i.name)}</h6>
-                                    <p className="text-white text-[11px] mb-0">{_.upperFirst(i.target)} ({i.secondaryMuscles.join(', ')})</p>
-                                </div> */}
-            </>
+              
+            </div>
           );
         })}
       </div>
       {sortedExercises?.length !== 0 && (
       <div className="p-3">
         <ButtonCs
-                title="Generate Plan"
+                title={buttonText}
                 type="button"
                 className=" w-100  min-w-[184px]"
                 onClick={handleClose}
