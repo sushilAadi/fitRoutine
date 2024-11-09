@@ -17,7 +17,7 @@ const createPlanPage = () => {
   const [toggleForm, setToggleForm] = useState(true);
   const [weeks, setWeeks] = useState(3);
   const [daysPerWeek, setDaysPerWeek] = useState(3);
-  const [planName, setPlanName] = useState("Test34");
+  const [planName, setPlanName] = useState("Weight Gain");
   const [nameError, setNameError] = useState("");
   const [workoutPlan, setWorkoutPlan] = useState([]);
   const [exerciseDetails, setExerciseDetails] = useState({});
@@ -33,6 +33,12 @@ const createPlanPage = () => {
   const [selectedDayIndex, setSelectedDayIndex] = useState(null);
 
   const handleOpenClose = () => setShowExe(!showExe);
+
+  const formData =  {
+    planName,
+    weeks,
+    daysPerWeek
+  }
 
   useEffect(() => {
     // Load saved plans on component mount
@@ -255,16 +261,16 @@ const createPlanPage = () => {
       {toggleForm ? (
         <div className="flex justify-between logScreen lg:items-center flex-column ">
           <div className="flex justify-center p-4 my-3 flex-column">
-            <h1 className="font-black cap-font  text-[40px]">YOUR IDEAL</h1>
-            <h1 className="font-black cap-font  text-[40px]">WORKOUT PLAN,</h1>
-            <h1 className="font-black cap-font  text-[40px]">
+            <h1 className="text-black cap-font  text-[40px]">YOUR IDEAL</h1>
+            <h1 className="text-black cap-font  text-[40px]">WORKOUT PLAN,</h1>
+            <h1 className="text-black cap-font  text-[40px]">
               CUSTOMIZED TO FIT
             </h1>
-            <h1 className="font-black cap-font  text-[40px]"> YOU.</h1>
+            <h1 className="text-black cap-font  text-[40px]"> YOU.</h1>
             <p className="text-gray-800">Get motivated and achieve more with</p>
             <p className="text-gray-800">your unique plan.</p>
           </div>
-          <div className="p-4">
+          <div className="p-4 ">
             <form className="mb-6 " onSubmit={generateWorkoutPlan}>
               <div className="flex flex-wrap gap-3 mb-4">
                 <div className="inputBox">
@@ -351,8 +357,9 @@ const createPlanPage = () => {
           </div>
         </div>
       ) : (
-        <div className="p-4">
-          {workoutPlan.map((week, weekIndex) => (
+        <div className="flex justify-between logScreen lg:items-center flex-column ">
+        <div className="p-4 overflow-y-auto">
+          {workoutPlan?.map((week, weekIndex) => (
             <div key={weekIndex} className="mb-8">
               <div className="flex items-center gap-2 mb-4">
                 <h2 className="mr-2 text-xl font-semibold">
@@ -400,7 +407,7 @@ const createPlanPage = () => {
                     )}
                   </div>
                   
-                  <ul className="flex overflow-y-auto  mb-0 p-0">
+                  <ul className="flex p-0 mb-0 overflow-y-auto">
                     {day.exercises.map((exercise, exerciseIndex) => (
                       <>
                         <li key={exerciseIndex} className={`relative ${exerciseIndex !== 0 ? 'ml-5' : ''}`}>
@@ -444,15 +451,17 @@ const createPlanPage = () => {
             name="createPlan"
             showProps={showExe}
             handleClose={handleOpenClose}
-            customStyle="pl-4 py-4"
+            customStyle=""
           >
             <ExerciseCard
+            formData={formData}
               handleClose={handleOpenClose}
               onSelectExercise={(exercise) => {
                 addExerciseToDay(selectedWeekIndex, selectedDayIndex, exercise);
               }}
             />
           </OffCanvasComp>
+        </div>
         </div>
       )}
     </SecureComponent>
