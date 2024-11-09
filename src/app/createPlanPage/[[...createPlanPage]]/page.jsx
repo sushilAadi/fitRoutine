@@ -89,22 +89,31 @@ const createPlanPage = () => {
     );
   };
 
-  const addExerciseToDay = (weekIndex, dayIndex, exercise) => {
-    if (exercise) {
-      const updatedWorkoutPlan = [...workoutPlan];
-      // Add the exercise to the current week and all subsequent weeks
+  const addExerciseToDay = (weekIndex, dayIndex, exercise, exerciseToRemove) => {
+    const updatedWorkoutPlan = [...workoutPlan];
+    
+    if (exercise === null && exerciseToRemove) {
+      // Remove the exercise from current and subsequent weeks
+      for (let i = weekIndex; i < updatedWorkoutPlan.length; i++) {
+        updatedWorkoutPlan[i][dayIndex].exercises = updatedWorkoutPlan[i][dayIndex].exercises.filter(
+          e => e.id !== exerciseToRemove.id
+        );
+      }
+    } else if (exercise) {
+      // Add the exercise to current and subsequent weeks
       for (let i = weekIndex; i < updatedWorkoutPlan.length; i++) {
         updatedWorkoutPlan[i][dayIndex].exercises.push(exercise);
       }
-      setWorkoutPlan(updatedWorkoutPlan);
-
-      // Clear the error for this day across all weeks
-      setErrors((prevErrors) => {
-        const newErrors = { ...prevErrors };
-        delete newErrors[`day${dayIndex}`];
-        return newErrors;
-      });
     }
+    
+    setWorkoutPlan(updatedWorkoutPlan);
+  
+    // Clear the error for this day across all weeks
+    setErrors((prevErrors) => {
+      const newErrors = { ...prevErrors };
+      delete newErrors[`day${dayIndex}`];
+      return newErrors;
+    });
   };
 
   const removeExercise = (weekIndex, dayIndex, exerciseIndex) => {
@@ -457,9 +466,9 @@ const createPlanPage = () => {
             <ExerciseCard
             formData={formData}
               handleClose={handleOpenClose}
-              onSelectExercise={(exercise) => {
-                addExerciseToDay(selectedWeekIndex, selectedDayIndex, exercise);
-              }}
+              onSelectExercise={(exercise, exerciseToRemove) => {
+    addExerciseToDay(selectedWeekIndex, selectedDayIndex, exercise, exerciseToRemove);
+  }}
             />
           </OffCanvasComp>
         </div>
