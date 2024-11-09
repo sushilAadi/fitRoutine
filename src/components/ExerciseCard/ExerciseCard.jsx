@@ -16,7 +16,19 @@ const ExerciseCard = ({ onSelectExercise, handleClose,formData }) => {
     daysPerWeek,
     workoutPlan
   } = formData
-  console.log("workoutPlan",workoutPlan)
+  
+
+  const isExerciseSelected = (exercise) => {
+    if (!workoutPlan || !workoutPlan[0]) return false;
+    
+    // Get the current day's exercises
+    const currentDayExercises = workoutPlan.map(week => 
+      week.map(day => day.exercises)
+    ).flat(2); // Flatten the array to get all exercises
+    
+    // Check if this exercise exists in the current day
+    return currentDayExercises.some(e => e.id === exercise.id);
+  };
 
   const [buttonText, setButtonText] = useState("Please select and proceed");
 
@@ -151,24 +163,29 @@ const ExerciseCard = ({ onSelectExercise, handleClose,formData }) => {
         </h6>
       </div>
       <div className="flex flex-wrap justify-between p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">
-        {sortedExercises.map((i) => {
-          const image = i?.gifUrl;
-          return (
-            <div className="relative">
-              <CCard
-                key={i.id}
-                onClick={() => onSelectExercise(i)}
-                img={image}
-                bgColor="bg-[#DBFE02]"
-                parentStyle="min-w-[166px] max-w-[166px] mb-2 "
-                caption={i?.bodyPart}
-                title={i?.target}
-                name={i?.name}
-              />
-              
-            </div>
-          );
-        })}
+      {sortedExercises.map((i) => {
+  const image = i?.gifUrl;
+  const isSelected = isExerciseSelected(i);
+  
+  return (
+    <div className="relative" key={i.id}>
+      <CCard
+        onClick={() => onSelectExercise(i)}
+        img={image}
+        bgColor="bg-[#DBFE02]"
+        parentStyle="min-w-[166px] max-w-[166px] mb-3 "
+        caption={i?.bodyPart}
+        title={i?.target}
+        name={i?.name}
+      />
+      {isSelected && (
+        <div className="absolute w-[20px] h-[20px] bg-white rounded bottom-[8px] right-[-6px] z-10 flex justify-center items-center">
+          <i className="text-red-500 fa-regular fa-circle-check"/>
+        </div>
+      )}
+    </div>
+  );
+})}
       </div>
       {sortedExercises?.length !== 0 && (
       <div className="p-3">
