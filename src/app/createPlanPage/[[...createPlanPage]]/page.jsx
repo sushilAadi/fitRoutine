@@ -269,7 +269,7 @@ const createPlanPage = () => {
     <SecureComponent>
       {toggleForm && <BlurryBlob />}
       {toggleForm ? (
-        <div className="flex justify-between logScreen lg:items-center flex-column ">
+        <div className="flex justify-between h-screen lg:items-center flex-column ">
           <div className="flex justify-center p-4 my-3 flex-column">
             <h1 className="text-black cap-font  text-[40px]">YOUR IDEAL</h1>
             <h1 className="text-black cap-font  text-[40px]">WORKOUT PLAN,</h1>
@@ -280,8 +280,8 @@ const createPlanPage = () => {
             <p className="text-gray-800">Get motivated and achieve more with</p>
             <p className="text-gray-800">your unique plan.</p>
           </div>
-          <div className="p-4 ">
-            <form className="mb-6 " onSubmit={generateWorkoutPlan}>
+          <div className="p-4">
+            <form className="" onSubmit={generateWorkoutPlan}>
               <div className="flex flex-wrap gap-3 mb-4">
                 <div className="inputBox">
                   <InputCsTwo
@@ -313,7 +313,7 @@ const createPlanPage = () => {
                   )}
                 </div>
               </div>
-              <div className="flex gap-2 mb-4">
+              <div className="flex gap-3 mb-4">
                 <div className="inputBox">
                   <InputCsTwo
                     label="Number of Weeks"
@@ -367,8 +367,19 @@ const createPlanPage = () => {
           </div>
         </div>
       ) : (
-        <div className="flex justify-between logScreen lg:items-center flex-column ">
-        <div className="p-4 overflow-y-auto">
+        <>
+        <div className="flex flex-col h-screen overflow-hidden">
+        <div className="top-0 p-3 bg-black sticky-top">
+        <div className="flex items-center cursor-pointer" >
+          <i className="pr-2 text-gray-400 fa-solid fa-angle-left" />       
+          <h1 className="text-white">{planName}</h1>
+        </div>
+        
+        <p className="my-2 text-gray-400">{weeks} weeks | {daysPerWeek} days per week</p>
+        
+        
+      </div>
+          <div className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">
           {workoutPlan?.map((week, weekIndex) => (
             <div key={weekIndex} className="mb-8">
               <div className="flex items-center gap-2 mb-4">
@@ -444,24 +455,22 @@ const createPlanPage = () => {
               ))}
             </div>
           ))}
-
+          </div>
+          <div className="p-3">
           {workoutPlan.length > 0 && (
             <ButtonCs
               onClick={savePlan}
               title="Save Plan"
               type="submit"
-              className="mt-[36px] btnStyle min-w-[184px] mb-5"
+              className="mt-[36px] btnStyle  "
             />
           )}
-
-          {/* <ButtonCs onClick={handleOpenClose} title='Open Canvas' type="button" className="mt-[36px] btnStyle min-w-[184px] mb-5" /> */}
-
           <OffCanvasComp
             placement="end"
             name="createPlan"
             showProps={showExe}
             handleClose={handleOpenClose}
-            customStyle=""
+            customStyle="responsiveStyle"
           >
             <ExerciseCard
             formData={formData}
@@ -471,8 +480,10 @@ const createPlanPage = () => {
   }}
             />
           </OffCanvasComp>
+          </div>
         </div>
-        </div>
+        
+        </>
       )}
     </SecureComponent>
   );

@@ -15,8 +15,8 @@ const OffCanvasComp = ({customStyle,sidebar,handleClose,showProps, children, ...
   }
   
   return (
-    <Offcanvas className={`${customStyle}`} show={sidebar?show:showProps} onHide={handleCloseProps} {...props}>
-        <Offcanvas.Body className='p-0 '>
+    <Offcanvas className={`${customStyle} duration-500`} show={sidebar?show:showProps} onHide={handleCloseProps} {...props}>
+        <Offcanvas.Body className='p-0 duration-500'>
           {children}
         </Offcanvas.Body>
       </Offcanvas>

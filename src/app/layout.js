@@ -81,7 +81,7 @@ export default function RootLayout({ children }) {
                   </OffCanvasComp>
 
                   <div>
-                    <NavbarComponent />
+                    {/* <NavbarComponent /> */}
                   </div>
                 </SignedIn>
                 {children}

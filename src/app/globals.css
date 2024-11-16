@@ -154,6 +154,12 @@ a {
     width:100% !important;
   }
 }
+@media (max-width: 624px) {
+  .responsiveStyle{
+    width: 100% !important;
+    transition: all 0.5s;
+  }
+}
 
 @media (min-width: 576px) {
   .inputStyle {
