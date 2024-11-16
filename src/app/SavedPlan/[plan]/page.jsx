@@ -22,6 +22,9 @@ const TabButton = ({ active, onClick, children, disabled }) => (
 );
 
 const PlanDetail = ({ params }) => {
+
+  const USER_WEIGHT_KG = 60;
+
   const router = useRouter()
   const initializedRef = useRef(false);
   const [workoutData, setWorkoutData] = useState(null);
@@ -44,6 +47,56 @@ const PlanDetail = ({ params }) => {
 
   const handleOpenClose = () => setShow(!show);
   const selectedPlanName = decodeURIComponent(params?.plan);
+
+  const calculateSetVolume = (weight, reps, equipment) => {
+    if (!weight || !reps) return 0;
+    
+    // Convert weight to kg if needed (assuming input is in kg)
+    const weightInKg = Number(weight);
+    const numberOfReps = Number(reps);
+
+    if (equipment === "body weight") {
+      return USER_WEIGHT_KG * numberOfReps;
+    } else if (equipment === "band") {
+      // For band exercises, we'll just track reps
+      return numberOfReps;
+    } else {
+      return weightInKg * numberOfReps;
+    }
+  };
+
+  const calculateExerciseTotal = (weekIndex, dayIndex, exerciseIndex) => {
+    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
+    const sets = workoutData?.exerciseHistory[key] || [];
+    const exercise = workoutData?.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
+    
+    let total = 0;
+    sets.forEach(set => {
+      if (exercise.equipment === "body weight") {
+        total += calculateSetVolume(USER_WEIGHT_KG, set.reps, exercise.equipment);
+      } else {
+        total += calculateSetVolume(set.weight, set.reps, exercise.equipment);
+      }
+    });
+    return total;
+  };
+  const calculateDailyTotal = (weekIndex, dayIndex) => {
+    const exercises = workoutData?.workoutPlan[weekIndex][dayIndex].exercises || [];
+    let dailyTotal = 0;
+    
+    exercises.forEach((exercise, index) => {
+      dailyTotal += calculateExerciseTotal(weekIndex, dayIndex, index);
+    });
+    return dailyTotal;
+  };
+
+  const formatVolume = (volume, equipment) => {
+    if (equipment === "band") {
+      return `${volume} reps`;
+    } else {
+      return `${volume.toLocaleString()} kg`;
+    }
+  };
   
 
   useEffect(() => {
@@ -549,6 +602,9 @@ const PlanDetail = ({ params }) => {
         <span className="text-lg font-semibold">
           Current Progress: Week {currentWeek + 1}, Day {currentDay + 1}
         </span>
+        <span className="text-base text-gray-600">
+            Daily Volume: {formatVolume(calculateDailyTotal(selectedWeek, selectedDay))}
+          </span>
       </div>
 
       <div className="mb-4">
@@ -616,6 +672,13 @@ const PlanDetail = ({ params }) => {
                   <p className="text-sm text-gray-600">
                     Target: {exercise.target}
                   </p>
+                  <p className="text-sm font-medium text-gray-700">
+                    Total Volume: {formatVolume(
+                      calculateExerciseTotal(selectedWeek, selectedDay, exerciseIndex),
+                      exercise.equipment
+                    )}
+                    {exercise.equipment === "body weight" && " (based on " + USER_WEIGHT_KG + "kg body weight)"}
+                  </p>
                 </div>
                 <button
                   onClick={() =>
@@ -639,6 +702,13 @@ const PlanDetail = ({ params }) => {
                   exerciseIndex,
                   detailIndex
                 );
+                const setVolume = detail.isCompleted ? 
+                  calculateSetVolume(
+                    exercise.equipment === "body weight" ? USER_WEIGHT_KG : detail.weight,
+                    detail.reps,
+                    exercise.equipment
+                  ) : 0;
+
                 return (
                   <div
                     key={detailIndex}
@@ -691,6 +761,11 @@ const PlanDetail = ({ params }) => {
                       } ${!isEnabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
                       disabled={detail.isCompleted || !isEnabled}
                     />
+                    {detail.isCompleted && (
+                      <span className="ml-2 text-sm text-gray-600">
+                        Volume: {formatVolume(setVolume, exercise.equipment)}
+                      </span>
+                    )}
 
                     {!detail.isCompleted ? (
                       <button
