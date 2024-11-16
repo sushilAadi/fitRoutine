@@ -6,25 +6,23 @@ import { getExercises } from "@/service/exercise";
 import CCard from "../CCard";
 import ButtonCs from "../Button/ButtonCs";
 
-const ExerciseCard = ({ onSelectExercise, handleClose, formData }) => {
+const ExerciseCard = ({ onSelectExercise, handleClose, formData,currentWeekIndex, currentDayIndex  }) => {
   const { planName, weeks, daysPerWeek, workoutPlan } = formData;
 
   const isExerciseSelected = (exercise) => {
-    if (!workoutPlan || !workoutPlan[0]) return false;
+    if (!workoutPlan || !workoutPlan[currentWeekIndex] || !workoutPlan[currentWeekIndex][currentDayIndex]) {
+      return false;
+    }
     
-    const currentDayExercises = workoutPlan.map(week => 
-      week.map(day => day.exercises)
-    ).flat(2);
-    
+    // Only check exercises for the current day
+    const currentDayExercises = workoutPlan[currentWeekIndex][currentDayIndex].exercises;
     return currentDayExercises.some(e => e.id === exercise.id);
   };
 
   const handleExerciseClick = (exercise) => {
     if (isExerciseSelected(exercise)) {
-      // If exercise is already selected, call onSelectExercise with null to indicate removal
       onSelectExercise(null, exercise);
     } else {
-      // If exercise is not selected, call onSelectExercise normally to add it
       onSelectExercise(exercise);
     }
   };
@@ -32,11 +30,14 @@ const ExerciseCard = ({ onSelectExercise, handleClose, formData }) => {
   const [buttonText, setButtonText] = useState("Please select and proceed");
 
   useEffect(() => {
-    const allExercisesEmpty = workoutPlan.every(week =>
-      week.every(day => day.exercises.length === 0)
-    );
-    setButtonText(allExercisesEmpty ? "Please select and proceed" : "Complete");
-  }, [workoutPlan]);
+    if (!workoutPlan[currentWeekIndex] || !workoutPlan[currentWeekIndex][currentDayIndex]) {
+      setButtonText("Please select and proceed");
+      return;
+    }
+    
+    const currentDayExercises = workoutPlan[currentWeekIndex][currentDayIndex].exercises;
+    setButtonText(currentDayExercises.length === 0 ? "Please select and proceed" : "Complete");
+  }, [workoutPlan, currentWeekIndex, currentDayIndex]);
 
   const {
     data: exercisesData,
@@ -106,7 +107,7 @@ const ExerciseCard = ({ onSelectExercise, handleClose, formData }) => {
           <h1 className="text-white">{planName}</h1>
         </div>
         
-        <p className="my-2 text-gray-400">{weeks} weeks | {daysPerWeek} days per week</p>
+        <p className="my-2 text-gray-400">Week {currentWeekIndex + 1} | Day {currentDayIndex + 1}</p>
         <div className="flex gap-1">
           <PillButton
             onClick={() => setFilterToggle(!filterToggle)}

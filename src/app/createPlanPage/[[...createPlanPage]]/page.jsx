@@ -477,12 +477,14 @@ const createPlanPage = () => {
             customStyle="responsiveStyle"
           >
             <ExerciseCard
-            formData={formData}
-              handleClose={handleOpenClose}
-              onSelectExercise={(exercise, exerciseToRemove) => {
-    addExerciseToDay(selectedWeekIndex, selectedDayIndex, exercise, exerciseToRemove);
-  }}
-            />
+    formData={formData}
+    handleClose={handleOpenClose}
+    currentWeekIndex={selectedWeekIndex}
+    currentDayIndex={selectedDayIndex}
+    onSelectExercise={(exercise, exerciseToRemove) => {
+      addExerciseToDay(selectedWeekIndex, selectedDayIndex, exercise, exerciseToRemove);
+    }}
+  />
           </OffCanvasComp>
           </div>
         </div>

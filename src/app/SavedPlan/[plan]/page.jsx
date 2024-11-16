@@ -43,6 +43,8 @@ const PlanDetail = ({ params }) => {
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(null);
 
   const handleOpenClose = () => setShow(!show);
+  const selectedPlanName = decodeURIComponent(params?.plan);
+  
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -52,7 +54,7 @@ const PlanDetail = ({ params }) => {
       .filter((key) => key.startsWith("workoutPlan_"))
       .map((key) => JSON.parse(localStorage.getItem(key)));
 
-    const findPlan = plans?.find((i) => i?.name === params?.plan);
+    const findPlan = plans?.find((i) => i?.name === selectedPlanName);
     if (findPlan) {
       setWorkoutData(findPlan);
       const initialExerciseDetails = {};
@@ -65,7 +67,7 @@ const PlanDetail = ({ params }) => {
       });
       setExerciseDetails(initialExerciseDetails);
 
-      const lastPosition = localStorage.getItem(`lastPosition_${params?.plan}`);
+      const lastPosition = localStorage.getItem(`lastPosition_${selectedPlanName}`);
       if (lastPosition) {
         const { week, day } = JSON.parse(lastPosition);
         setSelectedWeek(week);
@@ -90,16 +92,16 @@ const PlanDetail = ({ params }) => {
       }
 
       // Move rest time prompt here and use ref to prevent double execution
-      if (!localStorage.getItem(`restTime_${params?.plan}`)) {
+      if (!localStorage.getItem(`restTime_${selectedPlanName}`)) {
         const userRestTime = prompt(
           "Do you want to set a rest time for each set? If yes, enter the time in seconds:"
         );
         if (userRestTime && !isNaN(userRestTime)) {
           setRestTime(parseInt(userRestTime));
-          localStorage.setItem(`restTime_${params?.plan}`, userRestTime);
+          localStorage.setItem(`restTime_${selectedPlanName}`, userRestTime);
         }
       } else {
-        setRestTime(parseInt(localStorage.getItem(`restTime_${params?.plan}`)));
+        setRestTime(parseInt(localStorage.getItem(`restTime_${selectedPlanName}`)));
       }
     }
   }, [params?.plan]);
@@ -107,7 +109,7 @@ const PlanDetail = ({ params }) => {
   useEffect(() => {
     if (workoutData) {
       localStorage.setItem(
-        `lastPosition_${params?.plan}`,
+        `lastPosition_${selectedPlanName}`,
         JSON.stringify({
           week: currentWeek,
           day: currentDay,
@@ -294,7 +296,7 @@ const PlanDetail = ({ params }) => {
     setSelectedDay(nextDay);
 
     localStorage.setItem(
-      `lastPosition_${params?.plan}`,
+      `lastPosition_${selectedPlanName}`,
       JSON.stringify({
         week: nextWeek,
         day: nextDay,
@@ -518,7 +520,7 @@ const PlanDetail = ({ params }) => {
       }
     }
   };
-
+  console.log("workoutData",workoutData)
   if (!workoutData) return <div>Loading...</div>;
 
   
@@ -534,7 +536,7 @@ const PlanDetail = ({ params }) => {
       )}
 
       <div className="flex items-center justify-between mb-4">
-        <button
+        {/* <button
           onClick={toggleLockPreviousTabs}
           className={`px-4 py-2 rounded ${
             lockPreviousTabs
@@ -543,7 +545,7 @@ const PlanDetail = ({ params }) => {
           }`}
         >
           {lockPreviousTabs ? "Unlock Previous Tabs" : "Lock Previous Tabs"}
-        </button>
+        </button> */}
         <span className="text-lg font-semibold">
           Current Progress: Week {currentWeek + 1}, Day {currentDay + 1}
         </span>

@@ -28,7 +28,7 @@ const CustomPlanPage = () => {
   return (
     <SecureComponent>
     <div className="px-4">
-      <h1 className="text-2xl font-bold mb-4">
+      <h1 className="mb-4 text-2xl font-bold">
         Saved Plan
       </h1>
 
@@ -36,7 +36,7 @@ const CustomPlanPage = () => {
         {savedPlans.length > 0 ? (
           <div>
             {savedPlans.map((plan, index) => (
-              <li key={index} className="mb-2 flex items-center">
+              <li key={index} className="flex items-center mb-2">
                 <ButtonCs title={`${_.upperFirst(plan.name)} (${plan.weeks} weeks, ${plan.daysPerWeek} days/week)`} className="mb-2 mr-2 !text-sm" onClick={() => router.push(`/SavedPlan/${plan.name}`)} />
                 <i class="fa-regular fa-trash-can text-red-500 cursor-pointer" onClick={() => deletePlan(plan.name)} />
               </li>
