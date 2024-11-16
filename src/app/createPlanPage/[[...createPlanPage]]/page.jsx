@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 
 import InputCs from "@/components/InputCs/InputCs";
 import ButtonCs from "@/components/Button/ButtonCs";
@@ -12,8 +12,12 @@ import InputCsTwo from "@/components/InputCs/InputCsTwo";
 import BlurryBlob from "@/components/BlurryBlob/BlurryBlob";
 import Image from "next/image";
 import CCard from "@/components/CCard";
+import { GlobalContext } from "@/context/GloablContext";
 
 const createPlanPage = () => {
+
+  const {handleOpenClose:menuOpenClose} = useContext(GlobalContext)
+
   const [toggleForm, setToggleForm] = useState(true);
   const [weeks, setWeeks] = useState(3);
   const [daysPerWeek, setDaysPerWeek] = useState(3);
@@ -371,7 +375,7 @@ const createPlanPage = () => {
         <div className="flex flex-col h-screen overflow-hidden">
         <div className="top-0 p-3 bg-black sticky-top">
         <div className="flex items-center cursor-pointer" >
-          <i className="pr-2 text-gray-400 fa-solid fa-angle-left" />       
+        <i className="mr-2 text-white fa-duotone fa-solid fa-bars text-[20px]" onClick={menuOpenClose}></i>     
           <h1 className="text-white">{planName}</h1>
         </div>
         
