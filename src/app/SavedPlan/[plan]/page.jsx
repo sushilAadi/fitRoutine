@@ -588,17 +588,17 @@ const PlanDetail = ({ params }) => {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-4">
-        {/* <button
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <button
           onClick={toggleLockPreviousTabs}
-          className={`px-4 py-2 rounded ${
+          className={`px-4 py-2 rounded whitespace-nowrap  ${
             lockPreviousTabs
               ? "bg-red-500 text-white"
               : "bg-gray-200 text-gray-700"
           }`}
         >
           {lockPreviousTabs ? "Unlock Previous Tabs" : "Lock Previous Tabs"}
-        </button> */}
+        </button>
         <span className="text-lg font-semibold">
           Current Progress: Week {currentWeek + 1}, Day {currentDay + 1}
         </span>

@@ -1,14 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import ButtonCs from '@/components/Button/ButtonCs';
 import { useRouter } from 'next/navigation';
-import _ from 'lodash';
-import SecureComponent from '@/components/SecureComponent/[[...SecureComponent]]/SecureComponent';
+import WorkoutProgressCard from '@/components/WorkoutProgressCard';
 
 const CustomPlanPage = () => {
   const router = useRouter()
-
   const [savedPlans, setSavedPlans] = useState([]);
 
   useEffect(() => {
@@ -26,30 +23,36 @@ const CustomPlanPage = () => {
   };
 
   return (
-    <SecureComponent>
-    <div className="px-4">
-      <h1 className="mb-4 text-2xl font-bold">
-        Saved Plan
-      </h1>
-
-      <div>
-        {savedPlans.length > 0 ? (
-          <div>
-            {savedPlans.map((plan, index) => (
-              <li key={index} className="flex items-center mb-2">
-                <ButtonCs title={`${_.upperFirst(plan.name)} (${plan.weeks} weeks, ${plan.daysPerWeek} days/week)`} className="mb-2 mr-2 !text-sm" onClick={() => router.push(`/SavedPlan/${plan.name}`)} />
-                <i class="fa-regular fa-trash-can text-red-500 cursor-pointer" onClick={() => deletePlan(plan.name)} />
-              </li>
-            ))}
-          </div>
-        ) : (
-          <p>No saved plans found.</p>
-        )}
-      </div>
-
+    <div className="container px-4 mx-auto">
+      <h1 className="mb-4 text-2xl font-bold">Saved Plans</h1>
+      {savedPlans.length > 0 ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {savedPlans.map((plan, index) => (
+            <div key={index} className="flex flex-col">
+              <WorkoutProgressCard plan={plan} />
+              <div className="flex justify-between mt-2">
+                <button 
+                  className="btn btn-primary btn-sm"
+                  onClick={() => router.push(`/SavedPlan/${plan.name}`)}
+                >
+                  {`View ${plan.name.charAt(0).toUpperCase() + plan.name.slice(1)}`}
+                </button>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={() => deletePlan(plan.name)}
+                >
+                  <i className="fa-regular fa-trash-can" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p>No saved plans found.</p>
+      )}
     </div>
-    </SecureComponent>
   );
 };
 
 export default CustomPlanPage;
+
