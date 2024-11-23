@@ -28,7 +28,7 @@ export default function RootLayout({ children }) {
         <GlobalContextProvider>
           <html lang="en">
             <head>
-            <link rel="manifest" href="../../public/manifest.json" />
+            <link rel="manifest" href="/manifest.json" />
               <link
                 rel="stylesheet"
                 href="https://site-assets.fontawesome.com/releases/v6.6.0/css/all.css"
