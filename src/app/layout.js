@@ -14,6 +14,7 @@ import NavbarComponent from "@/components/Navbar/Navbar";
 import { ClerkProvider, SignedIn } from "@clerk/nextjs";
 import "animate.css";
 
+
 const queryClient = new QueryClient();
 
 export default function RootLayout({ children }) {
@@ -27,6 +28,7 @@ export default function RootLayout({ children }) {
         <GlobalContextProvider>
           <html lang="en">
             <head>
+            <link rel="manifest" href="../../public/manifest.json" />
               <link
                 rel="stylesheet"
                 href="https://site-assets.fontawesome.com/releases/v6.6.0/css/all.css"
