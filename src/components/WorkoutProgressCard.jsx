@@ -22,6 +22,16 @@ const WorkoutProgressCard = ({ plan }) => {
   };
 
   const { progress, completedExercises, totalExercises } = calculateProgress();
+  const date = plan?.date ? new Date(plan.date) : null;
+
+const formattedDate = date instanceof Date && !isNaN(date)
+  ? date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    })
+  : 'Invalid Date';
+
 
   return (
     <div className="w-full max-w-sm card">
@@ -33,6 +43,7 @@ const WorkoutProgressCard = ({ plan }) => {
         </div>
         <p className="text-sm text-gray-600 card-text">{`${progress}% complete`}</p>
         <p className="mt-2 text-sm text-gray-600 card-text">{`${completedExercises} out of ${totalExercises} exercises completed`}</p>
+        <p className="mt-2 text-sm text-gray-600 card-text">{formattedDate}</p>
       </div>
     </div>
   );

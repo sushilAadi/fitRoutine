@@ -189,6 +189,7 @@ const createPlanPage = () => {
       exerciseHistory: exerciseHistory,
       weekNames: weekNames, // Save week names
       dayNames: dayNames, // Save day names
+      date: new Date(),
     };
 
     const storageKey = `workoutPlan_${planName}`;
