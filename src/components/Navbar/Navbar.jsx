@@ -23,7 +23,7 @@ const NavbarComponent = () => {
   const {handleOpenClose} = useContext(GlobalContext)
 
   return (
-    <div className="absolute px-4 w-100">
+    <div className="absolute px-4 pt-2 w-100">
       <div className="flex items-center justify-between ">
         <Typography
           as="a"
