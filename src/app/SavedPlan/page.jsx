@@ -8,7 +8,7 @@ const CustomPlanPage = () => {
   const router = useRouter();
   const [savedPlans, setSavedPlans] = useState([]);
 
-  const isCompleted = (plan) => {
+  const calculateProgress = (plan) => {
     let totalExercises = 0;
     let completedExercises = 0;
 
@@ -23,7 +23,8 @@ const CustomPlanPage = () => {
       });
     });
 
-    return totalExercises > 0 && completedExercises === totalExercises;
+    const progress = totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0;
+    return progress;
   };
 
   useEffect(() => {
@@ -31,7 +32,9 @@ const CustomPlanPage = () => {
       .filter((key) => key.startsWith("workoutPlan_"))
       .map((key) => {
         const plan = JSON.parse(localStorage.getItem(key));
-        return { ...plan, status: plan.status || "inactive" };
+        const progress = calculateProgress(plan);
+        const status = progress === 100 ? "completed" : progress > 0 ? "active" : "inactive";
+        return { ...plan, status, progress };
       });
     
     // Sort plans: active first, then completed, then inactive
@@ -54,20 +57,25 @@ const CustomPlanPage = () => {
 
   const startPlan = (planName) => {
     const updatedPlans = savedPlans.map(plan => {
-      if (plan.name === planName && !isCompleted(plan)) {
+      if (plan.name === planName && plan.progress !== 100) {
         plan.status = "active";
-      } else if (plan.status === "active" && !isCompleted(plan)) {
+      } else if (plan.status === "active" && plan.progress === 100) {
+        plan.status = "completed";
+      } else if (plan.status === "inactive" && plan.progress === 0) {
         plan.status = "inactive";
       }
+
+      plan.progress = calculateProgress(plan);
       localStorage.setItem(`workoutPlan_${plan.name}`, JSON.stringify(plan));
       return plan;
     });
+
     setSavedPlans(updatedPlans);
     router.push(`/SavedPlan/${planName}`);
   };
 
-  const hasActivePlan = savedPlans.some(plan => plan.status === "active" && !isCompleted(plan));
-  const hasCompletedPlan = savedPlans.some(plan => isCompleted(plan));
+  const hasActivePlan = savedPlans.some(plan => plan.status === "active" && plan.progress < 100);
+  const hasCompletedPlan = savedPlans.some(plan => plan.progress === 100);
 
   return (
     <div className="container h-screen px-4 py-2 mx-auto overflow-y-auto">
@@ -79,15 +87,15 @@ const CustomPlanPage = () => {
               <SavedCard
                 plan={plan}
                 onClick={() => {
-                  if (isCompleted(plan) || plan.status === "active") {
+                  if (plan.progress === 100 || plan.status === "active") {
                     router.push(`/SavedPlan/${plan.name}`);
                   } else {
                     startPlan(plan.name);
                   }
                 }}
                 onClickSecondary={() => deletePlan(plan.name)}
-                isDisabled={hasActivePlan && plan.status === "inactive" && !isCompleted(plan)}
-                isCompleted={isCompleted(plan)}
+                isDisabled={hasActivePlan && plan.status === "inactive" && plan.progress !== 100}
+                isCompleted={plan.progress === 100}
               />
             </div>
           ))}
@@ -100,4 +108,3 @@ const CustomPlanPage = () => {
 };
 
 export default CustomPlanPage;
-
