@@ -1,7 +1,6 @@
-import _ from "lodash";
 import React from "react";
 
-const SavedCard = ({ plan, onClick, navigateToText, onClickSecondary }) => {
+const SavedCard = ({ plan, onClick, onClickSecondary, isDisabled, isCompleted }) => {
   const calculateProgress = () => {
     let totalExercises = 0;
     let completedExercises = 0;
@@ -28,7 +27,7 @@ const SavedCard = ({ plan, onClick, navigateToText, onClickSecondary }) => {
     return { progress, completedExercises, totalExercises };
   };
 
-  const { progress, completedExercises, totalExercises } = calculateProgress();
+  const { progress } = calculateProgress();
   const date = plan?.date ? new Date(plan.date) : null;
 
   const formattedDate =
@@ -46,16 +45,23 @@ const SavedCard = ({ plan, onClick, navigateToText, onClickSecondary }) => {
   });
 
   return (
-    <div className="max-w-sm p-6 bg-white shadow-lg rounded-xl">
+    <div className={`max-w-sm p-6 bg-white shadow-lg rounded-xl ${plan.status === "active" && !isCompleted ? "border-2 border-green-500" : ""}`}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center">
           <div className="flex items-center justify-center w-10 h-10 text-xl font-semibold text-white bg-black rounded-full">
-            {_.upperFirst(plan?.name?.charAt(0))}
+            {plan?.name?.charAt(0).toUpperCase()}
           </div>
         </div>
-        <span className="px-3 py-1 text-sm text-green-500 rounded-full bg-green-50">
-          Active
-        </span>
+        {plan.status === "active" && !isCompleted && (
+          <span className="px-3 py-1 text-sm text-green-500 rounded-full bg-green-50">
+            Active
+          </span>
+        )}
+        {isCompleted && (
+          <span className="px-3 py-1 text-sm text-gray-500 bg-gray-200 rounded-full">
+            Completed
+          </span>
+        )}
       </div>
 
       <div className="mb-4 space-y-1">
@@ -73,16 +79,16 @@ const SavedCard = ({ plan, onClick, navigateToText, onClickSecondary }) => {
             className={`h-6 w-2 rounded-sm transition-colors ${
               isComplete
                 ? index < 6
-                  ? "bg-red-500" // 1-20%
+                  ? "bg-red-500"
                   : index < 12
-                  ? "bg-orange-500" // 21-40%
+                  ? "bg-orange-500"
                   : index < 18
-                  ? "bg-yellow-500" // 41-60%
+                  ? "bg-yellow-500"
                   : index < 24
-                  ? "bg-lime-400" // 61-80%
+                  ? "bg-lime-400"
                   : index < 27
-                  ? "bg-green-400" // 81-90%
-                  : "bg-green-600" // 91-100%
+                  ? "bg-green-400"
+                  : "bg-green-600"
                 : "bg-gray-200"
             }`}
           />
@@ -92,18 +98,28 @@ const SavedCard = ({ plan, onClick, navigateToText, onClickSecondary }) => {
       {/* Action buttons */}
       <button
         onClick={onClick}
-        className="w-full py-2 mb-2 text-white transition-colors bg-gray-900 rounded-full hover:bg-gray-800"
+        disabled={isDisabled}
+        className={`w-full py-2 mb-2 text-white transition-colors rounded-full ${
+          isDisabled
+            ? "bg-gray-300 cursor-not-allowed"
+            : "bg-gray-900 hover:bg-gray-800"
+        }`}
       >
-        {progress === 100
-          ? "View Your Plan (Completed)"
-          : progress > 0
+        {isCompleted
+          ? "View Plan (Completed)"
+          : plan.status === "active"
           ? "Continue Your Plan"
           : "Start Your Plan"}
       </button>
 
       <button
         onClick={onClickSecondary}
-        className="w-full py-2 text-center text-red-500 hover:text-red-900"
+        disabled={plan.status === "active" && !isCompleted}
+        className={`w-full py-2 text-center ${
+          plan.status === "active" && !isCompleted
+            ? "text-gray-400 cursor-not-allowed"
+            : "text-red-500 hover:text-red-900"
+        }`}
       >
         <i className="mr-4 fa-regular fa-trash-can" /> Delete Plan
       </button>
@@ -112,3 +128,4 @@ const SavedCard = ({ plan, onClick, navigateToText, onClickSecondary }) => {
 };
 
 export default SavedCard;
+
