@@ -15,6 +15,37 @@ export default function Home() {
   const { isLoaded, userId } = useAuth()
   const { userEmail, userName } = userDetailData || {}
 
+  const [bgColor, setBgColor] = useState("#ffffff");
+  const [statusBarColor, setStatusBarColor] = useState("#ffffff");
+
+  useEffect(() => {
+    const setThemeColors = () => {
+      const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+      const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+      if (isIOS) {
+        const themeColorMeta = document.querySelector("meta[name=theme-color]");
+        if (themeColorMeta) {
+          themeColorMeta.setAttribute("content", "#ff6347"); // Set iOS status bar color
+        }
+        setStatusBarColor("#ff6347");
+      }
+
+      if (isMobile) {
+        setBgColor("#f0f0f0"); // Set mobile background color
+      } else {
+        setBgColor("#ffffff"); // Default background for non-mobile devices
+      }
+    };
+
+    setThemeColors();
+    
+    window.addEventListener('resize', setThemeColors);
+    
+    return () => {
+      window.removeEventListener('resize', setThemeColors);
+    };
+  }, []);
 
   useEffect(() => {
     if (userId && step === 0) {
@@ -39,8 +70,8 @@ export default function Home() {
   }
 
   return (
-    <div className="p-4 overflow-hidden">
-      Hello {userName} your email is {userEmail}
+    <div className="p-4 overflow-hidden" style={{backgroundColor: bgColor}}>
+      Hello {userName} your email is {userEmail} {bgColor}
       
     </div>
   );
