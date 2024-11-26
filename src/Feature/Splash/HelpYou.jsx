@@ -1,15 +1,10 @@
 "use client";
-import ButtonCs from "@/components/Button/ButtonCs";
 import FooterButton from "@/components/Button/FooterButton";
 import { GlobalContext } from "@/context/GloablContext";
-import React, { useContext, useState } from "react";
+import React, { useContext } from "react";
 
 const HelpYou = ({ step, setStep }) => {
-  const [selectedGoals, setSelectedGoals] = useState(
-    new Set(["weight-loss", "better-sleep"])
-  );
-  const [currentStep] = useState(1);
-  const totalSteps = 7;
+  const { selectedGoals, setSelectedGoals } = useContext(GlobalContext);
 
   const goals = [
     {
@@ -17,6 +12,12 @@ const HelpYou = ({ step, setStep }) => {
       title: "Weight loss",
       icon: "🍎",
       color: "bg-rose-200",
+    },
+    {
+      id: "weight-gain",
+      title: "Weight Gain",
+      icon: "🍛",
+      color: "bg-yellow-200",
     },
     {
       id: "better-sleep",
@@ -39,7 +40,7 @@ const HelpYou = ({ step, setStep }) => {
   ];
 
   const toggleGoal = (goalId) => {
-    const newSelectedGoals = new Set(selectedGoals);
+    const newSelectedGoals = new Set(selectedGoals || []);
     if (newSelectedGoals.has(goalId)) {
       newSelectedGoals.delete(goalId);
     } else {
@@ -47,8 +48,6 @@ const HelpYou = ({ step, setStep }) => {
     }
     setSelectedGoals(newSelectedGoals);
   };
-  const result = Array.from(selectedGoals).join(", ");
-  console.log("selectedGoals",result)
 
   return (
     <div className="flex flex-col items-center justify-between h-screen ">
@@ -56,10 +55,10 @@ const HelpYou = ({ step, setStep }) => {
         <h5 className="text-center text-red-500">Step {step} of 6</h5>
         <br />
         <h5 className="text-center animate__animated animate__slideInRight">
-          Let us know how we can help you
+          Help us understand your goals
         </h5>
         <p className="text-center text-gray-500">
-          You always can change this later
+          Select one or more goals. You can always change this later.
         </p>
       </div>
       <div className="animate__animated animate__slideInRight">
@@ -69,16 +68,16 @@ const HelpYou = ({ step, setStep }) => {
             {goals.map((goal) => (
               <button
                 key={goal.id}
-                onClick={() => toggleGoal(goal.id)}
+                onClick={() => toggleGoal(goal?.id)}
                 className={`flex w-full items-center justify-between rounded-xl p-4 text-left transition-colors ${
-                  selectedGoals.has(goal.id) ? "bg-orange-300" : "bg-gray-100"
+                  selectedGoals?.has(goal.id) ? "bg-orange-300" : "bg-gray-100"
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <span className="text-xl">{goal.icon}</span>
                   <span className="font-medium">{goal.title}</span>
                 </div>
-                {selectedGoals.has(goal.id) && (
+                {selectedGoals?.has(goal.id) && (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -100,9 +99,10 @@ const HelpYou = ({ step, setStep }) => {
         </div>
       </div>
       <FooterButton
-        backClick={() => setStep(0)}
-        btnClick={() => setStep(5)}
+        backClick={() => setStep(step - 1)}
+        btnClick={() => setStep(step + 1)}
         btnTitle="Next"
+        disabled={selectedGoals?.size === 0}
       />
     </div>
   );

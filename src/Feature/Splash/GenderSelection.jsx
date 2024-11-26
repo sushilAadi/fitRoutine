@@ -20,7 +20,7 @@ const {gender, setGender} = useContext(GlobalContext)
     },
   ];
   return (
-    <div className="flex items-center justify-between ch-screen logScreen flex-column">
+    <div className="flex items-center justify-between h-screen flex-column">
       <div className="px-4 pt-4 w-100">
             
             <h5 className="text-center text-red-500">Step {step} of 6</h5>

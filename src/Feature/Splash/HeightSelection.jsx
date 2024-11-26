@@ -9,8 +9,8 @@ const HeightSelection = ({ step, setStep }) => {
     const {height, setHeight} = useContext(GlobalContext)
 
     return (
-        <div className="flex  justify-between logScreen flex-column">
-            <div className="w-100 px-4 pt-4">
+        <div className="flex justify-between h-screen flex-column">
+            <div className="px-4 pt-4 w-100">
             
                 <h5 className="text-center text-red-500">Step {step} of 6</h5>
                 <br />
@@ -29,7 +29,7 @@ const HeightSelection = ({ step, setStep }) => {
                         <WeightScale initialValue={height} setInitialValue={setHeight} measurtype="cm" roateText="rotate-[270deg]" initialShowValue={152} />
                 </div>
             </div>
-            <FooterButton backClick={() => setStep(2)} btnClick={() => setStep(4)} btnTitle="Next"/>
+            <FooterButton backClick={() => setStep(2)} btnClick={() => setStep(4)} btnTitle="Next"  disabled={height == null}/>
         </div>
     );
 };

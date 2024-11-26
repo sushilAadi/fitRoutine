@@ -9,8 +9,8 @@ const WeightSelection = ({ step, setStep }) => {
     const {weight, setWeight} = useContext(GlobalContext)
 
     return (
-        <div className="flex items-center justify-between logScreen flex-column">
-            <div className="w-100 px-4 pt-4">
+        <div className="flex items-center justify-between h-screen flex-column">
+            <div className="px-4 pt-4 w-100">
             
                 <h5 className="text-center text-red-500">Step {step} of 6</h5>
                 <br />
@@ -35,7 +35,7 @@ const WeightSelection = ({ step, setStep }) => {
 
                 </div>
             </div>
-            <FooterButton backClick={() => setStep(1)} btnClick={() => setStep(3)} btnTitle="Next"/>
+            <FooterButton backClick={() => setStep(1)} btnClick={() => setStep(3)} btnTitle="Next" disabled={weight == null}/>
             
             
         </div>

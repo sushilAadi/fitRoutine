@@ -12,7 +12,7 @@ import { supabase } from '@/createClient'
 const AgeSelection = ({ step, setStep }) => {
     const { user } = useUser();
     const {id,fullName,primaryEmailAddress} = user || {}
-    const {age,height,gender,weight, setAge,userRefetch} = useContext(GlobalContext)
+    const {age,height,gender,weight, setAge,userRefetch,selectedGoals,activityLevel} = useContext(GlobalContext)
     
 
     const postUserDetail =async()=>{
@@ -26,7 +26,10 @@ const AgeSelection = ({ step, setStep }) => {
             "userGender": gender,
             "userWeight": weight,
             "userHeight": height,
-            "userEmail":primaryEmailAddress?.emailAddress
+            "userEmail":primaryEmailAddress?.emailAddress,
+            "helpYou":Array.from(selectedGoals).join(", "),
+            "activityLevel":activityLevel
+            
           }
         );
       if (error) {
@@ -41,7 +44,7 @@ const AgeSelection = ({ step, setStep }) => {
 
 
     return (
-        <div className="flex justify-between logScreen flex-column">
+        <div className="flex justify-between h-screen flex-column">
             <div className="px-4 pt-4 w-100">
             
                 <h5 className="text-center text-red-500">Step {step} of 6</h5>
@@ -61,7 +64,7 @@ const AgeSelection = ({ step, setStep }) => {
                        <WheelPickerCS items={_.range(18, 81)} onChange={setAge}/>
                 </div>
             </div>
-            <FooterButton backClick={() => setStep(2)} btnClick={() => postUserDetail()} btnTitle="Complete"/>
+            <FooterButton backClick={() => setStep(5)} btnClick={() => postUserDetail()} btnTitle="Complete"/>
         </div>
     );
 };

@@ -48,6 +48,10 @@ export default function GlobalContextProvider({ children }) {
   const [weight, setWeight] = useState(50);
   const [height, setHeight] = useState(152);
   const [age, setAge] = useState(18);
+  const [selectedGoals, setSelectedGoals] = useState(
+    new Set([])
+  );
+  const [activityLevel,setActivityLevel] = useState(null);
   
 
 
@@ -67,9 +71,11 @@ export default function GlobalContextProvider({ children }) {
       userRefetch,
       isFetching,
       handleOpenClose,
-      show
+      show,
+      selectedGoals, setSelectedGoals,
+      activityLevel,setActivityLevel
     };
-  }, [ gender, weight, height, age,userDetailData,isFetching,show]);
+  }, [ gender, weight, height, age,userDetailData,isFetching,show,selectedGoals,activityLevel]);
 
   return (
    
