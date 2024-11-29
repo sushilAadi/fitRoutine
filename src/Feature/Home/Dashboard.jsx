@@ -1,10 +1,30 @@
-'use client'
+"use client";
 
-import React, { useContext } from 'react';
-import { motion } from 'framer-motion';
-
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { GlobalContext } from '@/context/GloablContext';
+import { motion } from "framer-motion";
+import { useState, useEffect, useContext } from "react";
+import {
+  Home,
+  Heart,
+  User,
+  Flame,
+  Clock,
+  Footprints,
+  Scale,
+  ArrowRight,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import { GlobalContext } from "@/context/GloablContext";
+import CaloriesCard from "./CaloriesCard";
 
 // Helper functions
 const calculateBMI = (weight, height) => {
@@ -13,14 +33,36 @@ const calculateBMI = (weight, height) => {
 };
 
 const calculateCalories = (weight, height, age, gender, activityFactor) => {
-  const bmr = gender === 'Male' 
-    ? 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age)
-    : 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+  const bmr =
+    gender === "Male"
+      ? 88.362 + 13.397 * weight + 4.799 * height - 5.677 * age
+      : 447.593 + 9.247 * weight + 3.098 * height - 4.33 * age;
   return Math.round(bmr * activityFactor);
 };
 
-const Dashboard = () => {
-  const { userDetailData } = useContext(GlobalContext);
+const calculateTDEE = ({
+  userWeight,
+  userHeight,
+  userAge,
+  userGender,
+  activityLevel,
+}) => {
+  const BMR =
+    userGender === "Male"
+      ? 10 * userWeight + 6.25 * userHeight - 5 * userAge + 5
+      : 10 * userWeight + 6.25 * userHeight - 5 * userAge - 161;
+
+  return Math.round(BMR * activityLevel.factor);
+};
+
+export default function FitnessTrackerDashboard() {
+  const { userDetailData,handleOpenClose } = useContext(GlobalContext);
+
+
+  if (!userDetailData) {
+    return <div>Loading...</div>;
+  }
+
   const {
     userName,
     userAge,
@@ -32,210 +74,195 @@ const Dashboard = () => {
   } = userDetailData;
 
   const bmi = calculateBMI(userWeight, userHeight);
-  const maintenanceCalories = calculateCalories(userWeight, userHeight, userAge, userGender, activityLevel.factor);
+  const maintenanceCalories = calculateCalories(
+    userWeight,
+    userHeight,
+    userAge,
+    userGender,
+    activityLevel.factor
+  );
   const weightGainCalories = maintenanceCalories + 500;
   const weightLossCalories = maintenanceCalories - 500;
 
-  const weightData = [
-    { name: 'Week 1', weight: userWeight },
-    { name: 'Week 2', weight: userWeight - 0.5 },
-    { name: 'Week 3', weight: userWeight - 0.8 },
-    { name: 'Week 4', weight: userWeight - 1.2 },
+  const goals = [
+    {
+      name: "Calories",
+      value: `${maintenanceCalories} kcal/day`, // Show maintenance calories directly
+      trend: "up",
+      color: "bg-[#FFD7CC]",
+      textColor: "text-[#FF6B6B]",
+      requirement: `Maintain at ${maintenanceCalories} kcal/day`,
+    },
+    {
+      name: "Active time",
+      value: "30 min/day", // Show active time directly
+      trend: "up",
+      color: "bg-[#E8FFCC]",
+      textColor: "text-[#7AB55C]",
+      requirement: "Target: 30 min/day",
+    },
+    {
+      name: "Steps",
+      value: "10,000 steps/day", // Show step count directly
+      trend: "up",
+      color: "bg-[#CCF6FF]",
+      textColor: "text-[#5CB5C2]",
+      requirement: "Goal: 10,000 steps/day",
+    },
+    {
+      name: "Weight",
+      value: `${userWeight} kg`, // Show weight directly
+      trend: "down",
+      color: "bg-[#F2CCFF]",
+      textColor: "text-[#B55CC2]",
+      requirement: `Current: ${userWeight} kg`,
+    },
   ];
 
-  const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
-  };
+  const weightData = [
+    { name: "Week 1", weight: userWeight },
+    { name: "Week 2", weight: userWeight - 0.5 },
+    { name: "Week 3", weight: userWeight - 0.8 },
+    { name: "Week 4", weight: userWeight - 1.2 },
+  ];
 
   return (
-    <div className="min-h-screen p-4 bg-gray-50">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <motion.div 
-          className="space-y-1 "
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <p className="flex items-center gap-2 text-sm text-indigo-600">
-            <span className="text-lg">✧</span> {new Date().toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
-          </p>
-          <h1 className="text-3xl font-semibold">Hi, {userName}</h1>
-        </motion.div>
-
-        {/* Health Score */}
-        <motion.div 
-          className="p-6 bg-white border rounded-lg shadow-sm"
-          variants={cardVariants}
-          initial="hidden"
-          animate="visible"
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <div className="flex items-start gap-4">
-            <div className="flex items-center justify-center w-20 h-20 text-3xl font-bold text-white bg-indigo-600 rounded-xl">
-              {Math.round((parseFloat(bmi) / 30) * 100)}
+    <>
+      <div className="flex flex-col items-center h-screen overflow-hidden">
+        <div className="top-0 w-full px-4 sticky-top">
+          <motion.div
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="pt-3 pb-4 bg-white "
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-semibold">
+                  Hi, {userName.split(" ")[0]}
+                </h1>
+                <p className="text-sm text-gray-500">
+                  Just a little more to reach today's goals
+                </p>
+              </div>
+              <motion.img
+                whileHover={{ scale: 1.1 }}
+                src="https://www.aiscribbles.com/img/variant/large-preview/43289/?v=cbd7a5"
+                alt="Profile"
+                className="object-cover w-10 h-10 border-2 border-gray-100 rounded-full"
+                onClick={handleOpenClose}
+              />
             </div>
-            <div className="space-y-2">
-              <h2 className="text-xl font-medium">Health Score</h2>
-              <p className="text-gray-600">
-                Your BMI is {bmi}, which is considered {parseFloat(bmi) < 18.5 ? 'underweight' : parseFloat(bmi) < 25 ? 'normal' : parseFloat(bmi) < 30 ? 'overweight' : 'obese'}.
-              </p>
-              <button className="text-sm text-indigo-600 hover:underline">Read more</button>
+          </motion.div>
+        </div>
+        <div className="mb-2 overflow-auto overflow-y-auto no-scrollbar h-100">
+          <div className="px-4 py-6 ">
+            {/* Goals Section */}
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold">Today's goals</h2>
+                <button className="flex items-center text-sm text-gray-500">
+                  Edit goals <ArrowRight className="w-4 h-4 ml-1" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6">
+                {goals.map((goal, index) => (
+                  <motion.div
+                    key={goal.name}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className={`${goal.color} rounded-lg p-4 relative overflow-hidden flex flex-col justify-between`}
+                    style={{ minHeight: "180px" }}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      {goal.name === "Calories" && (
+                        <Flame className={`w-5 h-5 ${goal.textColor}`} />
+                      )}
+                      {goal.name === "Active time" && (
+                        <Clock className={`w-5 h-5 ${goal.textColor}`} />
+                      )}
+                      {goal.name === "Steps" && (
+                        <Footprints className={`w-5 h-5 ${goal.textColor}`} />
+                      )}
+                      {goal.name === "Weight" && (
+                        <Scale className={`w-5 h-5 ${goal.textColor}`} />
+                      )}
+                    </div>
+                    <div className="flex flex-col justify-between flex-grow">
+                      <div className="mb-3">
+                        <p className="text-sm font-medium">{goal.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {goal.requirement}
+                        </p>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1 mb-2">
+                          <span
+                            className={`${goal.textColor} text-sm font-bold`}
+                          >
+                            {goal.value}
+                          </span>
+                          {goal.trend === "up" ? (
+                            <ChevronUp
+                              className={`${goal.textColor} w-5 h-5`}
+                            />
+                          ) : (
+                            <ChevronDown
+                              className={`${goal.textColor} w-5 h-5`}
+                            />
+                          )}
+                        </div>
+                        <div className="w-full h-1 bg-black rounded-full">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${goal.value}%` }}
+                            transition={{ duration: 1, delay: index * 0.2 }}
+                            className={`h-full rounded-full ${goal.textColor.replace(
+                              "text",
+                              "bg"
+                            )}`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
-          </div>
-        </motion.div>
 
-        {/* Metrics */}
-        <div>
-          <h2 className="flex items-center justify-between mb-4 text-2xl font-medium">
-            Metrics
-            <button className="text-gray-400 hover:text-gray-600">
-              <i className="fas fa-ellipsis-h"></i>
-            </button>
-          </h2>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {/* Weight Card */}
-            <motion.div 
-              className="p-4 text-white bg-indigo-600 rounded-lg"
-              variants={cardVariants}
-              initial="hidden"
-              animate="visible"
-              transition={{ duration: 0.5, delay: 0.3 }}
+            {/* Start Workout Button */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full py-4 mb-8 font-medium text-white bg-black rounded-xl"
             >
-              <div className="space-y-3">
-                <p className="text-sm opacity-90">WEIGHT</p>
-                <div className="flex items-center gap-2">
-                  <i className="w-8 h-8 fas fa-weight opacity-80"></i>
-                  <span className="text-2xl font-semibold">{userWeight}</span>
-                  <span className="text-sm opacity-90">kg</span>
-                </div>
-              </div>
-            </motion.div>
+              Start workout
+            </motion.button>
 
-            {/* Height Card */}
-            <motion.div 
-              className="p-4 text-white bg-purple-600 rounded-lg"
-              variants={cardVariants}
-              initial="hidden"
-              animate="visible"
-              transition={{ duration: 0.5, delay: 0.4 }}
-            >
-              <div className="space-y-3">
-                <p className="text-sm opacity-90">HEIGHT</p>
-                <div className="flex items-center gap-2">
-                  <i className="w-8 h-8 fas fa-ruler-vertical opacity-80"></i>
-                  <span className="text-2xl font-semibold">{userHeight}</span>
-                  <span className="text-sm opacity-90">cm</span>
-                </div>
+            {/* Weight Progress Chart */}
+            <div className="mb-8">
+              <h2 className="mb-4 text-lg font-semibold">Weight Progress</h2>
+              <div className="p-4 bg-gray-50 rounded-xl">
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={weightData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="weight"
+                      stroke="#8884d8"
+                      strokeWidth={2}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
-            </motion.div>
-
-            {/* BMI Card */}
-            <motion.div 
-              className="p-4 text-white bg-blue-600 rounded-lg"
-              variants={cardVariants}
-              initial="hidden"
-              animate="visible"
-              transition={{ duration: 0.5, delay: 0.5 }}
-            >
-              <div className="space-y-3">
-                <p className="text-sm opacity-90">BMI</p>
-                <div className="flex items-center gap-2">
-                  <i className="w-8 h-8 fas fa-calculator opacity-80"></i>
-                  <span className="text-2xl font-semibold">{bmi}</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Activity Level Card */}
-            <motion.div 
-              className="p-4 text-white bg-green-600 rounded-lg"
-              variants={cardVariants}
-              initial="hidden"
-              animate="visible"
-              transition={{ duration: 0.5, delay: 0.6 }}
-            >
-              <div className="space-y-3">
-                <p className="text-sm opacity-90">ACTIVITY LEVEL</p>
-                <div className="flex items-center gap-2">
-                  <i className="w-8 h-8 fas fa-running opacity-80"></i>
-                  <span className="text-lg font-semibold">{activityLevel.id}</span>
-                </div>
-              </div>
-            </motion.div>
+            </div>
           </div>
         </div>
-
-        {/* Calorie Requirements */}
-        <motion.div 
-          className="p-6 bg-white border rounded-lg shadow-sm"
-          variants={cardVariants}
-          initial="hidden"
-          animate="visible"
-          transition={{ duration: 0.5, delay: 0.7 }}
-        >
-          <h2 className="mb-4 text-2xl font-medium">Calorie Requirements</h2>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="p-4 bg-green-100 rounded-lg">
-              <h3 className="mb-2 font-medium">Maintenance</h3>
-              <p className="text-2xl font-bold text-green-700">{maintenanceCalories} cal</p>
-            </div>
-            <div className="p-4 bg-blue-100 rounded-lg">
-              <h3 className="mb-2 font-medium">Weight Gain</h3>
-              <p className="text-2xl font-bold text-blue-700">{weightGainCalories} cal</p>
-            </div>
-            <div className="p-4 bg-red-100 rounded-lg">
-              <h3 className="mb-2 font-medium">Weight Loss</h3>
-              <p className="text-2xl font-bold text-red-700">{weightLossCalories} cal</p>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Weight Progress Chart */}
-        <motion.div 
-          className="p-6 bg-white border rounded-lg shadow-sm"
-          variants={cardVariants}
-          initial="hidden"
-          animate="visible"
-          transition={{ duration: 0.5, delay: 0.8 }}
-        >
-          <h2 className="mb-4 text-2xl font-medium">Weight Progress</h2>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={weightData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="weight" stroke="#8884d8" strokeWidth={2} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-
-        {/* Goals */}
-        <motion.div 
-          className="p-6 bg-white border rounded-lg shadow-sm"
-          variants={cardVariants}
-          initial="hidden"
-          animate="visible"
-          transition={{ duration: 0.5, delay: 0.9 }}
-        >
-          <h2 className="mb-4 text-2xl font-medium">Your Goals</h2>
-          <div className="space-y-2">
-            {helpYou.split(', ').map((goal, index) => (
-              <div key={index} className="flex items-center gap-2">
-                <i className="text-green-500 fas fa-check-circle"></i>
-                <span>{goal.replace('-', ' ')}</span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+        
       </div>
-    </div>
+    </>
   );
-};
-
-export default Dashboard;
-
+}
