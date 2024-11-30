@@ -25,6 +25,7 @@ import {
 } from "recharts";
 import { GlobalContext } from "@/context/GloablContext";
 import CaloriesCard from "./CaloriesCard";
+import BMICard from "./BMICard";
 
 // Helper functions
 const calculateBMI = (weight, height) => {
@@ -129,11 +130,13 @@ export default function FitnessTrackerDashboard() {
   return (
     <>
       <div className="flex flex-col items-center h-screen overflow-hidden">
-        <div className="top-0 w-full px-4 sticky-top">
+        
+        <div className="mb-2 overflow-auto overflow-y-auto no-scrollbar h-100 innerContainer">
+        <div className="sticky top-0 z-50 w-full px-4 bg-tprimary stickyCard">
           <motion.div
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="pt-3 pb-4 bg-white "
+            className="pt-3 pb-4 text-white bg-tprimary "
           >
             <div className="flex items-center justify-between">
               <div>
@@ -154,8 +157,8 @@ export default function FitnessTrackerDashboard() {
             </div>
           </motion.div>
         </div>
-        <div className="mb-2 overflow-auto overflow-y-auto no-scrollbar h-100">
-          <div className="px-4 py-6 ">
+        <BMICard bmi={bmi}/>
+          <div className="z-10 px-4 py-6 ">
             {/* Goals Section */}
             <div className="mb-8">
               <div className="flex items-center justify-between mb-4">
@@ -212,7 +215,7 @@ export default function FitnessTrackerDashboard() {
                             />
                           )}
                         </div>
-                        <div className="w-full h-1 bg-black rounded-full">
+                        <div className="w-full h-1 rounded-full bg-tprimary">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${goal.value}%` }}
@@ -230,36 +233,9 @@ export default function FitnessTrackerDashboard() {
               </div>
             </div>
 
-            {/* Start Workout Button */}
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full py-4 mb-8 font-medium text-white bg-black rounded-xl"
-            >
-              Start workout
-            </motion.button>
-
-            {/* Weight Progress Chart */}
-            <div className="mb-8">
-              <h2 className="mb-4 text-lg font-semibold">Weight Progress</h2>
-              <div className="p-4 bg-gray-50 rounded-xl">
-                <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={weightData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line
-                      type="monotone"
-                      dataKey="weight"
-                      stroke="#8884d8"
-                      strokeWidth={2}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
+            
           </div>
+          
         </div>
         
       </div>
