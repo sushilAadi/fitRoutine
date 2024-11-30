@@ -55,11 +55,11 @@ const BMICard = ({ bmi, lastUpdate = '9 Jan, 2024 at 10:12' }) => {
           </motion.div>
 
           {/* Scale Labels */}
-          <div className="flex justify-between mt-2 text-sm text-gray-600">
+          {/* <div className="flex justify-between mt-2 text-sm text-gray-600">
             <span>18</span>
             <span>25</span>
             <span>30</span>
-          </div>
+          </div> */}
         </div>
 
         <p className="text-sm text-gray-700">{getBMIStatus()}</p>
