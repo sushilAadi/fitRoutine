@@ -103,10 +103,10 @@ const BMICard = ({ bmi, lastUpdate = '9 Jan, 2024 at 10:12' }) => {
         <div className="mt-8">
         <h2 className="mb-2 text-lg font-semibold">BMI Categories:</h2>
         <div className="grid grid-cols-2 gap-2 md:grid-cols-4 ">
-          <p className="font-semibold text-blue-500 text-[13px]">Underweight: &lt; 18.5</p>
-          <p className="font-semibold text-green-500 text-[13px]">Normal weight: 18.5 - 24.9</p>
-          <p className="font-semibold text-yellow-800 text-[13px]">Overweight: 25 - 29.9</p>
-          <p className="font-semibold text-red-500 text-[13px]">Obese: 30 or greater</p>
+          <p className="font-semibold text-blue-500 text-[13                                          px]">Underweight: &lt; 18.5</p>
+          <p className="font-semibold text-green-500 text-[13                                          px]">Normal weight: 18.5 - 24.9</p>
+          <p className="font-semibold text-yellow-800 text-[13                                          px]">Overweight: 25 - 29.9</p>
+          <p className="font-semibold text-red-500 text-[13                                          px]">Obese: 30 or greater</p>
         </div>
       </div>
 
