@@ -102,6 +102,28 @@ const CustomPlanPage = () => {
   );
   const hasCompletedPlan = savedPlans.some((plan) => plan.progress === 100);
 
+  const deleteAllPlans = () => {
+    if (
+      window.confirm(
+        "Are you sure you want to delete all workout plans? This action cannot be undone."
+      )
+    ) {
+      // Remove all workout plans
+      Object.keys(localStorage)
+        .filter((key) => key.startsWith("workoutPlan_"))
+        .forEach((key) => localStorage.removeItem(key));
+  
+      // Remove related localStorage items
+      Object.keys(localStorage)
+        .filter((key) => key.startsWith("lastPosition_") || key.startsWith("restTime_"))
+        .forEach((key) => localStorage.removeItem(key));
+  
+      // Clear state
+      setSavedPlans([]);
+    }
+  };
+  
+
   return (
     <>
       <div className="flex flex-col h-screen overflow-hidden">
@@ -116,7 +138,7 @@ const CustomPlanPage = () => {
                 custom workout plans. Let's crush those goals!
               </p>
             </div>
-
+           
             <IconButton
               variant="text"
               className="w-6 h-6 ml-auto text-white hover:bg-transparent focus:bg-transparent active:bg-transparent lg:hidden"
@@ -127,7 +149,14 @@ const CustomPlanPage = () => {
             </IconButton>
           </div>
         </div>
+        {savedPlans?.length > 0 && (
+  <div className="p-2 bg-red-600">
+    <p className="mb-2 text-white">You have saved plans. If you want to delete click the delete button? &nbsp; <i onClick={deleteAllPlans} className="text-white cursor-pointer fa-duotone fa-light fa-trash"></i></p> 
+  </div>
+)}
+        
         <div className="flex flex-wrap justify-between p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar h-100">
+        
           {savedPlans.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {savedPlans.map((plan, index) => (

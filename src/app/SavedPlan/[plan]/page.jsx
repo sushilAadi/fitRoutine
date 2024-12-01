@@ -22,10 +22,9 @@ const TabButton = ({ active, onClick, children, disabled }) => (
 );
 
 const PlanDetail = ({ params }) => {
-
   const USER_WEIGHT_KG = 60;
 
-  const router = useRouter()
+  const router = useRouter();
   const initializedRef = useRef(false);
   const [workoutData, setWorkoutData] = useState(null);
   const [selectedWeek, setSelectedWeek] = useState(0);
@@ -50,7 +49,7 @@ const PlanDetail = ({ params }) => {
 
   const calculateSetVolume = (weight, reps, equipment) => {
     if (!weight || !reps) return 0;
-    
+
     // Convert weight to kg if needed (assuming input is in kg)
     const weightInKg = Number(weight);
     const numberOfReps = Number(reps);
@@ -68,12 +67,17 @@ const PlanDetail = ({ params }) => {
   const calculateExerciseTotal = (weekIndex, dayIndex, exerciseIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
     const sets = workoutData?.exerciseHistory[key] || [];
-    const exercise = workoutData?.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
-    
+    const exercise =
+      workoutData?.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
+
     let total = 0;
-    sets.forEach(set => {
+    sets.forEach((set) => {
       if (exercise.equipment === "body weight") {
-        total += calculateSetVolume(USER_WEIGHT_KG, set.reps, exercise.equipment);
+        total += calculateSetVolume(
+          USER_WEIGHT_KG,
+          set.reps,
+          exercise.equipment
+        );
       } else {
         total += calculateSetVolume(set.weight, set.reps, exercise.equipment);
       }
@@ -81,9 +85,10 @@ const PlanDetail = ({ params }) => {
     return total;
   };
   const calculateDailyTotal = (weekIndex, dayIndex) => {
-    const exercises = workoutData?.workoutPlan[weekIndex][dayIndex].exercises || [];
+    const exercises =
+      workoutData?.workoutPlan[weekIndex][dayIndex].exercises || [];
     let dailyTotal = 0;
-    
+
     exercises.forEach((exercise, index) => {
       dailyTotal += calculateExerciseTotal(weekIndex, dayIndex, index);
     });
@@ -97,7 +102,6 @@ const PlanDetail = ({ params }) => {
       return `${volume.toLocaleString()} kg`;
     }
   };
-  
 
   useEffect(() => {
     if (initializedRef.current) return;
@@ -120,7 +124,9 @@ const PlanDetail = ({ params }) => {
       });
       setExerciseDetails(initialExerciseDetails);
 
-      const lastPosition = localStorage.getItem(`lastPosition_${selectedPlanName}`);
+      const lastPosition = localStorage.getItem(
+        `lastPosition_${selectedPlanName}`
+      );
       if (lastPosition) {
         const { week, day } = JSON.parse(lastPosition);
         setSelectedWeek(week);
@@ -154,7 +160,9 @@ const PlanDetail = ({ params }) => {
           localStorage.setItem(`restTime_${selectedPlanName}`, userRestTime);
         }
       } else {
-        setRestTime(parseInt(localStorage.getItem(`restTime_${selectedPlanName}`)));
+        setRestTime(
+          parseInt(localStorage.getItem(`restTime_${selectedPlanName}`))
+        );
       }
     }
   }, [params?.plan]);
@@ -308,6 +316,7 @@ const PlanDetail = ({ params }) => {
   };
 
   const moveToNextDay = () => {
+    console.log("trigger")
     const currentDayExercises =
       workoutData.workoutPlan[currentWeek][currentDay].exercises;
     const hasInvalidSets = currentDayExercises.some(
@@ -464,7 +473,7 @@ const PlanDetail = ({ params }) => {
       (isBodyWeightOrBand || details?.[detailIndex]?.weight);
 
     if (isValidSet) {
-      const currentDate = new Date().toLocaleString();
+      const currentDate = new Date(); // Full date object
       const updatedHistory = { ...workoutData.exerciseHistory };
       if (!updatedHistory[key]) {
         updatedHistory[key] = [];
@@ -473,8 +482,17 @@ const PlanDetail = ({ params }) => {
       updatedHistory[key][detailIndex] = {
         weight: details[detailIndex].weight,
         reps: details[detailIndex].reps,
-        restTime: null, 
-        date: currentDate
+        restTime: null,
+        date: {
+          fullDate: currentDate.toISOString(), // ISO string for easy parsing
+          dayOfWeek: currentDate.toLocaleDateString("en-US", {
+            weekday: "long",
+          }),
+          dayOfMonth: currentDate.getDate(),
+          month: currentDate.toLocaleDateString("en-US", { month: "long" }),
+          year: currentDate.getFullYear(),
+          timestamp: currentDate.getTime(), // Unix timestamp for sorting
+        },
       };
 
       const updatedWorkoutData = {
@@ -500,13 +518,21 @@ const PlanDetail = ({ params }) => {
     }
   };
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    if (!dateString) return "N/A";
+
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (error) {
+      console.error("Date formatting error:", error);
+      return "N/A";
+    }
   };
 
   const formatTime = (seconds) => {
@@ -542,7 +568,7 @@ const PlanDetail = ({ params }) => {
   };
   const isEntirePlanCompleted = () => {
     if (!workoutData) return false;
-    
+
     for (let week = 0; week < workoutData.weeks; week++) {
       for (let day = 0; day < workoutData.daysPerWeek; day++) {
         if (!isDayCompleted(week, day)) {
@@ -573,10 +599,16 @@ const PlanDetail = ({ params }) => {
       }
     }
   };
-  console.log("workoutData",workoutData)
-  if (!workoutData) return <div>Loading...</div>;
 
-  
+  const finishPlan = () => {
+    localStorage.removeItem(
+      `lastPosition_${selectedPlanName}`
+    )
+    localStorage.removeItem(`restTime_${selectedPlanName}`)
+    router.push("/createPlanPage")
+  }
+  console.log("lockPreviousTabs", lockPreviousTabs);
+  if (!workoutData) return <div>Loading...</div>;
 
   return (
     <div className="container p-4 mx-auto">
@@ -603,8 +635,9 @@ const PlanDetail = ({ params }) => {
           Current Progress: Week {currentWeek + 1}, Day {currentDay + 1}
         </span>
         <span className="text-base text-gray-600">
-            Daily Volume: {formatVolume(calculateDailyTotal(selectedWeek, selectedDay))}
-          </span>
+          Daily Volume:{" "}
+          {formatVolume(calculateDailyTotal(selectedWeek, selectedDay))}
+        </span>
       </div>
 
       <div className="mb-4">
@@ -673,11 +706,17 @@ const PlanDetail = ({ params }) => {
                     Target: {exercise.target}
                   </p>
                   <p className="text-sm font-medium text-gray-700">
-                    Total Volume: {formatVolume(
-                      calculateExerciseTotal(selectedWeek, selectedDay, exerciseIndex),
+                    Total Volume:{" "}
+                    {formatVolume(
+                      calculateExerciseTotal(
+                        selectedWeek,
+                        selectedDay,
+                        exerciseIndex
+                      ),
                       exercise.equipment
                     )}
-                    {exercise.equipment === "body weight" && " (based on " + USER_WEIGHT_KG + "kg body weight)"}
+                    {exercise.equipment === "body weight" &&
+                      " (based on " + USER_WEIGHT_KG + "kg body weight)"}
                   </p>
                 </div>
                 <button
@@ -702,12 +741,15 @@ const PlanDetail = ({ params }) => {
                   exerciseIndex,
                   detailIndex
                 );
-                const setVolume = detail.isCompleted ? 
-                  calculateSetVolume(
-                    exercise.equipment === "body weight" ? USER_WEIGHT_KG : detail.weight,
-                    detail.reps,
-                    exercise.equipment
-                  ) : 0;
+                const setVolume = detail.isCompleted
+                  ? calculateSetVolume(
+                      exercise.equipment === "body weight"
+                        ? USER_WEIGHT_KG
+                        : detail.weight,
+                      detail.reps,
+                      exercise.equipment
+                    )
+                  : 0;
 
                 return (
                   <div
@@ -819,7 +861,7 @@ const PlanDetail = ({ params }) => {
                       ×
                     </button>
 
-                    {detail.isCompleted && (
+                    {detail?.isCompleted && (
                       <div className="ml-2">
                         {workoutData.exerciseHistory[
                           `${selectedWeek}-${selectedDay}-${exerciseIndex}`
@@ -833,7 +875,18 @@ const PlanDetail = ({ params }) => {
                             )}
                           </span>
                         )}
-                        
+                      </div>
+                    )}
+                    {detail?.isCompleted && (
+                      <div className="ml-2">
+                        <span className="text-sm text-gray-600">
+                          Performed on:{" "}
+                          {
+                            workoutData?.exerciseHistory[
+                              `${selectedWeek}-${selectedDay}-${exerciseIndex}`
+                            ]?.[detailIndex]?.date?.fullDate
+                          }
+                        </span>
                       </div>
                     )}
                   </div>
@@ -892,7 +945,11 @@ const PlanDetail = ({ params }) => {
         (selectedDay < workoutData.daysPerWeek - 1 ||
           selectedWeek < workoutData.weeks - 1) && (
           <button
-            onClick={()=>{moveToNextDay();router.push("/SavedPlan")}}
+            onClick={() => {
+              lockPreviousTabs && moveToNextDay();
+              
+              router.push("/SavedPlan");
+            }}
             className="float-right px-6 py-2 mt-4 mb-2 text-white bg-black rounded-lg"
           >
             {/* {selectedDay < workoutData.daysPerWeek - 1
@@ -900,17 +957,17 @@ const PlanDetail = ({ params }) => {
               : `Next Week (${workoutData.weekNames[selectedWeek + 1]}, ${
                   workoutData.dayNames[0]
                 })`} */}
-                Complete Workout
+            Complete Workout
           </button>
         )}
-        {isEntirePlanCompleted() && (
-          <button
-            onClick={() => router.push("/createPlanPage")}
-            className="px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
-          >
-            Finish Plan
-          </button>
-        )}
+      {isEntirePlanCompleted() && (
+        <button
+          onClick={() => finishPlan()}
+          className="px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
+        >
+          Finish Plan
+        </button>
+      )}
 
       <OffCanvasComp
         placement="end"
