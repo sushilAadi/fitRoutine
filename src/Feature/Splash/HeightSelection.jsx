@@ -8,6 +8,12 @@ import React, { useContext, useState } from "react";
 const HeightSelection = ({ step, setStep }) => {
     const {height, setHeight} = useContext(GlobalContext)
 
+    function cmToFeet(cm) {
+        const feet = Math.floor(cm / 30.48); // Convert to feet and take the integer part
+        const inches = ((cm / 30.48) - feet) * 12; // Convert the remaining decimal part to inches
+        return `${feet} ft ${inches.toFixed(2)} in`;
+      }
+
     return (
         <div className="flex justify-between h-screen flex-column">
             <div className="px-4 pt-4 w-100">
@@ -26,7 +32,7 @@ const HeightSelection = ({ step, setStep }) => {
             </div>
             <div className="animate__animated animate__slideInRight h-[300px] overflow-hidden">
                 <div className="rotate-90">
-                        <WeightScale initialValue={height} setInitialValue={setHeight} measurtype="cm" roateText="rotate-[270deg]" initialShowValue={152} />
+                        <WeightScale initialValue={height} convertValue={cmToFeet(height)} setInitialValue={setHeight} measurtype="cm" roateText="rotate-[270deg]" initialShowValue={152} />
                 </div>
             </div>
             <FooterButton backClick={() => setStep(2)} btnClick={() => setStep(4)} btnTitle="Next"  disabled={height == null}/>

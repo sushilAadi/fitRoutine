@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 
-const WeightScale = ({ initialShowValue = 50, min = 10, max = 250,measurtype,roateText,initialValue,setInitialValue }) => {
+const WeightScale = ({ initialShowValue = 50, min = 10, max = 250,measurtype,roateText,initialValue,setInitialValue,convertValue }) => {
     const scrollRef = useRef(null);
     const containerRef = useRef(null);
     const ticks = Array.from({ length: max - min + 1 }, (_, i) => i + min);
@@ -34,6 +34,7 @@ const WeightScale = ({ initialShowValue = 50, min = 10, max = 250,measurtype,roa
     return (
         <div className="w-full max-w-md mx-auto font-sans" ref={containerRef}>
             <div className={`text-4xl font-bold text-center mb-4 ${roateText}`}>
+            <p className="text-lg font-normal text-red-500">{convertValue}</p>
                 {initialValue} <span className="text-2xl font-normal">{measurtype}</span>
             </div>
             <div className="relative">
@@ -43,7 +44,7 @@ const WeightScale = ({ initialShowValue = 50, min = 10, max = 250,measurtype,roa
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                     onScroll={handleScroll}
                 >
-                    <div className="absolute top-0 left-0 h-full flex items-center" style={{ width: `${(max - min + 1) * tickWidth}px` }}>
+                    <div className="absolute top-0 left-0 flex items-center h-full" style={{ width: `${(max - min + 1) * tickWidth}px` }}>
                         {ticks.map((tick) => (
                             <div key={tick} className="flex flex-col items-center" style={{ width: `${tickWidth}px` }}>
                                 <div className={`h-${tick % 10 === 0 ? '12' : tick % 5 === 0 ? '6' : '4'} w-px ${initialValue === tick && "w-[3px] rounded-full"} bg-red-400`} />
@@ -51,7 +52,7 @@ const WeightScale = ({ initialShowValue = 50, min = 10, max = 250,measurtype,roa
                                     <div className="flex flex-col items-center">
                                         <span className={`text-xs mt-1 ${initialValue === tick && "font-bold "}`}>{tick}</span>
                                         {initialValue === tick && (
-                                            <i className="fa-solid fa-caret-up text-red-500 mt-1" />
+                                            <i className="mt-1 text-red-500 fa-solid fa-caret-up" />
                                         )}
                                     </div>
                                 )}
