@@ -264,6 +264,41 @@ border: 1px solid rgba( 255, 255, 255, 0.18 );
 }
 
 
+.lgScreen{
+ height: 100vh;
+ transition: all 500ms;
+}
+.smScreen{
+  height: calc(100vh - 100px);
+  transition: all 500ms;
+  
+}
+
+.sidebar-enter {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.sidebar-enter-active {
+  opacity: 1;
+  transform: translateX(0%);
+  transition: opacity 500ms, transform 500ms;
+}
+
+.sidebar-exit {
+  opacity: 1;
+  transform: translateX(0%);
+}
+
+.sidebar-exit-active {
+  opacity: 0;
+  transform: translateX(100%);
+  transition: opacity 500ms, transform 500ms;
+}
+
+
+
+
 
 
 
