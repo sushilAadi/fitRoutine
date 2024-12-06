@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useMemo, useState, useEffect } from "react";
-import { useAuth } from '@clerk/nextjs';
+import { useAuth,useUser } from '@clerk/nextjs';
 import { supabase } from '@/createClient';
 import { useQuery } from '@tanstack/react-query';
 import Dexie from "dexie";
@@ -19,6 +19,10 @@ export const GlobalContext = createContext("");
 export default function GlobalContextProvider({ children }) {
 
   const { isLoaded, userId, sessionId, getToken } = useAuth();
+  const { user } = useUser();
+
+  const userRole = user?.publicMetadata?.role??"user";
+  console.log("publicMetadata",{userRole,user})
 
   const fetchUserDetail = async () => {
     if (userId) {

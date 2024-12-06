@@ -13,6 +13,7 @@ import BlurryBlob from "@/components/BlurryBlob/BlurryBlob";
 import Image from "next/image";
 import CCard from "@/components/CCard";
 import { GlobalContext } from "@/context/GloablContext";
+import WorkoutDayAccordion from "./WorkoutDayAccordian";
 
 const createPlanPage = () => {
   const { handleOpenClose: menuOpenClose } = useContext(GlobalContext);
@@ -39,6 +40,16 @@ const createPlanPage = () => {
   const [saveAttempted, setSaveAttempted] = useState(false);
   const weekRefs = useRef([]);
   const scrollContainerRef = useRef(null);
+
+  const [openAccordion, setOpenAccordion] = useState({ weekIndex: null, dayIndex: null });
+
+  const toggleAccordion = (weekIndex, dayIndex) => {
+    if (openAccordion.weekIndex === weekIndex && openAccordion.dayIndex === dayIndex) {
+      setOpenAccordion({ weekIndex: null, dayIndex: null });
+    } else {
+      setOpenAccordion({ weekIndex, dayIndex });
+    }
+  };
 
   const handleOpenClose = () => setShowExe(!showExe);
 
@@ -490,7 +501,23 @@ const createPlanPage = () => {
                     )}
                   </div>
                   {week.map((day, dayIndex) => (
-                    <div
+                    <>
+                    <WorkoutDayAccordion
+                    key={dayIndex}
+                    day={day}
+                    dayIndex={dayIndex}
+                    weekIndex={weekIndex}
+                    dayName={dayNames[dayIndex]}
+                    isEditingExistingPlan={isEditingExistingPlan}
+                    updateDayName={updateDayName}
+                    handleOpenClose={handleOpenClose}
+                    setSelectedWeekIndex={setSelectedWeekIndex}
+                    setSelectedDayIndex={setSelectedDayIndex}
+                    removeExercise={removeExercise}
+                    isOpen={openAccordion.weekIndex === weekIndex && openAccordion.dayIndex === dayIndex}
+                    toggleAccordion={toggleAccordion}
+                  />
+                    {/* <div
                       key={dayIndex}
                       className={` p-2 ${
                         day.exercises?.length > 0 && " bg-white  "
@@ -498,8 +525,8 @@ const createPlanPage = () => {
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <h3 className="text-lg font-medium ">
-                          {dayNames[dayIndex]}{" "}
-                          {/* Display day name regardless of editing state */}
+                          {dayNames[dayIndex]}
+                          
                         </h3>
                         {!isEditingExistingPlan && (
                           <>
@@ -563,7 +590,8 @@ const createPlanPage = () => {
                           </>
                         ))}
                       </ul>
-                    </div>
+                    </div> */}
+                    </>
                   ))}
                 </div>
               ))}
