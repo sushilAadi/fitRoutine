@@ -79,12 +79,12 @@ const CCardRow = ({
           <div className="flex mt-1">
             {currentSets > 0 && (
               <i 
-                className="text-white text-[20px] bg-black rounded-full cursor-pointer fa-light fa-circle-minus mr-3"
+                className="text-black text-[20px]  rounded-full cursor-pointer fa-light fa-circle-minus mr-3"
                 onClick={handleDecrement}
               ></i>
             )}
             <i 
-              className="text-white text-[20px] bg-green-500 rounded-full cursor-pointer fa-light fa-circle-plus"
+              className="text-green-500 text-[20px]  rounded-full cursor-pointer fa-light fa-circle-plus"
               onClick={handleIncrement}
             ></i>
           </div>
