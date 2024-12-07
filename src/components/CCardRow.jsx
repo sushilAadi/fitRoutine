@@ -52,8 +52,8 @@ const CCardRow = ({
             onClick={deleteClick}
           ></i>
           <div className="flex gap-2">
-            <i class="fa-light fa-circle-minus bg-black rounded-full text-white"></i>
-            <i class="fa-light fa-circle-plus bg-green-500 rounded-full text-white"></i>
+            <i class="fa-light fa-circle-minus bg-black rounded-full text-white cursor-pointer"></i>
+            <i class="fa-light fa-circle-plus bg-green-500 rounded-full text-white cursor-pointer"></i>
           </div>
         </div>
       </div>
@@ -62,3 +62,5 @@ const CCardRow = ({
 };
 
 export default CCardRow;
+
+
