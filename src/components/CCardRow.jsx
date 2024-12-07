@@ -22,45 +22,41 @@ const CCardRow = ({
         <div className="flex items-center">
           <img
             src={img}
-            alt="autocad"
-            className="h-[30px] object-contain image-fluid rounded-full mr-2"
+            alt={title}
+            className="h-[30px] object-contain image-fluid rounded-full mr-3"
           />
           <div className="">
-  <p
-    className="text-[12px] fw-semibold overflow-hidden truncate max-w-[160px] whitespace-nowrap text-ellipsis m-0 leading-tight"
-    title={_.upperFirst(name)}
-  >
-    {_.upperFirst(name)}
-  </p>
-  <p className="text-[10px] m-0 leading-tight bg-green-100 text-green-900 px-2 rounded-pill inline-flex">
-    {caption} ( {_.upperFirst(title)} )
-  </p>
-</div>
-        </div>
-        <i
-          className="fa-duotone fa-solid fa-bin-bottles-recycle text-red-500 cursor-pointer text-[14px]"
-          onClick={deleteClick}
-        ></i>
-      </div>
+            <p
+              className="text-[12px] fw-semibold overflow-hidden truncate max-w-[200px] whitespace-nowrap text-ellipsis mb-2 leading-tight"
+              title={_.upperFirst(name)}
+            >
+              {_.upperFirst(name)}
+            </p>
 
-      {/* <div className={` ${parentStyle}`} onClick={onClick}>
-      <span className="text-xl font-bold">A.</span>
-      <div>
-      <div className="flex justify-between">
-        <div className="flex">
-          <HighlightText title={firstLetter} bgColor={bgColor} />
-          <p className=""> {_.upperFirst(title)}</p>
+            <div className="flex items-center">
+              <span className="text-[10px] leading-tight  text-green-900  rounded-pill inline-flex mr-2 ">
+                {_.upperFirst(caption)}
+              </span>
+              <span className="text-[10px]  leading-tight  text-orange-900  rounded-pill inline-flex mr-2">
+                ({_.upperFirst(title)})
+              </span>
+              <span className="text-[10px]  leading-tight  text-gray-900  rounded-pill inline-flex">
+                | &nbsp; 4 Sets
+              </span>
+            </div>
+          </div>
         </div>
-        <p className="text-[#9e9e9e] text-[10px]"> {_.upperFirst(caption)}</p>
+        <div className="flex flex-col items-end gap-2">
+          <i
+            className="fa-duotone fa-solid fa-bin-bottles-recycle text-red-500 cursor-pointer text-[14px]"
+            onClick={deleteClick}
+          ></i>
+          <div className="flex gap-2">
+            <i class="fa-light fa-circle-minus bg-black rounded-full text-white"></i>
+            <i class="fa-light fa-circle-plus bg-green-500 rounded-full text-white"></i>
+          </div>
+        </div>
       </div>
-      <div className="mb-[10px] flex justify-center items-center">
-        <img src={img} alt="autocad" className="h-[124px] object-contain image-fluid" />
-      </div>
-      </div>
-     
-      <p className="text-[12px] line-clamp-2 overflow-hidden text-ellipsis" >{_.upperFirst(name)}</p>
-      
-    </div> */}
     </>
   );
 };

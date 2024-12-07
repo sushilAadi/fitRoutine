@@ -15,10 +15,11 @@ const WorkoutDayAccordion = ({
   setSelectedDayIndex, 
   removeExercise,
   isOpen,
-  toggleAccordion
+  toggleAccordion,
+  openAccordionWithoutClosing
 }) => {
   return (
-    <div className="mb-4 overflow-hidden border rounded-lg">
+    <div className="mb-4 overflow-hidden border rounded-sm">
       <motion.header
         className="flex items-center gap-2 px-2 py-1 bg-white cursor-pointer"
         onClick={() => toggleAccordion(weekIndex, dayIndex)}
@@ -41,7 +42,7 @@ const WorkoutDayAccordion = ({
                 handleOpenClose();
                 setSelectedWeekIndex(weekIndex);
                 setSelectedDayIndex(dayIndex);
-                toggleAccordion(weekIndex, dayIndex)
+                openAccordionWithoutClosing(weekIndex, dayIndex)
               }}
             />
           </>
@@ -66,11 +67,12 @@ const WorkoutDayAccordion = ({
             className='bg-gray-100'
           >
           {console.log("exercise",day.exercises)}
-            <ul className="p-3 m-0 max-h-[240px] overflow-y-auto">
+            <ul className="p-2 m-0 overflow-y-auto">
               {day.exercises.map((exercise, exerciseIndex) => (
                 <li
                   key={exerciseIndex}
-                  className={`relative mb-3`}
+                  className={`relative mb-2 bg-white p-2 rounded-xl`} 
+                  style={{boxShadow: "0px 0px 0px 0px #ffd2aa"}}
                 >
                   <CCardRow
                     img={exercise.gifUrl}

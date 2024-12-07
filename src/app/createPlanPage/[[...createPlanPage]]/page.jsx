@@ -43,10 +43,20 @@ const createPlanPage = () => {
 
   const [openAccordion, setOpenAccordion] = useState({ weekIndex: null, dayIndex: null });
 
+ 
+
   const toggleAccordion = (weekIndex, dayIndex) => {
+    // Toggle open/close functionality
     if (openAccordion.weekIndex === weekIndex && openAccordion.dayIndex === dayIndex) {
-      setOpenAccordion({ weekIndex: null, dayIndex: null });
+      setOpenAccordion({ weekIndex: null, dayIndex: null }); // Close if already open
     } else {
+      setOpenAccordion({ weekIndex, dayIndex }); // Open the clicked accordion
+    }
+  };
+  
+  const openAccordionWithoutClosing = (weekIndex, dayIndex) => {
+    // Only opens the accordion without closing
+    if (openAccordion.weekIndex !== weekIndex || openAccordion.dayIndex !== dayIndex) {
       setOpenAccordion({ weekIndex, dayIndex });
     }
   };
@@ -516,6 +526,8 @@ const createPlanPage = () => {
                     removeExercise={removeExercise}
                     isOpen={openAccordion.weekIndex === weekIndex && openAccordion.dayIndex === dayIndex}
                     toggleAccordion={toggleAccordion}
+                    openAccordionWithoutClosing={openAccordionWithoutClosing}
+                    
                   />
                     {/* <div
                       key={dayIndex}
