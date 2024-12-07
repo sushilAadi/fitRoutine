@@ -17,7 +17,7 @@ const CCardRow = ({
 }) => {
   const router = useRouter();
   const firstLetter = _.upperFirst(title?.charAt(0));
-  const [currentSets, setCurrentSets] = useState(sets || 4);
+  const [currentSets, setCurrentSets] = useState(sets || 0);
 
   const handleIncrement = () => {
     const newSets = currentSets + 1;
@@ -69,10 +69,11 @@ const CCardRow = ({
             onClick={deleteClick}
           ></i>
           <div className="flex gap-2">
-            <i 
+          {currentSets !== 0 && <i 
               className="text-white bg-black rounded-full cursor-pointer fa-light fa-circle-minus"
               onClick={handleDecrement}
-            ></i>
+            ></i>}
+            
             <i 
               className="text-white bg-green-500 rounded-full cursor-pointer fa-light fa-circle-plus"
               onClick={handleIncrement}
