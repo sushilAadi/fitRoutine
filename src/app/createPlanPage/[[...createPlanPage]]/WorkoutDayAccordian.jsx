@@ -1,6 +1,5 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import CCard from '@/components/CCard';
 import CCardRow from '@/components/CCardRow';
 
 const WorkoutDayAccordion = ({ 
@@ -16,7 +15,8 @@ const WorkoutDayAccordion = ({
   removeExercise,
   isOpen,
   toggleAccordion,
-  openAccordionWithoutClosing
+  openAccordionWithoutClosing,
+  updateExerciseSets
 }) => {
   return (
     <div className="mb-4 overflow-hidden border rounded-sm">
@@ -66,7 +66,6 @@ const WorkoutDayAccordion = ({
             transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
             className='bg-gray-100'
           >
-          {console.log("exercise",day.exercises)}
             <ul className="p-2 m-0 overflow-y-auto">
               {day.exercises.map((exercise, exerciseIndex) => (
                 <li
@@ -78,19 +77,13 @@ const WorkoutDayAccordion = ({
                     img={exercise.gifUrl}
                     bgColor="bg-[#DBFE02]"
                     parentStyle="w-full min-w-[180px] max-w-[180px]"
-                    caption={exercise?.bodyPart}
-                    title={exercise?.target}
-                    name={exercise?.name}
+                    caption={exercise.bodyPart}
+                    title={exercise.target}
+                    name={exercise.name}
                     deleteClick={!isEditingExistingPlan ? () => removeExercise(weekIndex, dayIndex, exerciseIndex) : undefined}
+                    sets={exercise.sets}
+                    onSetChange={(newSets) => updateExerciseSets(weekIndex, dayIndex, exerciseIndex, newSets)}
                   />
-                  {/* {!isEditingExistingPlan && (
-                    <div
-                      className="absolute w-[30px] h-[20px] rounded-l-lg bg-red-500 top-[44px] right-[0] flex justify-center items-center"
-                      onClick={() => removeExercise(weekIndex, dayIndex, exerciseIndex)}
-                    >
-                      <i className="text-white cursor-pointer fa-solid fa-xmark" />
-                    </div>
-                  )} */}
                 </li>
               ))}
             </ul>

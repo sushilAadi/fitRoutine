@@ -196,29 +196,27 @@ const createPlanPage = () => {
     if (!validatePlan()) {
       return;
     }
-
+  
     if (!planName) {
       setErrors((prev) => ({ ...prev, planName: "Please enter a plan name" }));
       return;
     }
-
+  
     const planToSave = {
       name: planName,
       weeks: weeks,
       daysPerWeek: daysPerWeek,
       workoutPlan: workoutPlan,
       exerciseHistory: exerciseHistory,
-      weekNames: weekNames, // Save week names
-      dayNames: dayNames, // Save day names
+      weekNames: weekNames,
+      dayNames: dayNames,
       date: new Date(),
     };
-
+  
     const storageKey = `workoutPlan_${planName}`;
-
+  
     if (isEditingExistingPlan) {
       localStorage.setItem(storageKey, JSON.stringify(planToSave));
-      alert("Workout plan updated successfully!");
-      setToggleForm(!toggleForm);
       setSavedPlans((prevPlans) =>
         prevPlans.map((plan) => (plan.name === planName ? planToSave : plan))
       );
@@ -231,20 +229,7 @@ const createPlanPage = () => {
         return;
       }
       localStorage.setItem(storageKey, JSON.stringify(planToSave));
-      alert("Workout plan saved successfully!");
-      setToggleForm(!toggleForm);
       setSavedPlans((prevPlans) => [...prevPlans, planToSave]);
-    }
-
-    if (!isEditingExistingPlan) {
-      setPlanName("");
-      setWeeks(1);
-      setDaysPerWeek(1);
-      setWorkoutPlan([]);
-      setExerciseDetails({});
-      setExerciseHistory({});
-      setWeekNames([]); // Reset week names
-      setDayNames([]); // Reset day names
     }
   };
 
@@ -323,6 +308,20 @@ const createPlanPage = () => {
       setShowWarning(true);
     } else {
       savePlan();
+      // Reset the component state after successful save
+      alert("Workout plan saved successfully!");
+      setToggleForm(true);
+      setPlanName("");
+      setWeeks(3);
+      setDaysPerWeek(3);
+      setWorkoutPlan([]);
+      setExerciseDetails({});
+      setExerciseHistory({});
+      setWeekNames([]);
+      setDayNames([]);
+      setErrors({});
+      setShowWarning(false);
+      setSaveAttempted(false);
     }
   };
 
@@ -347,6 +346,27 @@ const createPlanPage = () => {
       setShowWarning(missingDays.length > 0);
     }
   }, [workoutPlan, saveAttempted]);
+
+  const updateExerciseSets = (weekIndex, dayIndex, exerciseIndex, newSets) => {
+    const updatedWorkoutPlan = [...workoutPlan];
+    updatedWorkoutPlan[weekIndex][dayIndex].exercises[exerciseIndex].sets = newSets;
+    setWorkoutPlan(updatedWorkoutPlan);
+    updateLocalStorage(updatedWorkoutPlan);
+  };
+
+  const updateLocalStorage = (updatedWorkoutPlan) => {
+    const planToSave = {
+      name: planName,
+      weeks: weeks,
+      daysPerWeek: daysPerWeek,
+      workoutPlan: updatedWorkoutPlan,
+      exerciseHistory: exerciseHistory,
+      weekNames: weekNames,
+      dayNames: dayNames,
+      date: new Date(),
+    };
+    localStorage.setItem(`workoutPlan_${planName}`, JSON.stringify(planToSave));
+  };
 
   return (
     <SecureComponent>
@@ -527,6 +547,7 @@ const createPlanPage = () => {
                     isOpen={openAccordion.weekIndex === weekIndex && openAccordion.dayIndex === dayIndex}
                     toggleAccordion={toggleAccordion}
                     openAccordionWithoutClosing={openAccordionWithoutClosing}
+                    updateExerciseSets={updateExerciseSets}
                     
                   />
                     {/* <div

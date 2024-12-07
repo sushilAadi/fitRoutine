@@ -1,5 +1,4 @@
-/* eslint-disable @next/next/no-img-element */
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import HighlightText from "./HeadingHighlight/HighlightText";
@@ -13,9 +12,27 @@ const CCardRow = ({
   bgColor = "bg-[#DBFE02]",
   onClick,
   deleteClick,
+  sets,
+  onSetChange,
 }) => {
   const router = useRouter();
   const firstLetter = _.upperFirst(title?.charAt(0));
+  const [currentSets, setCurrentSets] = useState(sets || 4);
+
+  const handleIncrement = () => {
+    const newSets = currentSets + 1;
+    setCurrentSets(newSets);
+    onSetChange(newSets);
+  };
+
+  const handleDecrement = () => {
+    if (currentSets > 1) {
+      const newSets = currentSets - 1;
+      setCurrentSets(newSets);
+      onSetChange(newSets);
+    }
+  };
+
   return (
     <>
       <div className="flex items-center justify-between">
@@ -41,7 +58,7 @@ const CCardRow = ({
                 ({_.upperFirst(title)})
               </span>
               <span className="text-[10px]  leading-tight  text-gray-900  rounded-pill inline-flex">
-                | &nbsp; 4 Sets
+                | &nbsp; {currentSets} Sets
               </span>
             </div>
           </div>
@@ -52,8 +69,14 @@ const CCardRow = ({
             onClick={deleteClick}
           ></i>
           <div className="flex gap-2">
-            <i class="fa-light fa-circle-minus bg-black rounded-full text-white cursor-pointer"></i>
-            <i class="fa-light fa-circle-plus bg-green-500 rounded-full text-white cursor-pointer"></i>
+            <i 
+              className="text-white bg-black rounded-full cursor-pointer fa-light fa-circle-minus"
+              onClick={handleDecrement}
+            ></i>
+            <i 
+              className="text-white bg-green-500 rounded-full cursor-pointer fa-light fa-circle-plus"
+              onClick={handleIncrement}
+            ></i>
           </div>
         </div>
       </div>
@@ -62,5 +85,4 @@ const CCardRow = ({
 };
 
 export default CCardRow;
-
 
