@@ -138,7 +138,7 @@ const createPlanPage = () => {
       for (let i = weekIndex; i < updatedWorkoutPlan.length; i++) {
         const newExercise = {
           ...exercise,
-          sets: 0, // Initial sets always 0
+          // sets: 0, // Initial sets always 0
           weeklySetConfig: workoutPlan.map((_, index) => ({
             sets: index < weekIndex ? 0 : 0, // Ensure 0 for all weeks
             isConfigured: false // Flag to track if sets have been configured
