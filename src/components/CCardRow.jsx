@@ -14,10 +14,18 @@ const CCardRow = ({
   deleteClick,
   sets,
   onSetChange,
+  weekIndex
 }) => {
+
+  
   const router = useRouter();
+
+  const currentWeekSets = sets.weeklySetConfig 
+    ? sets.weeklySetConfig[weekIndex].sets 
+    : 0;
+
   const firstLetter = _.upperFirst(title?.charAt(0));
-  const [currentSets, setCurrentSets] = useState(sets || 0);
+  const [currentSets, setCurrentSets] = useState(currentWeekSets);
 
   const handleIncrement = () => {
     const newSets = currentSets + 1;
@@ -26,7 +34,7 @@ const CCardRow = ({
   };
 
   const handleDecrement = () => {
-    if (currentSets > 1) {
+    if (currentSets > 0) {
       const newSets = currentSets - 1;
       setCurrentSets(newSets);
       onSetChange(newSets);
@@ -44,7 +52,7 @@ const CCardRow = ({
           />
           <div className="">
             <p
-              className="text-[12px] fw-semibold overflow-hidden truncate max-w-[200px] whitespace-nowrap text-ellipsis mb-2 leading-tight"
+              className="text-[14px] fw-semibold overflow-hidden truncate max-w-[200px] whitespace-nowrap text-ellipsis mb-2 leading-tight"
               title={_.upperFirst(name)}
             >
               {_.upperFirst(name)}
@@ -68,14 +76,15 @@ const CCardRow = ({
             className="fa-duotone fa-solid fa-bin-bottles-recycle text-red-500 cursor-pointer text-[14px]"
             onClick={deleteClick}
           ></i>
-          <div className="flex gap-2">
-          {currentSets !== 0 && <i 
-              className="text-white bg-black rounded-full cursor-pointer fa-light fa-circle-minus"
-              onClick={handleDecrement}
-            ></i>}
-            
+          <div className="flex mt-1">
+            {currentSets > 0 && (
+              <i 
+                className="text-white text-[18px] bg-black rounded-full cursor-pointer fa-light fa-circle-minus mr-3"
+                onClick={handleDecrement}
+              ></i>
+            )}
             <i 
-              className="text-white bg-green-500 rounded-full cursor-pointer fa-light fa-circle-plus"
+              className="text-white text-[18px] bg-green-500 rounded-full cursor-pointer fa-light fa-circle-plus"
               onClick={handleIncrement}
             ></i>
           </div>

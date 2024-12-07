@@ -125,7 +125,7 @@ const createPlanPage = () => {
     exerciseToRemove
   ) => {
     const updatedWorkoutPlan = [...workoutPlan];
-
+  
     if (exercise === null && exerciseToRemove) {
       // Remove the exercise from current and subsequent weeks
       for (let i = weekIndex; i < updatedWorkoutPlan.length; i++) {
@@ -136,12 +136,20 @@ const createPlanPage = () => {
     } else if (exercise) {
       // Add the exercise to current and subsequent weeks
       for (let i = weekIndex; i < updatedWorkoutPlan.length; i++) {
-        updatedWorkoutPlan[i][dayIndex].exercises.push(exercise);
+        const newExercise = {
+          ...exercise,
+          sets: 0, // Initial sets always 0
+          weeklySetConfig: workoutPlan.map((_, index) => ({
+            sets: index < weekIndex ? 0 : 0, // Ensure 0 for all weeks
+            isConfigured: false // Flag to track if sets have been configured
+          }))
+        };
+        updatedWorkoutPlan[i][dayIndex].exercises.push(newExercise);
       }
     }
-
+  
     setWorkoutPlan(updatedWorkoutPlan);
-
+  
     // Clear the error for this day across all weeks
     setErrors((prevErrors) => {
       const newErrors = { ...prevErrors };
@@ -349,7 +357,17 @@ const createPlanPage = () => {
 
   const updateExerciseSets = (weekIndex, dayIndex, exerciseIndex, newSets) => {
     const updatedWorkoutPlan = [...workoutPlan];
-    updatedWorkoutPlan[weekIndex][dayIndex].exercises[exerciseIndex].sets = newSets;
+    const exercise = updatedWorkoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
+    
+    // Update the specific week and all subsequent weeks
+    for (let i = weekIndex; i < updatedWorkoutPlan.length; i++) {
+      const weekExercise = updatedWorkoutPlan[i][dayIndex].exercises[exerciseIndex];
+      
+      // Update sets for this week and mark as configured
+      weekExercise.weeklySetConfig[i].sets = newSets;
+      weekExercise.weeklySetConfig[i].isConfigured = true;
+    }
+    
     setWorkoutPlan(updatedWorkoutPlan);
     updateLocalStorage(updatedWorkoutPlan);
   };

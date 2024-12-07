@@ -19,7 +19,7 @@ const WorkoutDayAccordion = ({
   updateExerciseSets
 }) => {
   return (
-    <div className="mb-4 overflow-hidden border rounded-sm">
+    <div className="mb-4 overflow-hidden border rounded-xl">
       <motion.header
         className="flex items-center gap-2 px-2 py-1 bg-white cursor-pointer"
         onClick={() => toggleAccordion(weekIndex, dayIndex)}
@@ -81,8 +81,10 @@ const WorkoutDayAccordion = ({
                     title={exercise.target}
                     name={exercise.name}
                     deleteClick={!isEditingExistingPlan ? () => removeExercise(weekIndex, dayIndex, exerciseIndex) : undefined}
-                    sets={exercise.sets}
+                    
                     onSetChange={(newSets) => updateExerciseSets(weekIndex, dayIndex, exerciseIndex, newSets)}
+                    weekIndex={weekIndex}
+                    sets={exercise}
                   />
                 </li>
               ))}
