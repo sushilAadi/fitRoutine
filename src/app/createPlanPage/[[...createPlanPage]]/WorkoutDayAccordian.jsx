@@ -24,19 +24,18 @@ const WorkoutDayAccordion = ({
         className="flex items-center gap-2 px-2 py-1 bg-white cursor-pointer"
         onClick={() => toggleAccordion(weekIndex, dayIndex)}
       >
-        <h3 className="flex-grow text-lg font-medium">{dayName}</h3>
-        {!isEditingExistingPlan && (
-          <>
-            <i
-              className="text-gray-500 cursor-pointer fa-regular fa-pen-to-square"
+        <h3 className="flex-grow text-lg font-medium">{dayName} <i
+              className="text-gray-500 cursor-pointer fa-regular fa-pen-to-square text-[16px] ml-2"
               onClick={(e) => {
                 e.stopPropagation();
                 const newName = prompt("Enter new day name:", dayName);
                 if (newName) updateDayName(dayIndex, newName);
               }}
-            />
+            /></h3>
+        {!isEditingExistingPlan && (
+          <>
             <i
-              className="cursor-pointer fa-duotone fa-solid fa-rectangle-history-circle-plus"
+              className="mx-2 cursor-pointer fa-duotone fa-solid fa-rectangle-history-circle-plus"
               onClick={(e) => {
                 e.stopPropagation();
                 handleOpenClose();
@@ -67,7 +66,7 @@ const WorkoutDayAccordion = ({
             className='bg-gray-100'
           >
             <ul className="p-2 m-0 overflow-y-auto">
-              {day.exercises.map((exercise, exerciseIndex) => (
+              {day?.exercises.map((exercise, exerciseIndex) => (
                 <li
                   key={exerciseIndex}
                   className={`relative mb-2 bg-white p-2 rounded-xl`} 
@@ -88,6 +87,7 @@ const WorkoutDayAccordion = ({
                   />
                 </li>
               ))}
+                {day.exercises?.length === 0 && <li>Add an exercise</li>}
             </ul>
           </motion.div>
         )}

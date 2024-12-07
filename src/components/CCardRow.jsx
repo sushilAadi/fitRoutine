@@ -52,7 +52,7 @@ const CCardRow = ({
           />
           <div className="">
             <p
-              className="text-[14px] fw-semibold overflow-hidden truncate max-w-[200px] whitespace-nowrap text-ellipsis mb-2 leading-tight"
+              className="text-[14px] fw-semibold overflow-hidden truncate max-w-[200px] whitespace-nowrap text-ellipsis mb-3 leading-tight"
               title={_.upperFirst(name)}
             >
               {_.upperFirst(name)}
@@ -73,18 +73,18 @@ const CCardRow = ({
         </div>
         <div className="flex flex-col items-end gap-2">
           <i
-            className="fa-duotone fa-solid fa-bin-bottles-recycle text-red-500 cursor-pointer text-[14px]"
+            className="fa-duotone fa-solid fa-bin-recycle text-red-500 cursor-pointer text-[14px]"
             onClick={deleteClick}
           ></i>
           <div className="flex mt-1">
             {currentSets > 0 && (
               <i 
-                className="text-white text-[18px] bg-black rounded-full cursor-pointer fa-light fa-circle-minus mr-3"
+                className="text-white text-[20px] bg-black rounded-full cursor-pointer fa-light fa-circle-minus mr-3"
                 onClick={handleDecrement}
               ></i>
             )}
             <i 
-              className="text-white text-[18px] bg-green-500 rounded-full cursor-pointer fa-light fa-circle-plus"
+              className="text-white text-[20px] bg-green-500 rounded-full cursor-pointer fa-light fa-circle-plus"
               onClick={handleIncrement}
             ></i>
           </div>
