@@ -271,6 +271,7 @@ const PlanDetail = ({ params }) => {
     setIsTimerRunning(false);
     setElapsedTime(0);
     setActiveExerciseSet(null);
+    setWarningMessage("");
   };
 
   const playTimerEndSound = () => {
@@ -406,12 +407,12 @@ const PlanDetail = ({ params }) => {
   };
 
   const addExerciseDetails = (weekIndex, dayIndex, exerciseIndex, autoAdd = false) => {
-    if (isTimerRunning) {
-      setWarningMessage(
-        "Please wait for the rest timer to complete before adding a new set."
-      );
-      return;
-    }
+    // if (isTimerRunning) {
+    //   setWarningMessage(
+    //     "Please wait for the rest timer to complete before adding a new set."
+    //   );
+    //   return;
+    // }
 
     const updatedExerciseDetails = { ...exerciseDetails };
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
@@ -866,6 +867,7 @@ const PlanDetail = ({ params }) => {
 
                     {!detail.isCompleted ? (
                       <button
+                      id="save-button"
                         onClick={() =>
                           saveExerciseSet(
                             selectedWeek,
@@ -886,6 +888,7 @@ const PlanDetail = ({ params }) => {
                       </button>
                     ) : (
                       <button
+                      id="edit-button"
                         onClick={() =>
                           editExerciseSet(
                             selectedWeek,
@@ -902,6 +905,7 @@ const PlanDetail = ({ params }) => {
                     )}
 
                     <button
+                    id="remove-button"
                       onClick={() =>
                         removeExerciseDetail(
                           selectedWeek,
