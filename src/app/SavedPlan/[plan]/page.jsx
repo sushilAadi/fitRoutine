@@ -316,11 +316,14 @@ const PlanDetail = ({ params }) => {
 
   const isExerciseEnabled = (weekIndex, dayIndex, exerciseIndex) => {
     if (exerciseIndex === 0) return true;
-    const previousExerciseKey = `${weekIndex}-${dayIndex}-${exerciseIndex - 1}`;
-    return (
-      isExerciseCompleted(weekIndex, dayIndex, exerciseIndex - 1) &&
-      areAllSetsValid(weekIndex, dayIndex, exerciseIndex - 1)
-    );
+    for (let i = 0; i < exerciseIndex; i++) {
+      const key = `${weekIndex}-${dayIndex}-${i}`;
+      const exerciseSets = exerciseDetails[key];
+      if (!exerciseSets || exerciseSets.length === 0) return false;
+      const allSetsCompleted = exerciseSets.every(set => set.isCompleted);
+      if (!allSetsCompleted) return false;
+    }
+    return true;
   };
 
   // const isDayCompleted = (weekIndex, dayIndex, data = workoutData) => {
@@ -407,10 +410,8 @@ const PlanDetail = ({ params }) => {
   };
 
   const addExerciseDetails = (weekIndex, dayIndex, exerciseIndex, autoAdd = false) => {
-    // if (isTimerRunning) {
-    //   setWarningMessage(
-    //     "Please wait for the rest timer to complete before adding a new set."
-    //   );
+    // if (!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex)) {
+    //   setWarningMessage("Please complete the previous exercise before adding sets to this one.");
     //   return;
     // }
 
@@ -442,8 +443,9 @@ const PlanDetail = ({ params }) => {
     }
 
     setExerciseDetails(updatedExerciseDetails);
+    setWarningMessage("");
   };
-  const isSetEnabled = (weekIndex, dayIndex, exerciseIndex, setIndex) => {
+  const isSetEnabledFunc = (weekIndex, dayIndex, exerciseIndex, setIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
     const sets = exerciseDetails[key];
 
@@ -479,8 +481,8 @@ const PlanDetail = ({ params }) => {
     field,
     value
   ) => {
-    // Only allow updates if the set is enabled
-    if (!isSetEnabled(weekIndex, dayIndex, exerciseIndex, detailIndex)) {
+    if (!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex)) {
+      setWarningMessage("Please complete the previous exercise before updating this one.");
       return;
     }
 
@@ -490,6 +492,7 @@ const PlanDetail = ({ params }) => {
     setExerciseDetails(updatedExerciseDetails);
     setWarningMessage("");
   };
+
 
   const removeExerciseDetail = (
     weekIndex,
@@ -528,7 +531,7 @@ const PlanDetail = ({ params }) => {
       (isBodyWeightOrBand || details?.[detailIndex]?.weight);
 
     if (isValidSet) {
-      const currentDate = new Date(); // Full date object
+      const currentDate = new Date();
       const updatedHistory = { ...workoutData.exerciseHistory };
       if (!updatedHistory[key]) {
         updatedHistory[key] = [];
@@ -539,14 +542,14 @@ const PlanDetail = ({ params }) => {
         reps: details[detailIndex].reps,
         restTime: null,
         date: {
-          fullDate: currentDate.toISOString(), // ISO string for easy parsing
+          fullDate: currentDate.toISOString(),
           dayOfWeek: currentDate.toLocaleDateString("en-US", {
             weekday: "long",
           }),
           dayOfMonth: currentDate.getDate(),
           month: currentDate.toLocaleDateString("en-US", { month: "long" }),
           year: currentDate.getFullYear(),
-          timestamp: currentDate.getTime(), // Unix timestamp for sorting
+          timestamp: currentDate.getTime(),
         },
       };
 
@@ -731,271 +734,286 @@ const PlanDetail = ({ params }) => {
       </div>
 
       <div className="space-y-4">
-        {workoutData.workoutPlan[selectedWeek][selectedDay].exercises.map(
-          (exercise, exerciseIndex) => (
-            <div
-              key={exerciseIndex}
-              className="p-4 mb-3 bg-white border rounded-lg shadow-sm"
-            >
-              <div className="flex items-center gap-4">
-                <img
-                  src={exercise.gifUrl}
-                  alt={exercise.name}
-                  className="object-cover w-16 h-16 rounded cursor-pointer"
-                  onClick={() => {
-                    setSelectedExercise(exercise);
-                    handleOpenClose();
-                  }}
-                />
-                <div className="flex-1">
-                  <h3
-                    className="text-lg font-semibold cursor-pointer"
+      {workoutData.workoutPlan[selectedWeek][selectedDay].exercises.map(
+          (exercise, exerciseIndex) => {
+            const isEnabled = isExerciseEnabled(selectedWeek, selectedDay, exerciseIndex);
+            return (
+              <div
+                key={exerciseIndex}
+                className={`p-4 mb-3 bg-white border rounded-lg shadow-sm ${
+                  !isEnabled ? "opacity-50" : ""
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <img
+                    src={exercise.gifUrl}
+                    alt={exercise.name}
+                    className="object-cover w-16 h-16 rounded cursor-pointer"
                     onClick={() => {
                       setSelectedExercise(exercise);
                       handleOpenClose();
                     }}
-                  >
-                    {_.upperFirst(exercise.name)}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    Target: {exercise.target} ( {exercise?.weeklySetConfig?.find(i=>i?.isConfigured).sets} sets )
-                  </p>
-                  <p className="text-sm font-medium text-gray-700">
-                    Total Volume:{" "}
-                    {formatVolume(
-                      calculateExerciseTotal(
-                        selectedWeek,
-                        selectedDay,
-                        exerciseIndex
-                      ),
-                      exercise.equipment
-                    )}
-                    {exercise.equipment === "body weight" &&
-                      " (based on " + USER_WEIGHT_KG + "kg body weight)"}
-                  </p>
-                </div>
-                
-                <button
-                  onClick={() =>
-                    addExerciseDetails(selectedWeek, selectedDay, exerciseIndex)
-                  }
-                  className="px-4 py-2 text-white bg-black rounded hover:bg-blue-600"
-                  disabled={
-                    !isExerciseEnabled(selectedWeek, selectedDay, exerciseIndex)
-                  }
-                >
-                  Add Set
-                </button>
-              </div>
-
-              {exerciseDetails[
-                `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-              ]?.map((detail, detailIndex) => {
-                const isEnabled = isSetEnabled(
-                  selectedWeek,
-                  selectedDay,
-                  exerciseIndex,
-                  detailIndex
-                );
-                const setVolume = detail.isCompleted
-                  ? calculateSetVolume(
-                      exercise.equipment === "body weight"
-                        ? USER_WEIGHT_KG
-                        : detail.weight,
-                      detail.reps,
-                      exercise.equipment
-                    )
-                  : 0;
-
-                return (
-                  <div
-                    key={detailIndex}
-                    className="flex items-center gap-2 mt-2"
-                  >
-                    {exercise.equipment !== "body weight" &&
-                      exercise.equipment !== "band" && (
-                        <input
-                          type="number"
-                          placeholder="Weight"
-                          value={detail.weight}
-                          onChange={(e) =>
-                            updateExerciseDetail(
-                              selectedWeek,
-                              selectedDay,
-                              exerciseIndex,
-                              detailIndex,
-                              "weight",
-                              e.target.value
-                            )
-                          }
-                          className={`w-24 p-2 border rounded ${
-                            !detail.isCompleted && !detail.weight
-                              ? "border-red-300"
-                              : ""
-                          } ${
-                            !isEnabled ? "bg-gray-100 cursor-not-allowed" : ""
-                          }`}
-                          disabled={detail.isCompleted || !isEnabled}
-                        />
-                      )}
-                    <input
-                      type="number"
-                      placeholder="Reps"
-                      value={detail.reps}
-                      onChange={(e) =>
-                        updateExerciseDetail(
-                          selectedWeek,
-                          selectedDay,
-                          exerciseIndex,
-                          detailIndex,
-                          "reps",
-                          e.target.value
-                        )
-                      }
-                      className={`w-24 p-2 border rounded ${
-                        !detail.isCompleted && !detail.reps
-                          ? "border-red-300"
-                          : ""
-                      } ${!isEnabled ? "bg-gray-100 cursor-not-allowed" : ""}`}
-                      disabled={detail.isCompleted || !isEnabled}
-                    />
-                    {detail.isCompleted && (
-                      <span className="ml-2 text-sm text-gray-600">
-                        Volume: {formatVolume(setVolume, exercise.equipment)}
-                      </span>
-                    )}
-
-                    {!detail.isCompleted ? (
-                      <button
-                      id="save-button"
-                        onClick={() =>
-                          saveExerciseSet(
-                            selectedWeek,
-                            selectedDay,
-                            exerciseIndex,
-                            detailIndex
-                          )
-                        }
-                        className={`p-2 rounded-full ${
-                          isEnabled
-                            ? "text-green-500 hover:bg-green-600 hover:text-white"
-                            : "text-gray-400 cursor-not-allowed"
-                        }`}
-                        title="Save Set"
-                        disabled={!isEnabled}
-                      >
-                        ✓
-                      </button>
-                    ) : (
-                      <button
-                      id="edit-button"
-                        onClick={() =>
-                          editExerciseSet(
-                            selectedWeek,
-                            selectedDay,
-                            exerciseIndex,
-                            detailIndex
-                          )
-                        }
-                        className="p-2 text-blue-500 rounded-full hover:bg-blue-600 hover:text-white"
-                        title="Edit Set"
-                      >
-                        ✎
-                      </button>
-                    )}
-
-                    <button
-                    id="remove-button"
-                      onClick={() =>
-                        removeExerciseDetail(
-                          selectedWeek,
-                          selectedDay,
-                          exerciseIndex,
-                          detailIndex
-                        )
-                      }
-                      className="p-2 text-red-500 rounded-full hover:bg-red-600 hover:text-white"
-                      title="Remove Set"
+                  />
+                  <div className="flex-1">
+                    <h3
+                      className="text-lg font-semibold cursor-pointer"
+                      onClick={() => {
+                        setSelectedExercise(exercise);
+                        handleOpenClose();
+                      }}
                     >
-                      ×
-                    </button>
-
-                    {detail?.isCompleted && (
-                      <div className="ml-2">
-                        {workoutData.exerciseHistory[
-                          `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                        ][detailIndex]?.restTime && (
-                          <span className="text-sm text-gray-600">
-                            Rest:{" "}
-                            {formatTime(
-                              workoutData.exerciseHistory[
-                                `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                              ][detailIndex].restTime
-                            )}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    {detail?.isCompleted && (
-                      <div className="ml-2">
-                        <span className="text-sm text-gray-600">
-                          Performed on:{" "}
-                          {
-                            workoutData?.exerciseHistory[
-                              `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                            ]?.[detailIndex]?.date?.fullDate
-                          }
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
-              {/* Previous Record */}
-              {selectedWeek > 0 &&
-                getPreviousRecord(selectedWeek, selectedDay, exerciseIndex) && (
-                  <div className="mt-2 text-sm text-gray-600">
-                    Previous:{" "}
-                    {getPreviousRecord(
-                      selectedWeek,
-                      selectedDay,
-                      exerciseIndex
-                    ).map((set, index) => (
-                      <span key={index}>
-                        {set.weight && `${set.weight} lbs x `}
-                        {set.reps} reps
-                        {index <
-                        getPreviousRecord(
+                      {_.upperFirst(exercise.name)}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Target: {exercise.target} ({" "}
+                      {exercise?.weeklySetConfig?.find((i) => i?.isConfigured)
+                        .sets}{" "}
+                      sets )
+                    </p>
+                    <p className="text-sm font-medium text-gray-700">
+                      Total Volume:{" "}
+                      {formatVolume(
+                        calculateExerciseTotal(
                           selectedWeek,
                           selectedDay,
                           exerciseIndex
-                        ).length -
-                          1
-                          ? ", "
-                          : ""}
-                      </span>
-                    ))}
+                        ),
+                        exercise.equipment
+                      )}
+                      {exercise.equipment === "body weight" &&
+                        ` (based on ${USER_WEIGHT_KG}kg body weight)`}
+                    </p>
                   </div>
-                )}
 
-              {/* Timer Display */}
-              {isTimerRunning &&
-                activeExerciseSet?.exercise === exerciseIndex && (
-                  <div className="flex items-center gap-4 mt-4">
-                    <span className="text-xl font-bold">
-                      Rest Time: {formatTime(elapsedTime)}
-                    </span>
-                    <button
-                      onClick={stopTimer}
-                      className="px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600"
+                  <button
+                    onClick={() =>
+                      addExerciseDetails(
+                        selectedWeek,
+                        selectedDay,
+                        exerciseIndex
+                      )
+                    }
+                    className={`px-4 py-2 text-white bg-black rounded hover:bg-blue-600 ${
+                      !isEnabled ? "cursor-not-allowed opacity-50" : ""
+                    }`}
+                    disabled={!isEnabled}
+                  >
+                    Add Set
+                  </button>
+                </div>
+
+                {exerciseDetails[
+                  `${selectedWeek}-${selectedDay}-${exerciseIndex}`
+                ]?.map((detail, detailIndex) => {
+                  const isSetEnabled = isEnabled && isSetEnabledFunc(
+                    selectedWeek,
+                    selectedDay,
+                    exerciseIndex,
+                    detailIndex
+                  );
+                  const setVolume = detail.isCompleted
+                    ? calculateSetVolume(
+                        exercise.equipment === "body weight"
+                          ? USER_WEIGHT_KG
+                          : detail.weight,
+                        detail.reps,
+                        exercise.equipment
+                      )
+                    : 0;
+
+                  return (
+                    <div
+                      key={detailIndex}
+                      className="flex items-center gap-2 mt-2"
                     >
-                      Stop Timer
-                    </button>
-                  </div>
-                )}
-            </div>
-          )
+                      {exercise.equipment !== "body weight" &&
+                        exercise.equipment !== "band" && (
+                          <input
+                            type="number"
+                            placeholder="Weight"
+                            value={detail.weight}
+                            onChange={(e) =>
+                              updateExerciseDetail(
+                                selectedWeek,
+                                selectedDay,
+                                exerciseIndex,
+                                detailIndex,
+                                "weight",
+                                e.target.value
+                              )
+                            }
+                            className={`w-24 p-2 border rounded ${
+                              !detail.isCompleted && !detail.weight
+                                ? "border-red-300"
+                                : ""
+                            } ${
+                              !isSetEnabled
+                                ? "bg-gray-100 cursor-not-allowed"
+                                : ""
+                            }`}
+                            disabled={detail.isCompleted || !isSetEnabled}
+                          />
+                        )}
+                      <input
+                        type="number"
+                        placeholder="Reps"
+                        value={detail.reps}
+                        onChange={(e) =>
+                          updateExerciseDetail(
+                            selectedWeek,
+                            selectedDay,
+                            exerciseIndex,
+                            detailIndex,
+                            "reps",
+                            e.target.value
+                          )
+                        }
+                        className={`w-24 p-2 border rounded ${
+                          !detail.isCompleted && !detail.reps
+                            ? "border-red-300"
+                            : ""
+                        } ${
+                          !isSetEnabled ? "bg-gray-100 cursor-not-allowed" : ""
+                        }`}
+                        disabled={detail.isCompleted || !isSetEnabled}
+                      />
+                      {detail.isCompleted && (
+                        <span className="ml-2 text-sm text-gray-600">
+                          Volume:{" "}
+                          {formatVolume(setVolume, exercise.equipment)}
+                        </span>
+                      )}
+
+                      {!detail.isCompleted ? (
+                        <button
+                          id="save-button"
+                          onClick={() =>
+                            saveExerciseSet(
+                              selectedWeek,
+                              selectedDay,
+                              exerciseIndex,
+                              detailIndex
+                            )
+                          }
+                          className={`p-2 rounded-full ${
+                            isSetEnabled
+                              ? "text-green-500 hover:bg-green-600 hover:text-white"
+                              : "text-gray-400 cursor-not-allowed"
+                          }`}
+                          title="Save Set"
+                          disabled={!isSetEnabled}
+                        >
+                          ✓
+                        </button>
+                      ) : (
+                        <button
+                          id="edit-button"
+                          onClick={() =>
+                            editExerciseSet(
+                              selectedWeek,
+                              selectedDay,
+                              exerciseIndex,
+                              detailIndex
+                            )
+                          }
+                          className="p-2 text-blue-500 rounded-full hover:bg-blue-600 hover:text-white"
+                          title="Edit Set"
+                        >
+                          ✎
+                        </button>
+                      )}
+
+                      <button
+                        id="remove-button"
+                        onClick={() =>
+                          removeExerciseDetail(
+                            selectedWeek,
+                            selectedDay,
+                            exerciseIndex,
+                            detailIndex
+                          )
+                        }
+                        className="p-2 text-red-500 rounded-full hover:bg-red-600 hover:text-white"
+                        title="Remove Set"
+                      >
+                        ×
+                      </button>
+
+                      {detail?.isCompleted && (
+                        <div className="ml-2">
+                          {workoutData.exerciseHistory[
+                            `${selectedWeek}-${selectedDay}-${exerciseIndex}`
+                          ][detailIndex]?.restTime && (
+                            <span className="text-sm text-gray-600">
+                              Rest:{" "}
+                              {formatTime(
+                                workoutData.exerciseHistory[
+                                  `${selectedWeek}-${selectedDay}-${exerciseIndex}`
+                                ][detailIndex].restTime
+                              )}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {detail?.isCompleted && (
+                        <div className="ml-2">
+                          <span className="text-sm text-gray-600">
+                            Performed on:{" "}
+                            {
+                              workoutData?.exerciseHistory[
+                                `${selectedWeek}-${selectedDay}-${exerciseIndex}`
+                              ]?.[detailIndex]?.date?.fullDate
+                            }
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {selectedWeek > 0 &&
+                  getPreviousRecord(selectedWeek, selectedDay, exerciseIndex) && (
+                    <div className="mt-2 text-sm text-gray-600">
+                      Previous:{" "}
+                      {getPreviousRecord(
+                        selectedWeek,
+                        selectedDay,
+                        exerciseIndex
+                      ).map((set, index) => (
+                        <span key={index}>
+                          {set.weight && `${set.weight} lbs x `}
+                          {set.reps} reps
+                          {index <
+                          getPreviousRecord(
+                            selectedWeek,
+                            selectedDay,
+                            exerciseIndex
+                          ).length -
+                            1
+                            ? ", "
+                            : ""}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                {isTimerRunning &&
+                  activeExerciseSet?.exercise === exerciseIndex && (
+                    <div className="flex items-center gap-4 mt-4">
+                      <span className="text-xl font-bold">
+                        Rest Time: {formatTime(elapsedTime)}
+                      </span>
+                      <button
+                        onClick={stopTimer}
+                        className="px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600"
+                      >
+                        Stop Timer
+                      </button>
+                    </div>
+                  )}
+              </div>
+            );
+          }
         )}
       </div>
 
