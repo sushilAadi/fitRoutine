@@ -103,14 +103,23 @@ const PlanDetail = ({ params }) => {
     }
   };
 
+  const isDayCompleted = (weekIndex, dayIndex, data = workoutData) => {
+    if (!data) return false;
+    const exercises = data?.workoutPlan[weekIndex][dayIndex].exercises || [];
+    return exercises.every((_, index) => {
+      const key = `${weekIndex}-${dayIndex}-${index}`;
+      return data?.exerciseHistory[key] && data.exerciseHistory[key].length > 0;
+    });
+  };
+
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
-
+  
     const plans = Object.keys(localStorage)
       .filter((key) => key.startsWith("workoutPlan_"))
       .map((key) => JSON.parse(localStorage.getItem(key)));
-
+  
     const findPlan = plans?.find((i) => i?.name === selectedPlanName);
     if (findPlan) {
       setWorkoutData(findPlan);
@@ -122,8 +131,32 @@ const PlanDetail = ({ params }) => {
           restTime: set.restTime || null,
         }));
       });
+  
+      findPlan.workoutPlan.forEach((week, weekIndex) => {
+        week.forEach((day, dayIndex) => {
+          day.exercises.forEach((exercise, exerciseIndex) => {
+            const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
+            const configuredSets = exercise?.weeklySetConfig?.find(i => i?.isConfigured)?.sets || 0;
+            const existingSets = initialExerciseDetails[key]?.length || 0;
+            const setsToAdd = Math.max(configuredSets - existingSets, 0);
+  
+            if (!initialExerciseDetails[key]) {
+              initialExerciseDetails[key] = [];
+            }
+  
+            for (let i = 0; i < setsToAdd; i++) {
+              initialExerciseDetails[key].push({
+                weight: "",
+                reps: "",
+                isCompleted: false,
+              });
+            }
+          });
+        });
+      });
+  
       setExerciseDetails(initialExerciseDetails);
-
+  
       const lastPosition = localStorage.getItem(
         `lastPosition_${selectedPlanName}`
       );
@@ -149,8 +182,7 @@ const PlanDetail = ({ params }) => {
           if (foundPosition) break;
         }
       }
-
-      // Move rest time prompt here and use ref to prevent double execution
+  
       if (!localStorage.getItem(`restTime_${selectedPlanName}`)) {
         const userRestTime = prompt(
           "Do you want to set a rest time for each set? If yes, enter the time in seconds:"
@@ -165,7 +197,14 @@ const PlanDetail = ({ params }) => {
         );
       }
     }
-  }, [params?.plan]);
+  }, [params?.plan, selectedPlanName, isDayCompleted]);
+  useEffect(() => {
+    if (workoutData) {
+      workoutData.workoutPlan[selectedWeek][selectedDay].exercises.forEach((exercise, exerciseIndex) => {
+        addExerciseDetails(selectedWeek, selectedDay, exerciseIndex, true);
+      });
+    }
+  }, [selectedWeek, selectedDay, workoutData]);
 
   useEffect(() => {
     if (workoutData) {
@@ -283,14 +322,14 @@ const PlanDetail = ({ params }) => {
     );
   };
 
-  const isDayCompleted = (weekIndex, dayIndex, data = workoutData) => {
-    if (!data) return false;
-    const exercises = data?.workoutPlan[weekIndex][dayIndex].exercises || [];
-    return exercises.every((_, index) => {
-      const key = `${weekIndex}-${dayIndex}-${index}`;
-      return data?.exerciseHistory[key] && data.exerciseHistory[key].length > 0;
-    });
-  };
+  // const isDayCompleted = (weekIndex, dayIndex, data = workoutData) => {
+  //   if (!data) return false;
+  //   const exercises = data?.workoutPlan[weekIndex][dayIndex].exercises || [];
+  //   return exercises.every((_, index) => {
+  //     const key = `${weekIndex}-${dayIndex}-${index}`;
+  //     return data?.exerciseHistory[key] && data.exerciseHistory[key].length > 0;
+  //   });
+  // };
 
   const isWeekCompleted = (weekIndex) => {
     return Array.from({ length: workoutData?.daysPerWeek || 0 }).every(
@@ -366,7 +405,7 @@ const PlanDetail = ({ params }) => {
     );
   };
 
-  const addExerciseDetails = (weekIndex, dayIndex, exerciseIndex) => {
+  const addExerciseDetails = (weekIndex, dayIndex, exerciseIndex, autoAdd = false) => {
     if (isTimerRunning) {
       setWarningMessage(
         "Please wait for the rest timer to complete before adding a new set."
@@ -381,11 +420,26 @@ const PlanDetail = ({ params }) => {
       updatedExerciseDetails[key] = [];
     }
 
-    updatedExerciseDetails[key].push({
-      weight: "",
-      reps: "",
-      isCompleted: false,
-    });
+    const exercise = workoutData.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
+    const configuredSets = exercise?.weeklySetConfig?.find(i => i?.isConfigured)?.sets || 0;
+
+    if (autoAdd) {
+      const setsToAdd = configuredSets - updatedExerciseDetails[key].length;
+      for (let i = 0; i < setsToAdd; i++) {
+        updatedExerciseDetails[key].push({
+          weight: "",
+          reps: "",
+          isCompleted: false,
+        });
+      }
+    } else {
+      updatedExerciseDetails[key].push({
+        weight: "",
+        reps: "",
+        isCompleted: false,
+      });
+    }
+
     setExerciseDetails(updatedExerciseDetails);
   };
   const isSetEnabled = (weekIndex, dayIndex, exerciseIndex, setIndex) => {
@@ -703,7 +757,7 @@ const PlanDetail = ({ params }) => {
                     {_.upperFirst(exercise.name)}
                   </h3>
                   <p className="text-sm text-gray-600">
-                    Target: {exercise.target}
+                    Target: {exercise.target} ( {exercise?.weeklySetConfig?.find(i=>i?.isConfigured).sets} sets )
                   </p>
                   <p className="text-sm font-medium text-gray-700">
                     Total Volume:{" "}
@@ -719,6 +773,7 @@ const PlanDetail = ({ params }) => {
                       " (based on " + USER_WEIGHT_KG + "kg body weight)"}
                   </p>
                 </div>
+                
                 <button
                   onClick={() =>
                     addExerciseDetails(selectedWeek, selectedDay, exerciseIndex)
