@@ -14,6 +14,7 @@ import Image from "next/image";
 import CCard from "@/components/CCard";
 import { GlobalContext } from "@/context/GloablContext";
 import WorkoutDayAccordion from "./WorkoutDayAccordian";
+import toast from 'react-hot-toast';
 
 const createPlanPage = () => {
   const { handleOpenClose: menuOpenClose } = useContext(GlobalContext);
@@ -316,6 +317,7 @@ const createPlanPage = () => {
       setShowWarning(true);
     } else {
       savePlan();
+      
       // Reset the component state after successful save
       alert("Workout plan saved successfully!");
       setToggleForm(true);

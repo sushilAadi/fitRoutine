@@ -13,7 +13,7 @@ import Sidebar from "@/components/Sidebar/Sidebar";
 import NavbarComponent from "@/components/Navbar/Navbar";
 import { ClerkProvider, SignedIn } from "@clerk/nextjs";
 import "animate.css";
-
+import { Toaster } from 'react-hot-toast';
 
 const queryClient = new QueryClient();
 
@@ -87,6 +87,7 @@ export default function RootLayout({ children }) {
                   </div>
                 </SignedIn>
                 {children}
+                <Toaster/>
               </ThemeProvider>
               <Analytics />
               <SpeedInsights />
