@@ -4,6 +4,7 @@ import _ from "lodash";
 import OffCanvasComp from "@/components/OffCanvas/OffCanvasComp";
 import ExerciseDeatil from "./ExerciseDeatil";
 import { useRouter } from "next/navigation";
+import { handleDate } from "@/utils";
 
 const TabButton = ({ active, onClick, children, disabled }) => (
   <button
@@ -909,7 +910,7 @@ const PlanDetail = ({ params }) => {
                           {formatVolume(setVolume, exercise.equipment)}
                         </span>
                       )}
-
+                      <i className="text-red-500 fa-solid fa-play" name="start"/><span >1 min 30 sec</span><i className="fa-solid fa-stop" name="stop"/>
                       {!detail.isCompleted ? (
                         <button
                           id="save-button"
@@ -984,13 +985,10 @@ const PlanDetail = ({ params }) => {
                       )}
                       {detail?.isCompleted && (
                         <div className="ml-2">
-                          <span className="text-sm text-gray-600">
-                            Performed on:{" "}
-                            {
-                              workoutData?.exerciseHistory[
+                          <span className="text-sm text-green-800">
+                            Performed on: ({handleDate(workoutData?.exerciseHistory[
                                 `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                              ]?.[detailIndex]?.date?.fullDate
-                            }
+                              ]?.[detailIndex]?.date?.fullDate)})
                           </span>
                         </div>
                       )}
