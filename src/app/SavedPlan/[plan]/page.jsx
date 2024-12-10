@@ -43,9 +43,27 @@ const PlanDetail = ({ params }) => {
   const [restTimes, setRestTimes] = useState({});
   const [remainingTime, setRemainingTime] = useState(0);
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(null);
+  const [setWarnings, setSetWarnings] = useState({});
 
   const handleOpenClose = () => setShow(!show);
   const selectedPlanName = decodeURIComponent(params?.plan);
+
+  const checkSetWarnings = (weekIndex, dayIndex, exerciseIndex) => {
+    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
+    const exercise = workoutData?.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
+    const configuredSets = exercise?.weeklySetConfig?.find(i => i?.isConfigured)?.sets || 0;
+    const currentSets = exerciseDetails[key]?.length || 0;
+
+    if (currentSets < configuredSets) {
+      const updatedWarnings = { ...setWarnings };
+      updatedWarnings[key] = `This exercise is configured for ${configuredSets} sets, but currently has ${currentSets} sets.`;
+      setSetWarnings(updatedWarnings);
+    } else {
+      const updatedWarnings = { ...setWarnings };
+      delete updatedWarnings[key];
+      setSetWarnings(updatedWarnings);
+    }
+  };
 
   const calculateSetVolume = (weight, reps, equipment) => {
     if (!weight || !reps) return 0;
@@ -410,11 +428,6 @@ const PlanDetail = ({ params }) => {
   };
 
   const addExerciseDetails = (weekIndex, dayIndex, exerciseIndex, autoAdd = false) => {
-    // if (!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex)) {
-    //   setWarningMessage("Please complete the previous exercise before adding sets to this one.");
-    //   return;
-    // }
-
     const updatedExerciseDetails = { ...exerciseDetails };
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
 
@@ -426,6 +439,7 @@ const PlanDetail = ({ params }) => {
     const configuredSets = exercise?.weeklySetConfig?.find(i => i?.isConfigured)?.sets || 0;
 
     if (autoAdd) {
+      // Only add sets up to the configured amount during auto-add
       const setsToAdd = configuredSets - updatedExerciseDetails[key].length;
       for (let i = 0; i < setsToAdd; i++) {
         updatedExerciseDetails[key].push({
@@ -435,6 +449,7 @@ const PlanDetail = ({ params }) => {
         });
       }
     } else {
+      // Allow manual addition of sets beyond configured amount
       updatedExerciseDetails[key].push({
         weight: "",
         reps: "",
@@ -444,6 +459,7 @@ const PlanDetail = ({ params }) => {
 
     setExerciseDetails(updatedExerciseDetails);
     setWarningMessage("");
+    checkSetWarnings(weekIndex, dayIndex, exerciseIndex);
   };
   const isSetEnabledFunc = (weekIndex, dayIndex, exerciseIndex, setIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
@@ -494,12 +510,7 @@ const PlanDetail = ({ params }) => {
   };
 
 
-  const removeExerciseDetail = (
-    weekIndex,
-    dayIndex,
-    exerciseIndex,
-    detailIndex
-  ) => {
+  const removeExerciseDetail = (weekIndex, dayIndex, exerciseIndex, detailIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
     const updatedExerciseDetails = { ...exerciseDetails };
     updatedExerciseDetails[key].splice(detailIndex, 1);
@@ -516,7 +527,15 @@ const PlanDetail = ({ params }) => {
     }
 
     setWarningMessage("");
+    checkSetWarnings(weekIndex, dayIndex, exerciseIndex);
   };
+  useEffect(() => {
+    if (workoutData && selectedWeek !== null && selectedDay !== null) {
+      workoutData.workoutPlan[selectedWeek][selectedDay].exercises.forEach((_, exerciseIndex) => {
+        checkSetWarnings(selectedWeek, selectedDay, exerciseIndex);
+      });
+    }
+  }, [exerciseDetails, selectedWeek, selectedDay]);
 
   const saveExerciseSet = (weekIndex, dayIndex, exerciseIndex, detailIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
@@ -737,6 +756,8 @@ const PlanDetail = ({ params }) => {
       {workoutData.workoutPlan[selectedWeek][selectedDay].exercises.map(
           (exercise, exerciseIndex) => {
             const isEnabled = isExerciseEnabled(selectedWeek, selectedDay, exerciseIndex);
+            const key = `${selectedWeek}-${selectedDay}-${exerciseIndex}`;
+            const warning = setWarnings[key];
             return (
               <div
                 key={exerciseIndex}
@@ -744,6 +765,11 @@ const PlanDetail = ({ params }) => {
                   !isEnabled ? "opacity-50" : ""
                 }`}
               >
+              {warning && (
+                  
+                    <div className="text-sm text-amber-600">{warning}</div>
+                  
+                )}
                 <div className="flex items-center gap-4">
                   <img
                     src={exercise.gifUrl}
@@ -935,6 +961,7 @@ const PlanDetail = ({ params }) => {
                         }
                         className="p-2 text-red-500 rounded-full hover:bg-red-600 hover:text-white"
                         title="Remove Set"
+                        // disabled={!isSetEnabled}
                       >
                         ×
                       </button>
