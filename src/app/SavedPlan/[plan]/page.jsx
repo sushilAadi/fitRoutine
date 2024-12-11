@@ -4,7 +4,7 @@ import _ from "lodash";
 import OffCanvasComp from "@/components/OffCanvas/OffCanvasComp";
 import ExerciseDeatil from "./ExerciseDeatil";
 import { useRouter } from "next/navigation";
-import { handleDate } from "@/utils";
+import { calculateProgress, handleDate } from "@/utils";
 
 const TabButton = ({ active, onClick, children, disabled }) => (
   <button
@@ -146,7 +146,10 @@ const PlanDetail = ({ params }) => {
       .map((key) => JSON.parse(localStorage.getItem(key)));
 
     const findPlan = plans?.find((i) => i?.name === selectedPlanName);
+
     if (findPlan) {
+      const progress = calculateProgress(findPlan);
+      findPlan.progress = progress;
       setWorkoutData(findPlan);
       const initialExerciseDetails = {};
       Object.entries(findPlan.exerciseHistory).forEach(([key, sets]) => {
@@ -209,21 +212,24 @@ const PlanDetail = ({ params }) => {
           if (foundPosition) break;
         }
       }
-      if (!localStorage.getItem(`restTime_${selectedPlanName}`)) {
-        const userRestTime = prompt(
-          "Do you want to set a rest time for each set? If yes, enter the time in seconds:"
-        );
-        if (userRestTime && !isNaN(userRestTime)) {
-          setRestTime(parseInt(userRestTime));
-          localStorage.setItem(`restTime_${selectedPlanName}`, userRestTime);
+      if (progress !== 100) {
+        if (!localStorage.getItem(`restTime_${selectedPlanName}`)) {
+          const userRestTime = prompt(
+            "Do you want to set a rest time for each set? If yes, enter the time in seconds:"
+          );
+          if (userRestTime && !isNaN(userRestTime)) {
+            setRestTime(parseInt(userRestTime));
+            localStorage.setItem(`restTime_${selectedPlanName}`, userRestTime);
+          }
+        } else {
+          setRestTime(
+            parseInt(localStorage.getItem(`restTime_${selectedPlanName}`))
+          );
         }
-      } else {
-        setRestTime(
-          parseInt(localStorage.getItem(`restTime_${selectedPlanName}`))
-        );
       }
     }
   }, [params?.plan, selectedPlanName, isDayCompleted]);
+  console.log("workoutData", workoutData);
   useEffect(() => {
     if (workoutData) {
       workoutData.workoutPlan[selectedWeek][selectedDay].exercises.forEach(
@@ -564,10 +570,13 @@ const PlanDetail = ({ params }) => {
   const saveExerciseSet = (weekIndex, dayIndex, exerciseIndex, detailIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
     const details = exerciseDetails[key];
-    const exercise = workoutData.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
+    const exercise =
+      workoutData.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
 
-    const isBodyWeightOrBand = exercise.equipment === "body weight" || exercise.equipment === "band";
-    const isValidSet = details?.[detailIndex]?.reps && 
+    const isBodyWeightOrBand =
+      exercise.equipment === "body weight" || exercise.equipment === "band";
+    const isValidSet =
+      details?.[detailIndex]?.reps &&
       (isBodyWeightOrBand || details?.[detailIndex]?.weight);
 
     if (isValidSet) {
@@ -575,16 +584,17 @@ const PlanDetail = ({ params }) => {
       stopSetTimer(weekIndex, dayIndex, exerciseIndex, detailIndex);
 
       const currentDate = new Date();
-      setWorkoutData(prevWorkoutData => {
+      setWorkoutData((prevWorkoutData) => {
         const updatedWorkoutData = { ...prevWorkoutData };
         const updatedHistory = { ...updatedWorkoutData.exerciseHistory };
-        
+
         if (!updatedHistory[key]) {
           updatedHistory[key] = [];
         }
 
         // Preserve the duration from the existing history if it exists
-        const existingDuration = updatedHistory[key][detailIndex]?.duration || 0;
+        const existingDuration =
+          updatedHistory[key][detailIndex]?.duration || 0;
 
         updatedHistory[key][detailIndex] = {
           weight: details[detailIndex].weight,
@@ -593,7 +603,9 @@ const PlanDetail = ({ params }) => {
           duration: existingDuration, // Preserve the duration
           date: {
             fullDate: currentDate.toISOString(),
-            dayOfWeek: currentDate.toLocaleDateString("en-US", { weekday: "long" }),
+            dayOfWeek: currentDate.toLocaleDateString("en-US", {
+              weekday: "long",
+            }),
             dayOfMonth: currentDate.getDate(),
             month: currentDate.toLocaleDateString("en-US", { month: "long" }),
             year: currentDate.getFullYear(),
@@ -617,11 +629,13 @@ const PlanDetail = ({ params }) => {
       const updatedExerciseDetails = { ...exerciseDetails };
       updatedExerciseDetails[key][detailIndex].isCompleted = true;
       setExerciseDetails(updatedExerciseDetails);
-      
+
       setWarningMessage("");
       startTimer(weekIndex, dayIndex, exerciseIndex, detailIndex);
     } else {
-      setWarningMessage("Please fill in all required fields before saving the set.");
+      setWarningMessage(
+        "Please fill in all required fields before saving the set."
+      );
     }
   };
 
@@ -722,16 +736,16 @@ const PlanDetail = ({ params }) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}-${setIndex}`;
 
     // Initialize timer for this specific set if not exists
-    setSetTimers(prev => ({
+    setSetTimers((prev) => ({
       ...prev,
-      [key]: prev[key] || 0
+      [key]: prev[key] || 0,
     }));
 
     // Start interval for this specific set
     timerIntervals.current[key] = setInterval(() => {
-      setSetTimers(prev => ({
+      setSetTimers((prev) => ({
         ...prev,
-        [key]: (prev[key] || 0) + 1
+        [key]: (prev[key] || 0) + 1,
       }));
     }, 1000);
   };
@@ -747,11 +761,11 @@ const PlanDetail = ({ params }) => {
     }
 
     // Get the current timer duration from state
-    setSetTimers(prev => {
+    setSetTimers((prev) => {
       const setTimerDuration = prev[key] || 0;
 
       // Update workout data with the current duration
-      setWorkoutData(prevWorkoutData => {
+      setWorkoutData((prevWorkoutData) => {
         const updatedWorkoutData = JSON.parse(JSON.stringify(prevWorkoutData));
 
         // Initialize the history array if it doesn't exist
@@ -783,6 +797,12 @@ const PlanDetail = ({ params }) => {
     });
   };
 
+  useEffect(() => {
+    if (isEntirePlanCompleted()) {
+      setLockPreviousTabs(false);
+    }
+  }, [isEntirePlanCompleted()]);
+
   const formatSetTimer = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -809,7 +829,7 @@ const PlanDetail = ({ params }) => {
               : "bg-gray-200 text-gray-700"
           }`}
         >
-          {lockPreviousTabs ? "Unlock Previous Tabs" : "Lock Previous Tabs"}
+          {lockPreviousTabs ? "Unlock  Tabs" : "Lock  Tabs"}
         </button>
         <span className="text-lg font-semibold">
           Current Progress: Week {currentWeek + 1}, Day {currentDay + 1}
@@ -898,7 +918,8 @@ const PlanDetail = ({ params }) => {
                     <p className="text-sm text-gray-600">
                       Target: {exercise.target} ({" "}
                       {
-                        exercise?.weeklySetConfig?.find((i) => i?.isConfigured)?.sets
+                        exercise?.weeklySetConfig?.find((i) => i?.isConfigured)
+                          ?.sets
                       }{" "}
                       sets )
                     </p>
@@ -916,22 +937,23 @@ const PlanDetail = ({ params }) => {
                         ` (based on ${USER_WEIGHT_KG}kg body weight)`}
                     </p>
                   </div>
-
-                  <button
-                    onClick={() =>
-                      addExerciseDetails(
-                        selectedWeek,
-                        selectedDay,
-                        exerciseIndex
-                      )
-                    }
-                    className={`px-4 py-2 text-white bg-black rounded hover:bg-blue-600 ${
-                      !isEnabled ? "cursor-not-allowed opacity-50" : ""
-                    }`}
-                    disabled={!isEnabled}
-                  >
-                    Add Set
-                  </button>
+                  {!isEntirePlanCompleted() && (
+                    <button
+                      onClick={() =>
+                        addExerciseDetails(
+                          selectedWeek,
+                          selectedDay,
+                          exerciseIndex
+                        )
+                      }
+                      className={`px-4 py-2 text-white bg-black rounded hover:bg-blue-600 ${
+                        !isEnabled ? "cursor-not-allowed opacity-50" : ""
+                      }`}
+                      disabled={!isEnabled}
+                    >
+                      Add Set
+                    </button>
+                  )}
                 </div>
 
                 {exerciseDetails[
@@ -1020,21 +1042,22 @@ const PlanDetail = ({ params }) => {
                       )}
 
                       <div className="flex items-center gap-2">
-                      {setTimers[timerKey] !== undefined && !detail.isCompleted && (
-        <span className="text-sm font-medium">
-          Time Taken: {formatSetTimer(setTimers[timerKey])}
-        </span>
-      )} 
-      {detail.isCompleted && (
-        <span className="text-sm font-medium">
-          Time Taken:{" "}
-          {formatSetTimer(
-            workoutData?.exerciseHistory[
-              `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-            ]?.[detailIndex]?.duration
-          )}
-        </span>
-      )}
+                        {setTimers[timerKey] !== undefined &&
+                          !detail.isCompleted && (
+                            <span className="text-sm font-medium">
+                              Time Taken: {formatSetTimer(setTimers[timerKey])}
+                            </span>
+                          )}
+                        {detail.isCompleted && (
+                          <span className="text-sm font-medium">
+                            Time Taken:{" "}
+                            {formatSetTimer(
+                              workoutData?.exerciseHistory[
+                                `${selectedWeek}-${selectedDay}-${exerciseIndex}`
+                              ]?.[detailIndex]?.duration
+                            )}
+                          </span>
+                        )}
 
                         {/* Start Timer Button */}
                         {!detail?.isCompleted && detail.reps && (
@@ -1057,7 +1080,6 @@ const PlanDetail = ({ params }) => {
                             )}
                           </>
                         )}
-
                       </div>
 
                       {!detail.isCompleted ? (
@@ -1200,25 +1222,30 @@ const PlanDetail = ({ params }) => {
       </div>
 
       {/* Next Day/Week Button */}
-      {isDayCompleted(selectedWeek, selectedDay) &&
-        (selectedDay < workoutData.daysPerWeek - 1 ||
-          selectedWeek < workoutData.weeks - 1) && (
-          <button
-            onClick={() => {
-              lockPreviousTabs && moveToNextDay();
+      {!isEntirePlanCompleted() && (
+        <>
+          {isDayCompleted(selectedWeek, selectedDay) &&
+            (selectedDay < workoutData.daysPerWeek - 1 ||
+              selectedWeek < workoutData.weeks - 1) && (
+              <button
+                onClick={() => {
+                  lockPreviousTabs && moveToNextDay();
 
-              router.push("/SavedPlan");
-            }}
-            className="float-right px-6 py-2 mt-4 mb-2 text-white bg-black rounded-lg"
-          >
-            {/* {selectedDay < workoutData.daysPerWeek - 1
+                  router.push("/SavedPlan");
+                }}
+                className="float-right px-6 py-2 mt-4 mb-2 text-white bg-black rounded-lg"
+              >
+                {/* {selectedDay < workoutData.daysPerWeek - 1
               ? `Next Day (${workoutData.dayNames[selectedDay + 1]})`
               : `Next Week (${workoutData.weekNames[selectedWeek + 1]}, ${
                   workoutData.dayNames[0]
                 })`} */}
-            Complete Workout
-          </button>
-        )}
+                Complete Workout
+              </button>
+            )}
+        </>
+      )}
+
       {isEntirePlanCompleted() && (
         <button
           onClick={() => finishPlan()}

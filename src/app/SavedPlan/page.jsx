@@ -6,36 +6,12 @@ import SavedCard from "@/components/Card/SavedCard";
 import { IconButton } from "@material-tailwind/react";
 import { Bars3Icon } from "@heroicons/react/24/solid";
 import { GlobalContext } from "@/context/GloablContext";
+import { calculateProgress } from "@/utils";
 
 const CustomPlanPage = () => {
   const { handleOpenClose } = useContext(GlobalContext);
   const router = useRouter();
   const [savedPlans, setSavedPlans] = useState([]);
-
-  const calculateProgress = (plan) => {
-    let totalExercises = 0;
-    let completedExercises = 0;
-
-    plan?.workoutPlan.forEach((week, weekIndex) => {
-      week.forEach((day, dayIndex) => {
-        day.exercises.forEach((_, exerciseIndex) => {
-          totalExercises++;
-          if (
-            plan.exerciseHistory[`${weekIndex}-${dayIndex}-${exerciseIndex}`]
-              ?.length > 0
-          ) {
-            completedExercises++;
-          }
-        });
-      });
-    });
-
-    const progress =
-      totalExercises > 0
-        ? Math.round((completedExercises / totalExercises) * 100)
-        : 0;
-    return progress;
-  };
 
   useEffect(() => {
     const plans = Object.keys(localStorage)
@@ -112,17 +88,19 @@ const CustomPlanPage = () => {
       Object.keys(localStorage)
         .filter((key) => key.startsWith("workoutPlan_"))
         .forEach((key) => localStorage.removeItem(key));
-  
+
       // Remove related localStorage items
       Object.keys(localStorage)
-        .filter((key) => key.startsWith("lastPosition_") || key.startsWith("restTime_"))
+        .filter(
+          (key) =>
+            key.startsWith("lastPosition_") || key.startsWith("restTime_")
+        )
         .forEach((key) => localStorage.removeItem(key));
-  
+
       // Clear state
       setSavedPlans([]);
     }
   };
-  
 
   return (
     <>
@@ -138,7 +116,7 @@ const CustomPlanPage = () => {
                 custom workout plans. Let's crush those goals!
               </p>
             </div>
-           
+
             <IconButton
               variant="text"
               className="w-6 h-6 ml-auto text-white hover:bg-transparent focus:bg-transparent active:bg-transparent lg:hidden"
@@ -150,13 +128,19 @@ const CustomPlanPage = () => {
           </div>
         </div>
         {savedPlans?.length > 0 && (
-  <div className="p-2 bg-red-600">
-    <p className="mb-2 text-white">You have saved plans. If you want to delete click the delete button? &nbsp; <i onClick={deleteAllPlans} className="text-white cursor-pointer fa-duotone fa-light fa-trash"></i></p> 
-  </div>
-)}
-        
+          <div className="p-2 bg-red-600">
+            <p className="mb-2 text-white">
+              You have saved plans. If you want to delete click the delete
+              button? &nbsp;{" "}
+              <i
+                onClick={deleteAllPlans}
+                className="text-white cursor-pointer fa-duotone fa-light fa-trash"
+              ></i>
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-wrap justify-between p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar h-100">
-        
           {savedPlans.length > 0 ? (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {savedPlans.map((plan, index) => (

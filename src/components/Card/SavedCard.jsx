@@ -1,6 +1,12 @@
 import React from "react";
 
-const SavedCard = ({ plan, onClick, onClickSecondary, isDisabled, isCompleted }) => {
+const SavedCard = ({
+  plan,
+  onClick,
+  onClickSecondary,
+  isDisabled,
+  isCompleted,
+}) => {
   const calculateProgress = () => {
     let totalExercises = 0;
     let completedExercises = 0;
@@ -45,9 +51,16 @@ const SavedCard = ({ plan, onClick, onClickSecondary, isDisabled, isCompleted })
   });
 
   return (
-    <div className={`max-w-sm p-6 bg-white shadow-lg rounded-xl ${plan.status === "active" && !isCompleted ? "border-2 border-green-500" : ""}`} style={{
-      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)', 
-    }}>
+    <div
+      className={`max-w-sm p-6 bg-white shadow-lg rounded-xl ${
+        plan.status === "active" && !isCompleted
+          ? "border-2 border-green-500"
+          : ""
+      }`}
+      style={{
+        boxShadow: "0 4px 15px rgba(0, 0, 0, 0.1)",
+      }}
+    >
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center">
           <div className="flex items-center justify-center w-10 h-10 text-xl font-semibold text-white bg-black rounded-full">
@@ -130,4 +143,3 @@ const SavedCard = ({ plan, onClick, onClickSecondary, isDisabled, isCompleted })
 };
 
 export default SavedCard;
-
