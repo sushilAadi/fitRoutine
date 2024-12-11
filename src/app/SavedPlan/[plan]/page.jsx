@@ -5,6 +5,7 @@ import OffCanvasComp from "@/components/OffCanvas/OffCanvasComp";
 import ExerciseDeatil from "./ExerciseDeatil";
 import { useRouter } from "next/navigation";
 import { calculateProgress, handleDate } from "@/utils";
+import Image from "next/image";
 
 const TabButton = ({ active, onClick, children, disabled }) => (
   <button
@@ -874,7 +875,64 @@ const PlanDetail = ({ params }) => {
           ))}
         </div>
       </div>
-
+      <div className="p-3 my-3 bg-gray-800 rounded-xl">
+          <div className="flex p-2 bg-gray-900 gap-x-4 rounded-xl">
+            <div className="min-w-[50px] min-h-[50px] max-h-[50px] max-w-[50px] overflow-hidden">
+              <Image src="https://v2.exercisedb.io/image/oGtPhBdJRjAxx0" alt="Gym" width={50} height={50} className="object-cover rounded-full max-w-[50px] max-h-50px]" />
+              </div>
+              <div className="text-conatiner w-100">
+                <p className="text-gray-400 ">Assisted hanging knee raise with throw down</p>
+                <div className="flex items-center justify-between ">
+                <div className="flex items-center gap-x-4">
+                  <p className="text-sm font-semibold text-white">Target: Abs</p>
+                  <p className="text-sm font-semibold text-white"> Sets : 3</p>
+                </div>
+                <i class="fa-solid text-xl fa-circle-plus text-white cursor-pointer"></i>
+                </div>
+              </div>
+          </div>
+          <div className="flex items-center justify-between mt-3 mb-1 overflow-hidden gap-x-3">
+          <div className="flex gap-x-1">
+          <input type="text" placeholder="weight" className="px-3 py-2 bg-gray-700 rounded-xl w-100" />
+          <input type="text" placeholder="reps" className="px-3 py-2 bg-gray-700 rounded-xl w-100" />
+          </div>
+          <div className="flex items-center gap-x-3">
+          <i className="text-red-500 cursor-pointer fa-solid fa-play"/>
+              <i className="text-white cursor-pointer fa-solid fa-check"/>
+              <i className="text-white cursor-pointer fa-solid fa-circle-xmark"/>
+          </div>
+              
+          </div>
+          <div className="flex items-center pb-2">
+              <p><i className="mr-2 font-semibold text-white fa-duotone fa-solid fa-timer "></i></p>
+              <p className="pr-3 text-xs text-gray-300 whitespace-nowrap">88:60 sec</p>
+              <p ><i className="pr-2 font-semibold text-white fa-solid fa-person-seat"></i></p>
+              <p className="pr-3 text-xs text-gray-300 whitespace-nowrap">88:60 sec</p>
+              <p ><i class="fa-duotone fa-solid fa-weight-hanging  font-semibold text-white whitespace-nowrap pr-2"></i></p>
+              <p className="text-xs text-gray-300 whitespace-nowrap">99999Kg</p>
+          </div>
+          <div className="flex items-center justify-between mt-3 mb-1 overflow-hidden gap-x-3">
+          <div className="flex gap-x-1">
+          <input type="text" placeholder="weight" className="px-3 py-2 bg-gray-700 rounded-xl w-100" />
+          <input type="text" placeholder="reps" className="px-3 py-2 bg-gray-700 rounded-xl w-100" />
+          </div>
+          <div className="flex items-center gap-x-3">
+          <i className="text-red-500 cursor-pointer fa-solid fa-play"/>
+              <i className="text-white cursor-pointer fa-solid fa-check"/>
+              <i className="text-white cursor-pointer fa-solid fa-circle-xmark"/>
+          </div>
+              
+          </div>
+          <div className="flex items-center pb-2">
+              <p className="text-xs font-semibold text-white whitespace-nowrap">Time taken:</p>
+              <p className="pr-3 text-xs text-gray-300 whitespace-nowrap">88 min 60 sec</p>
+              <p className="text-xs font-semibold text-white whitespace-nowrap">Rest:</p>
+              <p className="text-xs text-gray-300 whitespace-nowrap">88 min 60 sec</p>
+          </div>
+          <div className="flex items-center justify-center gap-x-4">
+              <button className="px-3 py-2 mt-3 text-sm font-semibold text-white bg-red-500 rounded-full"><i className="mr-3 fa-solid fa-circle-stop"></i>Stop  &nbsp;(55:45)</button> 
+          </div>
+      </div>
       <div className="space-y-4">
         {workoutData.workoutPlan[selectedWeek][selectedDay].exercises.map(
           (exercise, exerciseIndex) => {
@@ -1264,6 +1322,7 @@ const PlanDetail = ({ params }) => {
       >
         <ExerciseDeatil handleClose={handleOpenClose} data={selectedExercise} />
       </OffCanvasComp>
+      
     </div>
   );
 };
