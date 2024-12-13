@@ -813,20 +813,19 @@ const PlanDetail = ({ params }) => {
 
   return (
     <div className="container p-4 mx-auto bg-tprimary ">
-    <div className="flex items-center justify-between my-2">
-
-      <h1 className="mb-6 text-2xl font-bold text-white">{workoutData.name}</h1>
-      <button
+      <div className="flex items-center justify-between my-2">
+        <h1 className="mb-6 text-2xl font-bold text-white">
+          {workoutData.name}
+        </h1>
+        <button
           onClick={toggleLockPreviousTabs}
           className={` whitespace-nowrap  ${
-            lockPreviousTabs
-              ? "text-red-500 "
-              : "text-gray-200 "
+            lockPreviousTabs ? "text-red-500 " : "text-gray-200 "
           }`}
         >
           {lockPreviousTabs ? "Unlock  Tabs" : "Lock  Tabs"}
         </button>
-    </div>
+      </div>
 
       {warningMessage && (
         <div className="relative px-4 py-3 mb-4 text-red-700 bg-red-100 border border-red-400 rounded">
@@ -835,7 +834,6 @@ const PlanDetail = ({ params }) => {
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        
         <span className="text-sm font-semibold text-white">
           Current Progress: Week {currentWeek + 1}, Day {currentDay + 1}
         </span>
@@ -880,7 +878,6 @@ const PlanDetail = ({ params }) => {
         </div>
       </div>
 
-
       <div className="space-y-4">
         {workoutData.workoutPlan[selectedWeek][selectedDay].exercises.map(
           (exercise, exerciseIndex) => {
@@ -893,7 +890,6 @@ const PlanDetail = ({ params }) => {
             const warning = setWarnings[key];
             return (
               <div key={exerciseIndex}>
-              
                 <div className={`p-3 my-3 bg-gray-800 rounded-xl`}>
                   <div className={`flex p-2 "bg-gray-900 gap-x-4 rounded-xl`}>
                     <div className="min-w-[50px] min-h-[50px] max-h-[50px] max-w-[50px] overflow-hidden">
@@ -904,17 +900,20 @@ const PlanDetail = ({ params }) => {
                         height={50}
                         className="object-cover rounded-full max-w-[50px] max-h-50px]"
                         onClick={() => {
-                        setSelectedExercise(exercise);
-                        handleOpenClose();
-                      }}
+                          setSelectedExercise(exercise);
+                          handleOpenClose();
+                        }}
                       />
                     </div>
                     <div className="text-conatiner w-100">
-                      <p className={`text-gray-400`} onClick={() => {
+                      <p
+                        className={`text-gray-400`}
+                        onClick={() => {
                           setSelectedExercise(exercise);
                           handleOpenClose();
-                        }}>
-                      {_.upperFirst(exercise.name)}
+                        }}
+                      >
+                        {_.upperFirst(exercise.name)}
                       </p>
                       <div className="flex items-center justify-between ">
                         <div className={`flex items-center gap-x-4 text-white`}>
@@ -923,11 +922,12 @@ const PlanDetail = ({ params }) => {
                           </p>
                           <p className="text-sm font-semibold">
                             {" "}
-                            Sets : {
-                          exercise?.weeklySetConfig?.find(
-                            (i) => i?.isConfigured
-                          )?.sets
-                        }
+                            Sets :{" "}
+                            {
+                              exercise?.weeklySetConfig?.find(
+                                (i) => i?.isConfigured
+                              )?.sets
+                            }
                           </p>
                           {/* <p className="text-sm font-semibold text-white">
                             {" "}
@@ -944,13 +944,17 @@ const PlanDetail = ({ params }) => {
                           </p> */}
                         </div>
                         {!isEntirePlanCompleted() && (
-                        <i className="text-xl text-white cursor-pointer fa-solid fa-circle-plus" onClick={() =>
-                          addExerciseDetails(
-                            selectedWeek,
-                            selectedDay,
-                            exerciseIndex
-                          )
-                        }/>)}
+                          <i
+                            className="text-xl text-white cursor-pointer fa-solid fa-circle-plus"
+                            onClick={() =>
+                              addExerciseDetails(
+                                selectedWeek,
+                                selectedDay,
+                                exerciseIndex
+                              )
+                            }
+                          />
+                        )}
                       </div>
                     </div>
                   </div>
@@ -981,140 +985,171 @@ const PlanDetail = ({ params }) => {
                       : 0;
 
                     return (
-                      <div  key={detailIndex}>
-
-                      <div className="flex items-center justify-between mt-3 mb-1 overflow-hidden gap-x-3">
-                    <div className="flex gap-x-1">
-                    {exercise.equipment !== "body weight" &&
-                      exercise.equipment !== "band" && 
-                      <input
-                        type="number"
-                        placeholder="weight"
-                        className="px-3 py-2 bg-gray-700 rounded-xl w-100"
-                        disabled={detail.isCompleted || !isSetEnabled}
-                        value={detail.weight}
+                      <div key={detailIndex}>
+                        <div className="flex items-center justify-between mt-3 mb-1 overflow-hidden gap-x-3">
+                          <div className="flex gap-x-1">
+                            {exercise.equipment !== "body weight" &&
+                              exercise.equipment !== "band" && (
+                                <input
+                                  type="number"
+                                  placeholder="weight"
+                                  className="px-3 py-2 bg-gray-700 rounded-xl w-100"
+                                  disabled={detail.isCompleted || !isSetEnabled}
+                                  value={detail.weight}
+                                  onChange={(e) =>
+                                    updateExerciseDetail(
+                                      selectedWeek,
+                                      selectedDay,
+                                      exerciseIndex,
+                                      detailIndex,
+                                      "weight",
+                                      e.target.value
+                                    )
+                                  }
+                                />
+                              )}
+                            <input
+                              type="number"
+                              placeholder="reps"
+                              className="px-3 py-2 bg-gray-700 rounded-xl w-100"
+                              value={detail.reps}
                               onChange={(e) =>
                                 updateExerciseDetail(
                                   selectedWeek,
                                   selectedDay,
                                   exerciseIndex,
                                   detailIndex,
-                                  "weight",
+                                  "reps",
                                   e.target.value
                                 )
                               }
-                      />
-                      }
-                      <input
-                        type="number"
-                        placeholder="reps"
-                        className="px-3 py-2 bg-gray-700 rounded-xl w-100"
-                        value={detail.reps}
-                          onChange={(e) =>
-                            updateExerciseDetail(
-                              selectedWeek,
-                              selectedDay,
-                              exerciseIndex,
-                              detailIndex,
-                              "reps",
-                              e.target.value
-                            )
-                          }
-                          disabled={detail.isCompleted || !isSetEnabled}
-                      />
-                    </div>
-                    <div className="flex items-center gap-x-3">
-                    {!detail?.isCompleted && detail.reps && (<>{timerIntervals.current[timerKey] ===
-                      undefined && (<i className="text-red-500 cursor-pointer fa-solid fa-play" disabled={!isSetEnabled}
-                                  onClick={() =>
-                                    startSetTimer(
-                                      selectedWeek,
-                                      selectedDay,
-                                      exerciseIndex,
-                                      detailIndex
-                                    )
-                                  } />)}</>)}
-                      {!detail.isCompleted ? <i className={`text-white cursor-pointer fa-solid fa-check`} onClick={() => {
-                              saveExerciseSet(
-                                selectedWeek,
-                                selectedDay,
-                                exerciseIndex,
-                                detailIndex
-                              );
-                            }}
-                            disabled={!isSetEnabled} />:<button className={`text-white cursor-pointer`}  onClick={() =>
-                              editExerciseSet(
-                                selectedWeek,
-                                selectedDay,
-                                exerciseIndex,
-                                detailIndex
-                              )
-                            }>✎</button>}
-                      <i className="text-red-500 cursor-pointer fa-solid fa-circle-xmark" onClick={() =>
-                            removeExerciseDetail(
-                              selectedWeek,
-                              selectedDay,
-                              exerciseIndex,
-                              detailIndex
-                            )
-                          }/>
-                    </div>
-                  </div>
-                  <div className={`flex items-center pb-2 text-white cursor-pointer`}>
-                  {setTimers[timerKey] !== undefined &&
-                    !detail.isCompleted && (<>
-                    <p>
-                      <i className="mr-2 font-semibold fa-duotone fa-solid fa-timer "></i>
-                    </p>
-                    <p className="pr-3 text-xs whitespace-nowrap">
-                    {formatSetTimer(setTimers[timerKey])} sec
-                    </p>
-                  </>)}
-                  {detail.isCompleted &&(<>
-                    <p>
-                      <i className="mr-2 font-semibold text-white fa-duotone fa-solid fa-timer "></i>
-                    </p>
-                    <p className="pr-3 text-xs text-gray-300 whitespace-nowrap">
-                    {formatSetTimer(
-                                workoutData?.exerciseHistory[
-                                  `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                                ]?.[detailIndex]?.duration
-                              )} Sec
-                    </p>
-                  </>)}
-                  {detail?.isCompleted && (
-                          <>
-                            {workoutData.exerciseHistory[
-                              `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                            ][detailIndex]?.restTime && (
-                              <> <p>
-                      <i className="pr-2 font-semibold text-white fa-solid fa-person-seat"></i>
-                    </p>
-                    <p className="pr-3 text-xs text-gray-300 whitespace-nowrap">
-                    {formatTime(
-                                  workoutData.exerciseHistory[
-                                    `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                                  ][detailIndex].restTime
-                                )} sec
-                    </p>
-                                
+                              disabled={detail.isCompleted || !isSetEnabled}
+                            />
+                          </div>
+                          <div className="flex items-center gap-x-3">
+                            {!detail?.isCompleted && detail.reps && (
+                              <>
+                                {timerIntervals.current[timerKey] ===
+                                  undefined && (
+                                  <i
+                                    className="text-red-500 cursor-pointer fa-solid fa-play"
+                                    disabled={!isSetEnabled}
+                                    onClick={() =>
+                                      startSetTimer(
+                                        selectedWeek,
+                                        selectedDay,
+                                        exerciseIndex,
+                                        detailIndex
+                                      )
+                                    }
+                                  />
+                                )}
                               </>
                             )}
-                          </>
-                        )}
-                        
-                    
-                  
-                    
-                    {detail.isCompleted && <>
-                      <p>
-                      <i class="fa-duotone fa-solid fa-weight-hanging  font-semibold text-white whitespace-nowrap pr-2"></i>
-                    </p>
-                      <p className="text-xs text-gray-300 whitespace-nowrap">
-                    {formatVolume(setVolume, exercise.equipment)}
-                    </p>
-                    </>}
-                    {/* {detail?.isCompleted && (
+                            {!detail.isCompleted ? (
+                              <i
+                                className={`text-white cursor-pointer fa-solid fa-check`}
+                                onClick={() => {
+                                  saveExerciseSet(
+                                    selectedWeek,
+                                    selectedDay,
+                                    exerciseIndex,
+                                    detailIndex
+                                  );
+                                }}
+                                disabled={!isSetEnabled}
+                              />
+                            ) : (
+                              <button
+                                className={`text-white cursor-pointer`}
+                                onClick={() =>
+                                  editExerciseSet(
+                                    selectedWeek,
+                                    selectedDay,
+                                    exerciseIndex,
+                                    detailIndex
+                                  )
+                                }
+                              >
+                                ✎
+                              </button>
+                            )}
+                            <i
+                              className="text-red-500 cursor-pointer fa-solid fa-circle-xmark"
+                              onClick={() =>
+                                removeExerciseDetail(
+                                  selectedWeek,
+                                  selectedDay,
+                                  exerciseIndex,
+                                  detailIndex
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
+                        <div
+                          className={`flex items-center pb-2 text-white cursor-pointer`}
+                        >
+                          {setTimers[timerKey] !== undefined &&
+                            !detail.isCompleted && (
+                              <>
+                                <p>
+                                  <i className="mr-2 font-semibold fa-duotone fa-solid fa-timer "></i>
+                                </p>
+                                <p className="pr-3 text-xs whitespace-nowrap">
+                                  {formatSetTimer(setTimers[timerKey])} sec
+                                </p>
+                              </>
+                            )}
+                          {detail.isCompleted && (
+                            <>
+                              <p>
+                                <i className="mr-2 font-semibold text-white fa-duotone fa-solid fa-timer "></i>
+                              </p>
+                              <p className="pr-3 text-xs text-gray-300 whitespace-nowrap">
+                                {formatSetTimer(
+                                  workoutData?.exerciseHistory[
+                                    `${selectedWeek}-${selectedDay}-${exerciseIndex}`
+                                  ]?.[detailIndex]?.duration
+                                )}{" "}
+                                Sec
+                              </p>
+                            </>
+                          )}
+                          {detail?.isCompleted && (
+                            <>
+                              {workoutData.exerciseHistory[
+                                `${selectedWeek}-${selectedDay}-${exerciseIndex}`
+                              ][detailIndex]?.restTime && (
+                                <>
+                                  {" "}
+                                  <p>
+                                    <i className="pr-2 font-semibold text-white fa-solid fa-person-seat"></i>
+                                  </p>
+                                  <p className="pr-3 text-xs text-gray-300 whitespace-nowrap">
+                                    {formatTime(
+                                      workoutData.exerciseHistory[
+                                        `${selectedWeek}-${selectedDay}-${exerciseIndex}`
+                                      ][detailIndex].restTime
+                                    )}{" "}
+                                    sec
+                                  </p>
+                                </>
+                              )}
+                            </>
+                          )}
+
+                          {detail.isCompleted && (
+                            <>
+                              <p>
+                                <i class="fa-duotone fa-solid fa-weight-hanging  font-semibold text-white whitespace-nowrap pr-2"></i>
+                              </p>
+                              <p className="text-xs text-gray-300 whitespace-nowrap">
+                                {formatVolume(setVolume, exercise.equipment)}
+                              </p>
+                            </>
+                          )}
+                          {/* {detail?.isCompleted && (
                           <div className="ml-2">
                             <span className="text-sm text-green-800">
                               Performed on: (
@@ -1127,9 +1162,7 @@ const PlanDetail = ({ params }) => {
                             </span>
                           </div>
                         )} */}
-                    
-                  </div>
-                  
+                        </div>
                       </div>
                     );
                   })}
@@ -1162,18 +1195,19 @@ const PlanDetail = ({ params }) => {
                         ))}
                       </div>
                     )}
-                  
+
                   {isTimerRunning &&
                     activeExerciseSet?.exercise === exerciseIndex && (
                       <div className="flex items-center justify-center gap-x-4">
-                    <button onClick={stopTimer} className="px-3 py-2 mt-3 text-sm font-semibold text-white bg-red-500 rounded-full">
-                      <i className="mr-3 fa-solid fa-circle-stop"></i>Stop
-                      &nbsp;({formatTime(elapsedTime)})
-                    </button>
-                  </div>
+                        <button
+                          onClick={stopTimer}
+                          className="px-3 py-2 mt-3 text-sm font-semibold text-white bg-red-500 rounded-full"
+                        >
+                          <i className="mr-3 fa-solid fa-circle-stop"></i>Stop
+                          &nbsp;({formatTime(elapsedTime)})
+                        </button>
+                      </div>
                     )}
-
-                  
                 </div>
               </div>
             );
