@@ -842,7 +842,8 @@ const PlanDetail = ({ params }) => {
             {formatVolume(calculateDailyTotal(selectedWeek, selectedDay))}
           </span>
         </div>
-
+        {!lockPreviousTabs && 
+<>
         <div className="mb-4">
           <div className="flex">
             {workoutData.weekNames.map((weekName, index) => (
@@ -877,6 +878,7 @@ const PlanDetail = ({ params }) => {
             ))}
           </div>
         </div>
+        </>}
         </div>
 
 
