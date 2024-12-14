@@ -463,13 +463,16 @@ const PlanDetail = ({ params }) => {
     if (autoAdd) {
       // Only add sets up to the configured amount during auto-add
       const setsToAdd = configuredSets - updatedExerciseDetails[key].length;
-      for (let i = 0; i < setsToAdd; i++) {
-        updatedExerciseDetails[key].push({
-          weight: "",
-          reps: "",
-          isCompleted: false,
-        });
+      if(!workoutData?.setUpdate){
+        for (let i = 0; i < setsToAdd; i++) {
+          updatedExerciseDetails[key].push({
+            weight: "",
+            reps: "",
+            isCompleted: false,
+          });
+        }
       }
+      
     } else {
       // Allow manual addition of sets beyond configured amount
       updatedExerciseDetails[key].push({
@@ -998,11 +1001,11 @@ const PlanDetail = ({ params }) => {
                             <i
                               className="text-xl text-white cursor-pointer fa-solid fa-circle-plus"
                               onClick={() =>
-                                addExerciseDetails(
+                                {addExerciseDetails(
                                   selectedWeek,
                                   selectedDay,
                                   exerciseIndex
-                                )
+                                );setToggleCheck(false)}
                               }
                             />
                           )}
@@ -1132,7 +1135,7 @@ const PlanDetail = ({ params }) => {
                                       exerciseIndex,
                                       detailIndex
                                     );
-                                    setToggleCheck(true);
+                                    setToggleCheck(editValue !== "edit"?false:true);
                                     setEditToggle(false)
                                     setEditValue("edit")
                                     }
@@ -1142,15 +1145,15 @@ const PlanDetail = ({ params }) => {
                                   ✎
                                 </button>
                               )}
-                              {!detail?.isCompleted && <i
+                              {!detail?.isCompleted && editValue !== "edit" && <i
                                 className="text-red-500 cursor-pointer fa-solid fa-circle-xmark"
                                 onClick={() =>
-                                  removeExerciseDetail(
+                                  {removeExerciseDetail(
                                     selectedWeek,
                                     selectedDay,
                                     exerciseIndex,
                                     detailIndex
-                                  )
+                                  );setToggleCheck(true);}
                                 }
                               />}
                               

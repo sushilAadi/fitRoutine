@@ -220,6 +220,7 @@ const createPlanPage = () => {
       weekNames: weekNames,
       dayNames: dayNames,
       date: new Date(),
+      setUpdate:true
     };
   
     const storageKey = `workoutPlan_${planName}`;
@@ -384,6 +385,7 @@ const createPlanPage = () => {
       weekNames: weekNames,
       dayNames: dayNames,
       date: new Date(),
+      setUpdate:true
     };
     localStorage.setItem(`workoutPlan_${planName}`, JSON.stringify(planToSave));
   };
@@ -525,7 +527,8 @@ const createPlanPage = () => {
             <div
               ref={scrollContainerRef}
               className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar"
-            >
+            > 
+             {/* Add radio button here for set that is mandatory or not mandatory beutiful toggle radio btn and update in localStorage of same WOrkout Plan value will be */}
               {workoutPlan?.map((week, weekIndex) => (
                 <div
                   key={weekIndex}
