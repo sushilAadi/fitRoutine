@@ -47,23 +47,22 @@ const PlanDetail = ({ params }) => {
   const timerIntervals = useRef({});
   const [toggleCheck, setToggleCheck] = useState(false);
   const [EditToggle, setEditToggle] = useState(true);
+  const [editValue, setEditValue] = useState("");
 
   const handleOpenClose = () => setShow(!show);
   const selectedPlanName = decodeURIComponent(params?.plan);
 
   const checkSetWarnings = (weekIndex, dayIndex, exerciseIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-    const exercise =
-      workoutData?.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
-    const configuredSets =
-      exercise?.weeklySetConfig?.find((i) => i?.isConfigured)?.sets || 0;
+    const exercise = workoutData?.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
+    const configuredSets = exercise?.weeklySetConfig?.find((i) => i?.isConfigured)?.sets || 0;
     const currentSets = exerciseDetails[key]?.length || 0;
-
-    if (currentSets < configuredSets) {
+    
+    console.log(`Exercise ${key}: Configured sets: ${configuredSets}, Current sets: ${currentSets}`); // Add this for debugging
+  
+    if (currentSets === 0 && configuredSets > 0) {
       const updatedWarnings = { ...setWarnings };
-      updatedWarnings[
-        key
-      ] = `This exercise is configured for ${configuredSets} sets.`;
+      updatedWarnings[key] = `This exercise is configured for ${configuredSets} sets.`;
       setSetWarnings(updatedWarnings);
     } else {
       const updatedWarnings = { ...setWarnings };
@@ -566,79 +565,119 @@ const PlanDetail = ({ params }) => {
         }
       );
     }
-  }, [exerciseDetails, selectedWeek, selectedDay]);
+  }, [exerciseDetails, selectedWeek, selectedDay, workoutData]);
 
   const saveExerciseSet = (weekIndex, dayIndex, exerciseIndex, detailIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
     const details = exerciseDetails[key];
     const exercise =
       workoutData.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
-
+  
     const isBodyWeightOrBand =
       exercise.equipment === "body weight" || exercise.equipment === "band";
     const isValidSet =
       details?.[detailIndex]?.reps &&
       (isBodyWeightOrBand || details?.[detailIndex]?.weight);
-
+  
     if (isValidSet) {
-      // Stop the timer first to ensure duration is captured
-      stopSetTimer(weekIndex, dayIndex, exerciseIndex, detailIndex);
-
-      const currentDate = new Date();
-      setWorkoutData((prevWorkoutData) => {
-        const updatedWorkoutData = { ...prevWorkoutData };
-        const updatedHistory = { ...updatedWorkoutData.exerciseHistory };
-
-        if (!updatedHistory[key]) {
-          updatedHistory[key] = [];
-        }
-
-        // Preserve the duration from the existing history if it exists
-        const existingDuration =
-          updatedHistory[key][detailIndex]?.duration || 0;
-
-        updatedHistory[key][detailIndex] = {
-          weight: details[detailIndex].weight,
-          reps: details[detailIndex].reps,
-          restTime: null,
-          duration: existingDuration, // Preserve the duration
-          date: {
-            fullDate: currentDate.toISOString(),
-            dayOfWeek: currentDate.toLocaleDateString("en-US", {
-              weekday: "long",
-            }),
-            dayOfMonth: currentDate.getDate(),
-            month: currentDate.toLocaleDateString("en-US", { month: "long" }),
-            year: currentDate.getFullYear(),
-            timestamp: currentDate.getTime(),
-          },
-        };
-
-        const newWorkoutData = {
-          ...updatedWorkoutData,
-          exerciseHistory: updatedHistory,
-        };
-
-        localStorage.setItem(
-          `workoutPlan_${workoutData.name}`,
-          JSON.stringify(newWorkoutData)
-        );
-
-        return newWorkoutData;
-      });
-
+      // Check if we're in edit mode
+      if (editValue === "edit") {
+        // Don't restart the stopwatch, just update the data
+        setWorkoutData((prevWorkoutData) => {
+          const updatedWorkoutData = { ...prevWorkoutData };
+          const updatedHistory = { ...updatedWorkoutData.exerciseHistory };
+  
+          if (!updatedHistory[key]) {
+            updatedHistory[key] = [];
+          }
+  
+          // Preserve the existing duration and other data
+          const existingSet = updatedHistory[key][detailIndex] || {};
+  
+          updatedHistory[key][detailIndex] = {
+            ...existingSet,
+            weight: details[detailIndex].weight,
+            reps: details[detailIndex].reps,
+          };
+  
+          const newWorkoutData = {
+            ...updatedWorkoutData,
+            exerciseHistory: updatedHistory,
+          };
+  
+          localStorage.setItem(
+            `workoutPlan_${workoutData.name}`,
+            JSON.stringify(newWorkoutData)
+          );
+  
+          return newWorkoutData;
+        });
+      } else {
+        // This is a new set, so we stop the timer and start a new one
+        stopSetTimer(weekIndex, dayIndex, exerciseIndex, detailIndex);
+  
+        const currentDate = new Date();
+        setWorkoutData((prevWorkoutData) => {
+          const updatedWorkoutData = { ...prevWorkoutData };
+          const updatedHistory = { ...updatedWorkoutData.exerciseHistory };
+  
+          if (!updatedHistory[key]) {
+            updatedHistory[key] = [];
+          }
+  
+          // Preserve the duration from the existing history if it exists
+          const existingDuration =
+            updatedHistory[key][detailIndex]?.duration || 0;
+  
+          updatedHistory[key][detailIndex] = {
+            weight: details[detailIndex].weight,
+            reps: details[detailIndex].reps,
+            restTime: null,
+            duration: existingDuration, // Preserve the duration
+            date: {
+              fullDate: currentDate.toISOString(),
+              dayOfWeek: currentDate.toLocaleDateString("en-US", {
+                weekday: "long",
+              }),
+              dayOfMonth: currentDate.getDate(),
+              month: currentDate.toLocaleDateString("en-US", { month: "long" }),
+              year: currentDate.getFullYear(),
+              timestamp: currentDate.getTime(),
+            },
+          };
+  
+          const newWorkoutData = {
+            ...updatedWorkoutData,
+            exerciseHistory: updatedHistory,
+          };
+  
+          localStorage.setItem(
+            `workoutPlan_${workoutData.name}`,
+            JSON.stringify(newWorkoutData)
+          );
+  
+          return newWorkoutData;
+        });
+  
+        startTimer(weekIndex, dayIndex, exerciseIndex, detailIndex);
+      }
+  
       const updatedExerciseDetails = { ...exerciseDetails };
       updatedExerciseDetails[key][detailIndex].isCompleted = true;
       setExerciseDetails(updatedExerciseDetails);
-
+  
       setWarningMessage("");
-      startTimer(weekIndex, dayIndex, exerciseIndex, detailIndex);
     } else {
       setWarningMessage(
         "Please fill in all required fields before saving the set."
       );
     }
+  
+    // Reset editValue at the end
+    setEditValue("");
   };
+  
+  
 
   useEffect(() => {
     return () => {
@@ -1095,6 +1134,7 @@ const PlanDetail = ({ params }) => {
                                     );
                                     setToggleCheck(true);
                                     setEditToggle(false)
+                                    setEditValue("edit")
                                     }
                                     
                                   }
@@ -1102,7 +1142,7 @@ const PlanDetail = ({ params }) => {
                                   ✎
                                 </button>
                               )}
-                              <i
+                              {!detail?.isCompleted && <i
                                 className="text-red-500 cursor-pointer fa-solid fa-circle-xmark"
                                 onClick={() =>
                                   removeExerciseDetail(
@@ -1112,7 +1152,8 @@ const PlanDetail = ({ params }) => {
                                     detailIndex
                                   )
                                 }
-                              />
+                              />}
+                              
                             </div>
                           </div>
                           <div
@@ -1146,7 +1187,7 @@ const PlanDetail = ({ params }) => {
                             )}
                             {detail?.isCompleted && (
                               <>
-                                {workoutData.exerciseHistory[
+                                {workoutData?.exerciseHistory[
                                   `${selectedWeek}-${selectedDay}-${exerciseIndex}`
                                 ][detailIndex]?.restTime && (
                                   <>
