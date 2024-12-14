@@ -1,0 +1,4 @@
+<div className="flex flex-col h-screen overflow-hidden">
+        <div className="top-0 p-3 bg-black sticky-top"></div>
+        <div className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar"></div>
+      </div>
