@@ -9,12 +9,12 @@ import Image from "next/image";
 
 const TabButton = ({ active, onClick, children, disabled }) => (
   <button
-    className={`px-4 py-2 mx-1 rounded-t-lg ${
+    className={` mx-1 ${
       active
-        ? "bg-black text-white border-b-2 border-red-500"
+        ? " text-white border-b-2 border-red-500"
         : disabled
-        ? "bg-gray-200 text-gray-500 cursor-not-allowed"
-        : "bg-gray-100 hover:bg-gray-200"
+        ? " text-gray-500 cursor-not-allowed"
+        : " "
     }`}
     onClick={disabled ? undefined : onClick}
     disabled={disabled}
@@ -306,6 +306,7 @@ const PlanDetail = ({ params }) => {
     setElapsedTime(0);
     setActiveExerciseSet(null);
     setWarningMessage("");
+    setEditToggle(true)
   };
 
   const playTimerEndSound = () => {
@@ -815,7 +816,7 @@ const PlanDetail = ({ params }) => {
     <>
       <div className="flex flex-col h-screen overflow-hidden bg-tprimary">
 
-        <div className="top-0 p-3 bg-black sticky-top">
+        <div className="top-0 p-3 pb-1 bg-black sticky-top">
         <div className="flex items-center justify-between my-2">
           <h1 className="mb-6 text-2xl font-bold text-white">
             {workoutData.name}
@@ -1002,7 +1003,7 @@ const PlanDetail = ({ params }) => {
                                   <input
                                     type="number"
                                     placeholder="weight"
-                                    className="px-3 py-2 bg-gray-700 rounded-xl w-100"
+                                    className="px-3 py-2 bg-gray-700 outline-none rounded-xl w-100"
                                     disabled={
                                       detail.isCompleted || !isSetEnabled
                                     }
@@ -1017,12 +1018,13 @@ const PlanDetail = ({ params }) => {
                                         e.target.value
                                       )
                                     }
+                                    min={1}
                                   />
                                 )}
                               <input
                                 type="number"
                                 placeholder="reps"
-                                className="px-3 py-2 bg-gray-700 rounded-xl w-100"
+                                className="px-3 py-2 bg-gray-700 outline-none rounded-xl w-100"
                                 value={detail.reps}
                                 onChange={(e) =>
                                   updateExerciseDetail(
@@ -1035,6 +1037,7 @@ const PlanDetail = ({ params }) => {
                                   )
                                 }
                                 disabled={detail.isCompleted || !isSetEnabled}
+                                min={1}
                               />
                             </div>
                             <div className="flex items-center gap-x-3">
@@ -1225,6 +1228,7 @@ const PlanDetail = ({ params }) => {
                           <button
                             onClick={stopTimer}
                             className="px-3 py-2 mt-3 text-sm font-semibold text-white bg-red-500 rounded-full"
+                            disabled={!EditToggle}
                           >
                             <i className="mr-3 fa-solid fa-circle-stop"></i>Stop
                             &nbsp;({formatTime(elapsedTime)})
