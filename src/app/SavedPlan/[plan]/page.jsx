@@ -63,7 +63,7 @@ const PlanDetail = ({ params }) => {
       const updatedWarnings = { ...setWarnings };
       updatedWarnings[
         key
-      ] = `This exercise is configured for ${configuredSets} sets, but currently has ${currentSets} sets.`;
+      ] = `This exercise is configured for ${configuredSets} sets.`;
       setSetWarnings(updatedWarnings);
     } else {
       const updatedWarnings = { ...setWarnings };
@@ -999,13 +999,13 @@ const PlanDetail = ({ params }) => {
                       return (
                         <div key={detailIndex}>
                           <div className="flex items-center justify-between mt-3 mb-1 overflow-hidden gap-x-3">
-                            <div className="flex gap-x-1">
+                            <div className="flex gap-x-1 w-100">
                               {exercise.equipment !== "body weight" &&
                                 exercise.equipment !== "band" && (
                                   <input
                                     type="number"
                                     placeholder="weight"
-                                    className="px-3 py-2 bg-gray-700 outline-none rounded-xl w-100"
+                                    className="px-3 py-2 text-white bg-gray-700 outline-none rounded-xl w-100"
                                     disabled={
                                       detail.isCompleted || !isSetEnabled
                                     }
@@ -1026,7 +1026,7 @@ const PlanDetail = ({ params }) => {
                               <input
                                 type="number"
                                 placeholder="reps"
-                                className="px-3 py-2 bg-gray-700 outline-none rounded-xl w-100"
+                                className="px-3 py-2 text-white bg-gray-700 outline-none rounded-xl w-100"
                                 value={detail.reps}
                                 onChange={(e) =>
                                   updateExerciseDetail(
