@@ -42,12 +42,11 @@ const PlanDetail = ({ params }) => {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [activeExerciseSet, setActiveExerciseSet] = useState(null);
-  const [restTimes, setRestTimes] = useState({});
-  const [remainingTime, setRemainingTime] = useState(0);
-  const [activeExerciseIndex, setActiveExerciseIndex] = useState(null);
   const [setWarnings, setSetWarnings] = useState({});
   const [setTimers, setSetTimers] = useState({});
   const timerIntervals = useRef({});
+  const [toggleCheck, setToggleCheck] = useState(false);
+  const [EditToggle, setEditToggle] = useState(true);
 
   const handleOpenClose = () => setShow(!show);
   const selectedPlanName = decodeURIComponent(params?.plan);
@@ -750,6 +749,7 @@ const PlanDetail = ({ params }) => {
       }));
     }, 1000);
   };
+  
 
   const stopSetTimer = (weekIndex, dayIndex, exerciseIndex, setIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}-${setIndex}`;
@@ -1042,23 +1042,27 @@ const PlanDetail = ({ params }) => {
                                 <>
                                   {timerIntervals.current[timerKey] ===
                                     undefined && (
+                                      <>
+                                      {EditToggle &&
                                     <i
                                       className="text-red-500 cursor-pointer fa-solid fa-play"
                                       disabled={!isSetEnabled}
                                       onClick={() =>
-                                        startSetTimer(
+                                        {startSetTimer(
                                           selectedWeek,
                                           selectedDay,
                                           exerciseIndex,
                                           detailIndex
-                                        )
+                                        );setToggleCheck(true)}
                                       }
-                                    />
+                                    />}
+                                    </>
                                   )}
                                 </>
                               )}
                               {!detail.isCompleted ? (
-                                <i
+                                <>
+                                {isSetEnabled && toggleCheck && <i
                                   className={`text-white cursor-pointer fa-solid fa-check`}
                                   onClick={() => {
                                     saveExerciseSet(
@@ -1067,19 +1071,27 @@ const PlanDetail = ({ params }) => {
                                       exerciseIndex,
                                       detailIndex
                                     );
+                                    setToggleCheck(false);
+                                    setEditToggle(true)
                                   }}
                                   disabled={!isSetEnabled}
-                                />
+                                />}
+                                
+                                </>
                               ) : (
                                 <button
                                   className={`text-white cursor-pointer`}
                                   onClick={() =>
-                                    editExerciseSet(
+                                    {editExerciseSet(
                                       selectedWeek,
                                       selectedDay,
                                       exerciseIndex,
                                       detailIndex
-                                    )
+                                    );
+                                    setToggleCheck(true);
+                                    setEditToggle(false)
+                                    }
+                                    
                                   }
                                 >
                                   ✎
