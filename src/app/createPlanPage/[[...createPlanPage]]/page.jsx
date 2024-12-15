@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useContext, useRef } from "react";
+import { Switch } from "@material-tailwind/react";
 
 import InputCs from "@/components/InputCs/InputCs";
 import ButtonCs from "@/components/Button/ButtonCs";
@@ -14,7 +15,7 @@ import Image from "next/image";
 import CCard from "@/components/CCard";
 import { GlobalContext } from "@/context/GloablContext";
 import WorkoutDayAccordion from "./WorkoutDayAccordian";
-import toast from 'react-hot-toast';
+import toast from "react-hot-toast";
 
 const createPlanPage = () => {
   const { handleOpenClose: menuOpenClose } = useContext(GlobalContext);
@@ -41,23 +42,31 @@ const createPlanPage = () => {
   const [saveAttempted, setSaveAttempted] = useState(false);
   const weekRefs = useRef([]);
   const scrollContainerRef = useRef(null);
+  const [isChecked, setIsChecked] = useState(false);
 
-  const [openAccordion, setOpenAccordion] = useState({ weekIndex: null, dayIndex: null });
-
- 
+  const [openAccordion, setOpenAccordion] = useState({
+    weekIndex: null,
+    dayIndex: null,
+  });
 
   const toggleAccordion = (weekIndex, dayIndex) => {
     // Toggle open/close functionality
-    if (openAccordion.weekIndex === weekIndex && openAccordion.dayIndex === dayIndex) {
+    if (
+      openAccordion.weekIndex === weekIndex &&
+      openAccordion.dayIndex === dayIndex
+    ) {
       setOpenAccordion({ weekIndex: null, dayIndex: null }); // Close if already open
     } else {
       setOpenAccordion({ weekIndex, dayIndex }); // Open the clicked accordion
     }
   };
-  
+
   const openAccordionWithoutClosing = (weekIndex, dayIndex) => {
     // Only opens the accordion without closing
-    if (openAccordion.weekIndex !== weekIndex || openAccordion.dayIndex !== dayIndex) {
+    if (
+      openAccordion.weekIndex !== weekIndex ||
+      openAccordion.dayIndex !== dayIndex
+    ) {
       setOpenAccordion({ weekIndex, dayIndex });
     }
   };
@@ -126,7 +135,7 @@ const createPlanPage = () => {
     exerciseToRemove
   ) => {
     const updatedWorkoutPlan = [...workoutPlan];
-  
+
     if (exercise === null && exerciseToRemove) {
       // Remove the exercise from current and subsequent weeks
       for (let i = weekIndex; i < updatedWorkoutPlan.length; i++) {
@@ -142,15 +151,15 @@ const createPlanPage = () => {
           // sets: 0, // Initial sets always 0
           weeklySetConfig: workoutPlan.map((_, index) => ({
             sets: index < weekIndex ? 0 : 0, // Ensure 0 for all weeks
-            isConfigured: false // Flag to track if sets have been configured
-          }))
+            isConfigured: false, // Flag to track if sets have been configured
+          })),
         };
         updatedWorkoutPlan[i][dayIndex].exercises.push(newExercise);
       }
     }
-  
+
     setWorkoutPlan(updatedWorkoutPlan);
-  
+
     // Clear the error for this day across all weeks
     setErrors((prevErrors) => {
       const newErrors = { ...prevErrors };
@@ -205,12 +214,12 @@ const createPlanPage = () => {
     if (!validatePlan()) {
       return;
     }
-  
+
     if (!planName) {
       setErrors((prev) => ({ ...prev, planName: "Please enter a plan name" }));
       return;
     }
-  
+
     const planToSave = {
       name: planName,
       weeks: weeks,
@@ -220,11 +229,11 @@ const createPlanPage = () => {
       weekNames: weekNames,
       dayNames: dayNames,
       date: new Date(),
-      setUpdate:true
+      setUpdate: isChecked,
     };
-  
+
     const storageKey = `workoutPlan_${planName}`;
-  
+
     if (isEditingExistingPlan) {
       localStorage.setItem(storageKey, JSON.stringify(planToSave));
       setSavedPlans((prevPlans) =>
@@ -303,7 +312,7 @@ const createPlanPage = () => {
           missingDays.push({
             week: weekIndex,
             day: dayIndex,
-            name: `${weekNames[weekIndex]} - ${dayNames[dayIndex]}`
+            name: `${weekNames[weekIndex]} - ${dayNames[dayIndex]}`,
           });
         }
       });
@@ -318,7 +327,7 @@ const createPlanPage = () => {
       setShowWarning(true);
     } else {
       savePlan();
-      
+
       // Reset the component state after successful save
       alert("Workout plan saved successfully!");
       setToggleForm(true);
@@ -342,7 +351,7 @@ const createPlanPage = () => {
       const weekTop = weekRefs.current[weekIndex].offsetTop;
       scrollContainerRef.current.scrollTo({
         top: weekTop - containerTop,
-        behavior: 'smooth'
+        behavior: "smooth",
       });
     }
   };
@@ -360,17 +369,19 @@ const createPlanPage = () => {
 
   const updateExerciseSets = (weekIndex, dayIndex, exerciseIndex, newSets) => {
     const updatedWorkoutPlan = [...workoutPlan];
-    const exercise = updatedWorkoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
-    
+    const exercise =
+      updatedWorkoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
+
     // Update the specific week and all subsequent weeks
     for (let i = weekIndex; i < updatedWorkoutPlan.length; i++) {
-      const weekExercise = updatedWorkoutPlan[i][dayIndex].exercises[exerciseIndex];
-      
+      const weekExercise =
+        updatedWorkoutPlan[i][dayIndex].exercises[exerciseIndex];
+
       // Update sets for this week and mark as configured
       weekExercise.weeklySetConfig[i].sets = newSets;
       weekExercise.weeklySetConfig[i].isConfigured = true;
     }
-    
+
     setWorkoutPlan(updatedWorkoutPlan);
     updateLocalStorage(updatedWorkoutPlan);
   };
@@ -385,7 +396,7 @@ const createPlanPage = () => {
       weekNames: weekNames,
       dayNames: dayNames,
       date: new Date(),
-      setUpdate:true
+      setUpdate: isChecked,
     };
     localStorage.setItem(`workoutPlan_${planName}`, JSON.stringify(planToSave));
   };
@@ -496,7 +507,7 @@ const createPlanPage = () => {
         </div>
       ) : (
         <>
-          <div className="flex flex-col h-screen overflow-hidden">
+          <div className="flex flex-col h-screen overflow-hidden ">
             <div className="top-0 p-3 bg-black sticky-top">
               <div className="flex items-center cursor-pointer">
                 <i
@@ -511,24 +522,42 @@ const createPlanPage = () => {
               </p>
 
               {showWarning && saveAttempted && (
-          <div className="mt-4 text-red-700 rounded">
-            <p>Warning: The following days are missing exercises:</p>
-            <ul>
-              {getMissingExerciseDays().map(({ week, day, name }, index) => (
-                <li key={index} className="cursor-pointer hover:underline" onClick={() => scrollToWeek(week)}>
-                  {name}
-                </li>
-              ))}
-            </ul>
-            <p>Please add exercises to these days before saving the plan.</p>
-          </div>
-        )}
+                <div className="mt-4 text-red-700 rounded">
+                  <p>Warning: The following days are missing exercises:</p>
+                  <ul>
+                    {getMissingExerciseDays().map(
+                      ({ week, day, name }, index) => (
+                        <li
+                          key={index}
+                          className="cursor-pointer hover:underline"
+                          onClick={() => scrollToWeek(week)}
+                        >
+                          {name}
+                        </li>
+                      )
+                    )}
+                  </ul>
+                  <p>
+                    Please add exercises to these days before saving the plan.
+                  </p>
+                </div>
+              )}
             </div>
             <div
               ref={scrollContainerRef}
-              className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar"
-            > 
-             {/* Add radio button here for set that is mandatory or not mandatory beutiful toggle radio btn and update in localStorage of same WOrkout Plan value will be */}
+              className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar "
+            >
+              <div className="mb-2">
+                <Switch
+                  ripple={false}
+                  checked={isChecked}
+                  onChange={() => setIsChecked((prev) => !prev)}
+                  label={
+                    <p className="text-black ">Include set as a must-do.</p>
+                  }
+                />
+              </div>
+
               {workoutPlan?.map((week, weekIndex) => (
                 <div
                   key={weekIndex}
@@ -538,7 +567,6 @@ const createPlanPage = () => {
                   <div className="flex items-center gap-2 mb-4">
                     <h2 className="mr-2 text-xl font-semibold">
                       {weekNames[weekIndex]}{" "}
-                      {/* Display week name regardless of editing state */}
                     </h2>
                     {!isEditingExistingPlan && (
                       <i
@@ -555,25 +583,29 @@ const createPlanPage = () => {
                   </div>
                   {week.map((day, dayIndex) => (
                     <>
-                    <WorkoutDayAccordion
-                    key={dayIndex}
-                    day={day}
-                    dayIndex={dayIndex}
-                    weekIndex={weekIndex}
-                    dayName={dayNames[dayIndex]}
-                    isEditingExistingPlan={isEditingExistingPlan}
-                    updateDayName={updateDayName}
-                    handleOpenClose={handleOpenClose}
-                    setSelectedWeekIndex={setSelectedWeekIndex}
-                    setSelectedDayIndex={setSelectedDayIndex}
-                    removeExercise={removeExercise}
-                    isOpen={openAccordion.weekIndex === weekIndex && openAccordion.dayIndex === dayIndex}
-                    toggleAccordion={toggleAccordion}
-                    openAccordionWithoutClosing={openAccordionWithoutClosing}
-                    updateExerciseSets={updateExerciseSets}
-                    
-                  />
-                    {/* <div
+                      <WorkoutDayAccordion
+                        key={dayIndex}
+                        day={day}
+                        dayIndex={dayIndex}
+                        weekIndex={weekIndex}
+                        dayName={dayNames[dayIndex]}
+                        isEditingExistingPlan={isEditingExistingPlan}
+                        updateDayName={updateDayName}
+                        handleOpenClose={handleOpenClose}
+                        setSelectedWeekIndex={setSelectedWeekIndex}
+                        setSelectedDayIndex={setSelectedDayIndex}
+                        removeExercise={removeExercise}
+                        isOpen={
+                          openAccordion.weekIndex === weekIndex &&
+                          openAccordion.dayIndex === dayIndex
+                        }
+                        toggleAccordion={toggleAccordion}
+                        openAccordionWithoutClosing={
+                          openAccordionWithoutClosing
+                        }
+                        updateExerciseSets={updateExerciseSets}
+                      />
+                      {/* <div
                       key={dayIndex}
                       className={` p-2 ${
                         day.exercises?.length > 0 && " bg-white  "
@@ -653,14 +685,14 @@ const createPlanPage = () => {
               ))}
             </div>
             <div className="p-3">
-            {workoutPlan.length > 0 && (
-          <ButtonCs
-            onClick={handleSave}
-            title="Save Plan"
-            type="submit"
-            className="mt-[36px] btnStyle"
-          />
-        )}
+              {workoutPlan.length > 0 && (
+                <ButtonCs
+                  onClick={handleSave}
+                  title="Save Plan"
+                  type="submit"
+                  className="mt-[36px] btnStyle"
+                />
+              )}
               <OffCanvasComp
                 placement="end"
                 name="createPlan"
