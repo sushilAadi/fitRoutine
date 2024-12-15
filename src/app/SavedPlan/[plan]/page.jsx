@@ -1005,7 +1005,8 @@ const PlanDetail = ({ params }) => {
                                   selectedWeek,
                                   selectedDay,
                                   exerciseIndex
-                                );setToggleCheck(false)}
+                                );
+                                }
                               }
                             />
                           )}
@@ -1084,6 +1085,7 @@ const PlanDetail = ({ params }) => {
                                 min={1}
                               />
                             </div>
+                            {
                             <div className="flex items-center gap-x-3">
                               {!detail?.isCompleted && detail.reps && (
                                 <>
@@ -1135,7 +1137,7 @@ const PlanDetail = ({ params }) => {
                                       exerciseIndex,
                                       detailIndex
                                     );
-                                    setToggleCheck(editValue !== "edit"?false:true);
+                                    setToggleCheck(true);
                                     setEditToggle(false)
                                     setEditValue("edit")
                                     }
@@ -1145,6 +1147,8 @@ const PlanDetail = ({ params }) => {
                                   ✎
                                 </button>
                               )}
+                              {workoutData?.setUpdate && 
+                              <>
                               {!detail?.isCompleted && editValue !== "edit" && <i
                                 className="text-red-500 cursor-pointer fa-solid fa-circle-xmark"
                                 onClick={() =>
@@ -1153,11 +1157,17 @@ const PlanDetail = ({ params }) => {
                                     selectedDay,
                                     exerciseIndex,
                                     detailIndex
-                                  );setToggleCheck(true);}
+                                  );stopSetTimer(selectedWeek,
+                                    selectedDay,
+                                    exerciseIndex,
+                                    detailIndex);setSetTimers({})
+                                    setToggleCheck(false)}
                                 }
                               />}
+                              </>}
                               
                             </div>
+                            }
                           </div>
                           <div
                             className={`flex items-center pb-2 text-white cursor-pointer`}
