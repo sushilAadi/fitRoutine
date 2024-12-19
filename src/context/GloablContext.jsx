@@ -5,6 +5,7 @@ import { useAuth,useUser } from '@clerk/nextjs';
 import { supabase } from '@/createClient';
 import { useQuery } from '@tanstack/react-query';
 import Dexie from "dexie";
+import _ from "lodash";
 
 // Initialize Dexie database
 const db = new Dexie("WorkoutApp");
