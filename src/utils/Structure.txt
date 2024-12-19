@@ -33,7 +33,7 @@ const healthReport = () => {
 
   const {
     userName,
-    userAge,
+    userBirthDate,
     userGender,
     userWeight,
     userHeight,
@@ -42,8 +42,8 @@ const healthReport = () => {
   } = userDetailData;
   
 
-  const userAgeCal = calculateAge(userAge);
-  console.log("userAgeCal",userAgeCal)
+  const userAgeCal = calculateAge(userBirthDate);
+  
   if (!userDetailData) {
     return <div>Loading...</div>;
   }

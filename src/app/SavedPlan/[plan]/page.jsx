@@ -58,7 +58,7 @@ const PlanDetail = ({ params }) => {
     const configuredSets = exercise?.weeklySetConfig?.find((i) => i?.isConfigured)?.sets || 0;
     const currentSets = exerciseDetails[key]?.length || 0;
     
-    console.log(`Exercise ${key}: Configured sets: ${configuredSets}, Current sets: ${currentSets}`); // Add this for debugging
+    
   
     if (currentSets === 0 && configuredSets > 0) {
       const updatedWarnings = { ...setWarnings };
@@ -228,7 +228,7 @@ const PlanDetail = ({ params }) => {
       }
     }
   }, [params?.plan, selectedPlanName, isDayCompleted]);
-  console.log("workoutData", workoutData);
+  
   useEffect(() => {
     if (workoutData) {
       workoutData.workoutPlan[selectedWeek][selectedDay].exercises.forEach(

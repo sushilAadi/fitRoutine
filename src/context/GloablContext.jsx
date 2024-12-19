@@ -22,12 +22,25 @@ export default function GlobalContextProvider({ children }) {
   const { user } = useUser();
 
   const userRole = user?.publicMetadata?.role??"user";
-  console.log("publicMetadata",{userRole,user})
+  
 
   const fetchUserDetail = async () => {
     if (userId) {
       const { data, error } = await supabase
         .from('users')
+        .select('*')
+        .eq('userIdCl', userId);
+      if (error) {
+        throw error;
+      } else {
+        return data;
+      }
+    }
+  };
+  const fetchUserWeight = async () => {
+    if (userId) {
+      const { data, error } = await supabase
+        .from('weight')
         .select('*')
         .eq('userIdCl', userId);
       if (error) {
@@ -45,6 +58,14 @@ export default function GlobalContextProvider({ children }) {
     refetchOnWindowFocus: false,
     infinite: false,
   });
+  const { data: userWeightData, error: userWeightError,refetch:userWeightRefetch,isFetching:userWeightisFetching } = useQuery({
+    queryKey: ['userWeightData', userId],
+    queryFn: fetchUserWeight,
+    enabled: !!userId,
+    refetchOnWindowFocus: false,
+    infinite: false,
+  });
+  
   const userDetailData = userDetail?.[0] || {}
 
 
@@ -63,6 +84,8 @@ export default function GlobalContextProvider({ children }) {
   const [show, setShow] = useState(false);
 
   const handleOpenClose = () => setShow(!show);
+  const latestWeight = _.maxBy(userWeightData, (entry) => new Date(entry?.created_at))?.userWeights;
+  
 
   const contextValue = useMemo(() => {
     return {
@@ -77,9 +100,11 @@ export default function GlobalContextProvider({ children }) {
       handleOpenClose,
       show,
       selectedGoals, setSelectedGoals,
-      activityLevel,setActivityLevel
+      activityLevel,setActivityLevel,
+      userWeightRefetch,
+      latestWeight
     };
-  }, [ gender, weight, height, age,userDetailData,isFetching,show,selectedGoals,activityLevel]);
+  }, [ gender, weight, height, age,userDetailData,isFetching,show,selectedGoals,activityLevel,latestWeight]);
 
   return (
    

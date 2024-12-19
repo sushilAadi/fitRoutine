@@ -16,6 +16,7 @@ import { GlobalContext } from "@/context/GloablContext";
 
 import BMICard from "./BMICard";
 import { calculateAge, calculateBMI } from "@/utils";
+import Link from "next/link";
 
 // Helper functions
 
@@ -30,7 +31,7 @@ const calculateCalories = (weight, height, age, gender, activityFactor) => {
 
 
 export default function FitnessTrackerDashboard() {
-  const { userDetailData,handleOpenClose } = useContext(GlobalContext);
+  const { userDetailData,handleOpenClose,latestWeight } = useContext(GlobalContext);
 
 
   if (!userDetailData) {
@@ -39,21 +40,20 @@ export default function FitnessTrackerDashboard() {
 
   const {
     userName,
-    userAge,
+    userBirthDate,
     userGender,
-    userWeight,
     userHeight,
     helpYou,
     activityLevel,
   } = userDetailData;
+
+
+  const userAgeCal = calculateAge(userBirthDate);
   
 
-  const userAgeCal = calculateAge(userAge);
-  console.log("userAgeCal",userAgeCal)
-
-  const bmi = calculateBMI(userWeight, userHeight);
+  const bmi = calculateBMI(latestWeight, userHeight);
   const maintenanceCalories = calculateCalories(
-    userWeight,
+    latestWeight,
     userHeight,
     userAgeCal,
     userGender,
@@ -88,11 +88,11 @@ export default function FitnessTrackerDashboard() {
     },
     {
       name: "Weight",
-      value: `${userWeight} kg`, // Show weight directly
+      value: `${latestWeight} kg`, // Show weight directly
       trend: "down",
       color: "bg-[#F2CCFF]",
       textColor: "text-[#B55CC2]",
-      requirement: `Current: ${userWeight} kg`,
+      requirement: `Current: ${latestWeight} kg`,
     },
   ];
 
@@ -103,11 +103,12 @@ export default function FitnessTrackerDashboard() {
       <div className="flex flex-col items-center h-screen overflow-hidden">
         
         <div className="mb-2 overflow-auto overflow-y-auto no-scrollbar h-100 innerContainer">
-        <div className="sticky top-0 z-50 w-full px-4 bg-tprimary stickyCard">
+        <div className="sticky top-0 z-50 w-full bg-tprimary stickyCard">
+        
           <motion.div
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="pt-3 pb-4 text-white bg-tprimary "
+            className="px-4 pt-3 pb-4 text-white bg-tprimary"
           >
             <div className="flex items-center justify-between">
               <div>
@@ -127,7 +128,12 @@ export default function FitnessTrackerDashboard() {
               />
             </div>
           </motion.div>
+          <div className="px-4 text-white bg-red-500 ">
+          <span>Check your Health Report . </span>
+          <Link href="/healthReport" className="font-semibold text-black no-underline text-inherit"> &nbsp;Click here</Link>
         </div>
+        </div>
+        
         <BMICard bmi={bmi}/>
           <div className="z-10 px-4 py-6 ">
             {/* Goals Section */}

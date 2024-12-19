@@ -13,7 +13,7 @@ import HealthMetricsRange from "@/components/Card/HealthMetricsRange";
 
 
 const healthReport = () => {
-  const { userDetailData,handleOpenClose } = useContext(GlobalContext);
+  const { userDetailData,handleOpenClose,latestWeight } = useContext(GlobalContext);
 
   if (!userDetailData) {
     return (
@@ -25,17 +25,16 @@ const healthReport = () => {
 
   const {
     userName = '',
-    userAge,
+    userBirthDate,
     userGender,
-    userWeight,
     userHeight,
     helpYou,
     activityLevel,
   } = userDetailData;
 
-  console.log("userDetailData",userDetailData)
+  
 
-  if (!userWeight || !userHeight || !userAge || !userGender) {
+  if (!latestWeight || !userHeight || !userBirthDate || !userGender) {
     return (
       <SecureComponent>
         <div className="p-4 text-red-700 bg-red-100 rounded">
@@ -45,9 +44,9 @@ const healthReport = () => {
     );
   }
 
-  const userAgeCal = calculateAge(userAge);
+  const userAgeCal = calculateAge(userBirthDate);
   const heightInMeters = userHeight / 100;
-  const weightInKg = Number(userWeight);
+  const weightInKg = Number(latestWeight);
   
 
   const safeCalculate = (calculation, fallback = 0) => {
@@ -298,8 +297,8 @@ const healthReport = () => {
             </div>
           </motion.div>
         </div>
-        <div className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">
-        <div className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">
+        <div className="p-3 mb-2 overflow-auto overflow-x-hidden overflow-y-auto exerciseCard no-scrollbar">
+        
           <div className="mb-6">
             <h1>
               Health Metrics Dashboard
@@ -378,7 +377,7 @@ const healthReport = () => {
               </div>
             </div>
           </div>
-        </div>
+        
       </div>
       </div>
     </SecureComponent>

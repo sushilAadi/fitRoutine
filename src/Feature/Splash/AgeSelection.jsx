@@ -14,7 +14,7 @@ import { format } from 'date-fns';
 const AgeSelection = ({ step, setStep }) => {
     const { user } = useUser();
     const {id,fullName,primaryEmailAddress} = user || {}
-    const {age,height,gender,weight, setAge,userRefetch,selectedGoals,activityLevel} = useContext(GlobalContext)
+    const {age,height,gender,weight, setAge,userRefetch,selectedGoals,activityLevel,userWeightRefetch} = useContext(GlobalContext)
     
     const normalizeToLocalDate = (date) => {
       if (!date) return null;
@@ -32,7 +32,7 @@ const AgeSelection = ({ step, setStep }) => {
           {
             "userIdCl": id,
             "userName": fullName,
-            "userAge": formattedAge,
+            "userBirthDate": formattedAge,
             "userGender": gender,
             "userWeight": weight,
             "userHeight": height,
@@ -49,7 +49,22 @@ const AgeSelection = ({ step, setStep }) => {
         userRefetch()
       }
     }
-console.log("age",age)
+    const insertWeight =async()=>{
+      const { data, error } = await supabase
+        .from('weight')
+        .insert(
+          {
+            "userIdCl": id,
+            "userWeights": weight,
+          }
+        );
+      if (error) {
+        console.log("Weight Error: ", error);
+      } else {
+        console.log("Weight posted successfully: ", data);
+        userWeightRefetch()
+      }
+    }
    
 
 
@@ -72,7 +87,7 @@ console.log("age",age)
             </div>
             
        
-            <FooterButton backClick={() => setStep(5)} btnClick={() => postUserDetail()} btnTitle="Complete"/>
+            <FooterButton backClick={() => setStep(5)} btnClick={() => {postUserDetail();insertWeight()}} btnTitle="Complete"/>
         </div>
     );
 };

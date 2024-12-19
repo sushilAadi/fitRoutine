@@ -46,8 +46,8 @@ const BMICard = ({ bmi, lastUpdate = '9 Jan, 2024 at 10:12' }) => {
             <h2 className="text-xl font-bold">BMI</h2>
             <p className="text-sm text-gray-500">Last Update: {lastUpdate}</p>
           </div>
+          <i className="text-2xl fa-duotone fa-light fa-weight-scale text-tprimary "/>
           
-          <i className="text-2xl text-tprimary fa-duotone fa-solid fa-weight-scale"></i>
           
         </div>
 
