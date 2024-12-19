@@ -91,7 +91,12 @@
     --foreground: #ededed;
   }
 } */
-
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0 ;
+  font-family: "Barlow", sans-serif;
+}
 html,
 body {
   max-width: 100vw;
@@ -109,13 +114,11 @@ body {
   margin:0;
   overflow: hidden;
 }
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0 ;
-  font-family: "Barlow", sans-serif;
+input{
+  outline: none;
 }
+
+
 
 h1,h2,h3,h4,h5,h6,p{
   margin: 0 !important ;
@@ -297,7 +300,11 @@ border: 1px solid rgba( 255, 255, 255, 0.18 );
 }
 
 
-
+.ageSelector .p-highlight{
+  background-color: red;
+  color: white;
+  font-weight: 700;
+}
 
 
 

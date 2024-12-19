@@ -14,6 +14,9 @@ import NavbarComponent from "@/components/Navbar/Navbar";
 import { ClerkProvider, SignedIn } from "@clerk/nextjs";
 import "animate.css";
 import { Toaster } from 'react-hot-toast';
+import { PrimeReactProvider } from 'primereact/api';
+import "primereact/resources/primereact.min.css";
+import "primereact/resources/themes/lara-light-indigo/theme.css"; 
 
 const queryClient = new QueryClient();
 
@@ -26,6 +29,7 @@ export default function RootLayout({ children }) {
     <ClerkProvider publishableKey={key}>
       <QueryClientProvider client={queryClient}>
         <GlobalContextProvider>
+        <PrimeReactProvider>
           <html lang="en">
             <head>
             <link rel="manifest" href="/manifest.json" />
@@ -93,6 +97,7 @@ export default function RootLayout({ children }) {
               <SpeedInsights />
             </body>
           </html>
+          </PrimeReactProvider>
         </GlobalContextProvider>
       </QueryClientProvider>
     </ClerkProvider>

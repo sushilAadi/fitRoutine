@@ -1,11 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { useState, useEffect, useContext } from "react";
+import {  useContext } from "react";
 import {
-  Home,
-  Heart,
-  User,
   Flame,
   Clock,
   Footprints,
@@ -14,24 +11,14 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+
 import { GlobalContext } from "@/context/GloablContext";
-import CaloriesCard from "./CaloriesCard";
+
 import BMICard from "./BMICard";
+import { calculateAge, calculateBMI } from "@/utils";
 
 // Helper functions
-const calculateBMI = (weight, height) => {
-  const heightInMeters = height / 100;
-  return (weight / (heightInMeters * heightInMeters)).toFixed(1);
-};
+
 
 const calculateCalories = (weight, height, age, gender, activityFactor) => {
   const bmr =
@@ -41,20 +28,6 @@ const calculateCalories = (weight, height, age, gender, activityFactor) => {
   return Math.round(bmr * activityFactor);
 };
 
-const calculateTDEE = ({
-  userWeight,
-  userHeight,
-  userAge,
-  userGender,
-  activityLevel,
-}) => {
-  const BMR =
-    userGender === "Male"
-      ? 10 * userWeight + 6.25 * userHeight - 5 * userAge + 5
-      : 10 * userWeight + 6.25 * userHeight - 5 * userAge - 161;
-
-  return Math.round(BMR * activityLevel.factor);
-};
 
 export default function FitnessTrackerDashboard() {
   const { userDetailData,handleOpenClose } = useContext(GlobalContext);
@@ -73,17 +46,20 @@ export default function FitnessTrackerDashboard() {
     helpYou,
     activityLevel,
   } = userDetailData;
+  
+
+  const userAgeCal = calculateAge(userAge);
+  console.log("userAgeCal",userAgeCal)
 
   const bmi = calculateBMI(userWeight, userHeight);
   const maintenanceCalories = calculateCalories(
     userWeight,
     userHeight,
-    userAge,
+    userAgeCal,
     userGender,
     activityLevel.factor
   );
-  const weightGainCalories = maintenanceCalories + 500;
-  const weightLossCalories = maintenanceCalories - 500;
+  
 
   const goals = [
     {
@@ -120,12 +96,7 @@ export default function FitnessTrackerDashboard() {
     },
   ];
 
-  const weightData = [
-    { name: "Week 1", weight: userWeight },
-    { name: "Week 2", weight: userWeight - 0.5 },
-    { name: "Week 3", weight: userWeight - 0.8 },
-    { name: "Week 4", weight: userWeight - 1.2 },
-  ];
+ 
 
   return (
     <>

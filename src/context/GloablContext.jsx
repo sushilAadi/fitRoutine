@@ -51,7 +51,7 @@ export default function GlobalContextProvider({ children }) {
   const [gender, setGender] = useState(null);
   const [weight, setWeight] = useState(50);
   const [height, setHeight] = useState(152);
-  const [age, setAge] = useState(18);
+  const [age, setAge] = useState(null);
   const [selectedGoals, setSelectedGoals] = useState(
     new Set([])
   );

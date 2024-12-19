@@ -59,9 +59,12 @@ const Sidebar = ({}) => {
           </ListItem>
           <ListItem>
             <ListItemPrefix>
-              <Cog6ToothIcon className="h-5 w-5 !mr-2"  />
+            <i className="fa-duotone fa-solid fa-notes-medical h-5 w-5 !mr-2"></i>
+              
             </ListItemPrefix>
-            Profile
+            <Link href="/healthReport" className="no-underline text-inherit" onClick={handleOpenClose}>
+              Health Report
+            </Link>
           </ListItem>
           <ListItem>
             <UserButton />
