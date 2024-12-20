@@ -940,7 +940,7 @@ const PlanDetail = ({ params }) => {
               Current Progress: Week {currentWeek + 1}, Day {currentDay + 1}
             </span>
             <span className="text-base text-gray-400">
-              Daily Volume: sushil 
+              Daily Volume:  
               {formatVolume(calculateDailyTotal(selectedWeek, selectedDay))}
             </span>
           </div>
@@ -1044,7 +1044,7 @@ const PlanDetail = ({ params }) => {
                                   {
                                     exercise?.weeklySetConfig?.find(
                                       (i) => i?.isConfigured
-                                    )?.sets
+                                    )?.sets??0
                                   }
                                 </p>
                                 {/* <p className="text-sm font-semibold text-white">
@@ -1212,6 +1212,7 @@ const PlanDetail = ({ params }) => {
                                         ✎
                                       </button>
                                     )}
+                                    
                                     {workoutData?.setUpdate && (
                                       <>
                                         {!detail?.isCompleted &&
