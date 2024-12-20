@@ -1206,7 +1206,7 @@ const PlanDetail = ({ params }) => {
                                           );
                                           setToggleCheck(true);
                                           setEditToggle(false);
-                                          setEditValue("edit");
+                                          // setEditValue("edit");
                                         }}
                                       >
                                         ✎
