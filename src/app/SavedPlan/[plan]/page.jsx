@@ -391,6 +391,22 @@ const PlanDetail = ({ params }) => {
       );
     });
   };
+    const isAllExercisesInDayCompleted = () => {
+        const exercises =
+          workoutData?.workoutPlan[selectedWeek][selectedDay].exercises || [];
+          if (exercises.length === 0) {
+            return false;
+          }
+
+        return exercises.every((_, exerciseIndex) => {
+          const key = `${selectedWeek}-${selectedDay}-${exerciseIndex}`;
+          return (
+             workoutData?.exerciseHistory[key] &&
+             workoutData.exerciseHistory[key].length > 0 &&
+             exerciseDetails[key]?.every((set) => set.isCompleted)
+           );
+        });
+    };
 
   const isExerciseCompleted = (weekIndex, dayIndex, exerciseIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
@@ -806,7 +822,7 @@ const PlanDetail = ({ params }) => {
     try {
       await supabase
         .from("workoutPlan")
-        .update({ workoutPlanDB: { ...workoutData, exerciseHistory: {} } })
+        .update({ workoutPlanDB: { ...workoutData} })
         .eq("id", workoutData.id);
       localStorage.removeItem(`lastPosition_${workoutData.name}`);
       localStorage.removeItem(`restTime_${workoutData.name}`);
@@ -924,7 +940,7 @@ const PlanDetail = ({ params }) => {
               Current Progress: Week {currentWeek + 1}, Day {currentDay + 1}
             </span>
             <span className="text-base text-gray-400">
-              Daily Volume:{" "}
+              Daily Volume: sushil 
               {formatVolume(calculateDailyTotal(selectedWeek, selectedDay))}
             </span>
           </div>
@@ -1283,7 +1299,7 @@ const PlanDetail = ({ params }) => {
                                 {detail.isCompleted && (
                                   <>
                                     <p>
-                                      <i class="fa-duotone fa-solid fa-weight-hanging  font-semibold text-white whitespace-nowrap pr-2"></i>
+                                      <i className="pr-2 font-semibold text-white fa-duotone fa-solid fa-weight-hanging whitespace-nowrap"></i>
                                     </p>
                                     <p className="text-xs text-gray-300 whitespace-nowrap">
                                       {formatVolume(
@@ -1347,10 +1363,10 @@ const PlanDetail = ({ params }) => {
               )}
             </div>
 
-            {/* Next Day/Week Button */}
-            {!isEntirePlanCompleted() && (
+            {!isTimerRunning && <>
+              {!isEntirePlanCompleted() && (
               <>
-                {isDayCompleted(selectedWeek, selectedDay) &&
+                {isAllExercisesInDayCompleted() &&
                   (selectedDay < workoutData.daysPerWeek - 1 ||
                     selectedWeek < workoutData.weeks - 1) && (
                     <button
@@ -1361,25 +1377,29 @@ const PlanDetail = ({ params }) => {
                       }}
                       className="float-right px-6 py-2 mt-4 mb-2 text-white bg-black rounded-lg"
                     >
-                      {/* {selectedDay < workoutData.daysPerWeek - 1
-                  ? `Next Day (${workoutData.dayNames[selectedDay + 1]})`
-                  : `Next Week (${workoutData.weekNames[selectedWeek + 1]}, ${
-                      workoutData.dayNames[0]
-                    })`} */}
+                      
                       Complete Workout
                     </button>
                   )}
               </>
             )}
-
-            {isEntirePlanCompleted() && (
+            </>}
+            {!isTimerRunning && <>
+              {isEntirePlanCompleted() && (
+                <>
+                {isAllExercisesInDayCompleted() &&
               <button
                 onClick={() => finishPlan()}
                 className="px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
               >
                 Finish Plan
               </button>
+                }
+              </>
             )}
+            </>}
+
+            
 
             <OffCanvasComp
               placement="end"

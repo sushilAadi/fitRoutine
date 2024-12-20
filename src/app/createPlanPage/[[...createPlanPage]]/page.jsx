@@ -380,7 +380,7 @@ const createPlanPage = () => {
       savePlan();
 
       // Reset the component state after successful save
-      toast.success("Workout plan saved successfully!");
+      // toast.success("Workout plan saved successfully!");
       setToggleForm(true);
       setPlanName("");
       setWeeks(3);
