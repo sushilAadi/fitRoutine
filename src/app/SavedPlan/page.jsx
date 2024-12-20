@@ -7,25 +7,51 @@ import { IconButton } from "@material-tailwind/react";
 import { Bars3Icon } from "@heroicons/react/24/solid";
 import { GlobalContext } from "@/context/GloablContext";
 import { calculateProgress } from "@/utils";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from 'react-hot-toast';
+import { supabase } from '@/createClient';
 
 const CustomPlanPage = () => {
-  const { handleOpenClose } = useContext(GlobalContext);
+  const { handleOpenClose, userId, fetchPlans, setLastPosition } =
+    useContext(GlobalContext);
   const router = useRouter();
   const [savedPlans, setSavedPlans] = useState([]);
 
+  const {
+    data: userPlanData,
+    error: userPlanError,
+    refetch: userPlanRefetch,
+    isLoading: userPlanisLoading,
+  } = useQuery({
+    queryKey: ["userPlanData", userId],
+    queryFn: fetchPlans,
+    enabled: !!userId,
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+
   useEffect(() => {
-    const plans = Object.keys(localStorage)
-      .filter((key) => key.startsWith("workoutPlan_"))
-      .map((key) => {
-        const plan = JSON.parse(localStorage.getItem(key));
-        const progress = calculateProgress(plan);
-        const status =
-          progress === 100 ? "completed" : progress > 0 ? "active" : "inactive";
-        return { ...plan, status, progress };
+    if (userPlanError) {
+      toast.error(`Error fetching plans: ${userPlanError.message}`, {
+        position: toast.POSITION.TOP_CENTER,
       });
+      return;
+    }
+    if (userPlanisLoading) {
+      return; // Do not process if still loading
+    }
+    if (userPlanData) {
+    const processedPlans = userPlanData.map((item) => {
+      const plan = item?.workoutPlanDB;
+      const progress = calculateProgress(plan);
+      const status =
+        progress === 100 ? "completed" : progress > 0 ? "active" : "inactive";
+      return { ...plan, status, progress, id: item.id, planName: item.planName };
+    });
+
 
     // Custom sorting logic based on the conditions
-    plans.sort((a, b) => {
+    processedPlans.sort((a, b) => {
       if (a.status === "active" && b.status !== "active") return -1; // Active plans come first
       if (a.status !== "active" && b.status === "active") return 1;
 
@@ -39,68 +65,103 @@ const CustomPlanPage = () => {
       // Fallback to order by progress (inactive -> active -> completed)
       return b.progress - a.progress;
     });
+    
+      setSavedPlans(processedPlans);
+    }
+  }, [userPlanData, userPlanError, userPlanisLoading]);
 
-    setSavedPlans(plans);
-  }, []);
+  const deletePlan = async (planId, planName) => {
+    console.log("planId",planId)
+    if (window.confirm(`Are you sure you want to delete the plan "${planName}"?`)) {
+      try {
+        // Delete from Supabase using the plan's id
+        const { error } = await supabase
+          .from("workoutPlan")
+          .delete()
+          .eq("id", planId);
+  
+        if (error) {
+          console.error("Error deleting plan from Supabase:", error);
+            toast.error(`Failed to delete plan: ${error.message}`);
+            return;
+        }
 
-  const deletePlan = (planName) => {
-    if (
-      window.confirm(`Are you sure you want to delete the plan "${planName}"?`)
-    ) {
-      localStorage.removeItem(`workoutPlan_${planName}`);
-      setSavedPlans((prevPlans) =>
-        prevPlans.filter((plan) => plan.name !== planName)
-      );
+        // Optimistically update the UI
+        setSavedPlans((prevPlans) =>
+          prevPlans.filter((plan) => plan.id !== planId)
+        );
+            toast.success("Plan deleted successfully!");
+      
+      } catch (error) {
+            toast.error(`Error deleting plan: ${error.message}`);
+        
+      }
     }
   };
 
-  const startPlan = (planName) => {
+ const startPlan = (planId, planName) => {
+    // console.log(planId, planName);
+      
+       
     const updatedPlans = savedPlans.map((plan) => {
-      if (plan.name === planName && plan.progress !== 100) {
-        plan.status = "active";
-      } else if (plan.status === "active" && plan.progress === 100) {
-        plan.status = "completed";
-      } else if (plan.status === "inactive" && plan.progress === 0) {
-        plan.status = "inactive";
-      }
+      if (plan.id === planId && plan.progress !== 100) {
+          plan.status = "active";
+       } else if (plan.status === "active" && plan.progress === 100) {
+          plan.status = "completed";
+        } else if (plan.status === "inactive" && plan.progress === 0) {
+          plan.status = "inactive";
+        }
+         plan.progress = calculateProgress(plan);
 
-      plan.progress = calculateProgress(plan);
-      localStorage.setItem(`workoutPlan_${plan.name}`, JSON.stringify(plan));
       return plan;
     });
 
     setSavedPlans(updatedPlans);
-    router.push(`/SavedPlan/${planName}`);
+
+     router.push(`/SavedPlan/${planId}`);
   };
 
   const hasActivePlan = savedPlans.some(
     (plan) => plan.status === "active" && plan.progress < 100
   );
+
   const hasCompletedPlan = savedPlans.some((plan) => plan.progress === 100);
 
-  const deleteAllPlans = () => {
-    if (
-      window.confirm(
-        "Are you sure you want to delete all workout plans? This action cannot be undone."
-      )
-    ) {
-      // Remove all workout plans
-      Object.keys(localStorage)
-        .filter((key) => key.startsWith("workoutPlan_"))
-        .forEach((key) => localStorage.removeItem(key));
+    const deleteAllPlans = async () => {
+      if (
+          window.confirm(
+              "Are you sure you want to delete all workout plans? This action cannot be undone."
+          )
+      ) {
+          try {
+              // Delete all plans from Supabase for the current user
+              const { error } = await supabase
+                  .from("userPlan")
+                  .delete()
+                  .eq("userIdCl", userId); // Use userId from context
 
-      // Remove related localStorage items
-      Object.keys(localStorage)
-        .filter(
-          (key) =>
-            key.startsWith("lastPosition_") || key.startsWith("restTime_")
-        )
-        .forEach((key) => localStorage.removeItem(key));
-
-      // Clear state
-      setSavedPlans([]);
-    }
+              if (error) {
+                  console.error("Error deleting all plans from Supabase:", error);
+                    toast.error(`Failed to delete all plans: ${error.message}`, {
+                      position: toast.POSITION.TOP_CENTER,
+                    });
+                return;
+              }
+                toast.success("All plans deleted successfully!", {
+                  position: toast.POSITION.TOP_CENTER,
+                });
+              // Clear state
+              setSavedPlans([]);
+              setLastPosition({})
+          } catch (error) {
+            toast.error(`Error deleting all plans: ${error.message}`, {
+              position: toast.POSITION.TOP_CENTER,
+            });
+              console.error("Error deleting all plans:", error);
+          }
+      }
   };
+
 
   return (
     <>
@@ -131,7 +192,7 @@ const CustomPlanPage = () => {
           <div className="p-2 bg-red-600">
             <p className="mb-2 text-white">
               You have saved plans. If you want to delete click the delete
-              button? &nbsp;{" "}
+              button?  {" "}
               <i
                 onClick={deleteAllPlans}
                 className="text-white cursor-pointer fa-duotone fa-light fa-trash"
@@ -146,15 +207,15 @@ const CustomPlanPage = () => {
               {savedPlans.map((plan, index) => (
                 <div key={index} className="flex flex-col">
                   <SavedCard
-                    plan={plan}
-                    onClick={() => {
+                      plan={plan}
+                      onClick={() => {
                       if (plan.progress === 100 || plan.status === "active") {
-                        router.push(`/SavedPlan/${plan.name}`);
+                          router.push(`/SavedPlan/${plan.id}`);
                       } else {
-                        startPlan(plan.name);
-                      }
+                        startPlan(plan.id,plan.planName);
+                        }
                     }}
-                    onClickSecondary={() => deletePlan(plan.name)}
+                    onClickSecondary={() => deletePlan(plan.id,plan.planName)}
                     isDisabled={
                       hasActivePlan &&
                       plan.status === "inactive" &&
@@ -166,8 +227,8 @@ const CustomPlanPage = () => {
               ))}
             </div>
           ) : (
-            <p>No saved plans found.</p>
-          )}
+              <p>No saved plans found.</p>
+            )}
         </div>
       </div>
     </>

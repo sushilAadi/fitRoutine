@@ -52,18 +52,22 @@ export default function GlobalContextProvider({ children }) {
     }
   };
   const fetchPlans = async () => {
-    if (userId) {
-      const { data, error } = await supabase
-        .from('workoutPlan')
-        .select('*')
-        .eq('userIdCl', userId);
-      if (error) {
-        throw error;
-      } else {
-        return data;
-      }
+    if (!userId) {
+      throw new Error("User ID is required to fetch workout plans.");
     }
+  
+    const { data, error } = await supabase
+      .from('workoutPlan')
+      .select('*')
+      .eq('userIdCl', userId);
+  
+    if (error) {
+      throw error; // This will propagate to React Query's `error` state
+    }
+  
+    return data || []; // Ensure a valid return value, even if no data exists
   };
+  
 
 
   const { data: userDetail, error: userDetailError,refetch:userRefetch,isFetching } = useQuery({
@@ -80,14 +84,19 @@ export default function GlobalContextProvider({ children }) {
     refetchOnWindowFocus: false,
     infinite: false,
   });
-  const { data: userPlanData, error: userPlanError,refetch:userPlanRefetch,isFetching:userPlanisFetching } = useQuery({
-    queryKey: ['userPlanData', userId],
-    queryFn: fetchPlans,
-    enabled: !!userId,
-    refetchOnWindowFocus: false,
-    infinite: false,
-  });
-  console.log("userPlanData",userPlanData)
+  // const { data: userPlanData, error: userPlanError,refetch:userPlanRefetch,isLoading:userPlanisLoading } = useQuery({
+  //   queryKey: ['userPlanData', userId],
+  //   queryFn: fetchPlans,
+  //   enabled: !!userId,
+  //   refetchOnWindowFocus: false,
+  //   infinite: false,
+  // });
+  // const planList = {
+  //   userPlanData,
+  //   userPlanError,
+  //   userPlanRefetch,
+  //   userPlanisLoading
+  // }
   
   const userDetailData = userDetail?.[0] || {}
 
@@ -125,7 +134,9 @@ export default function GlobalContextProvider({ children }) {
       selectedGoals, setSelectedGoals,
       activityLevel,setActivityLevel,
       userWeightRefetch,
-      latestWeight
+      latestWeight,
+      userId,
+      fetchPlans
     };
   }, [ gender, weight, height, age,userDetailData,isFetching,show,selectedGoals,activityLevel,latestWeight]);
 

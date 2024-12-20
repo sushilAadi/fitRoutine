@@ -19,7 +19,7 @@ import { GlobalContext } from "@/context/GloablContext";
 
 const Sidebar = ({}) => {
   const {handleOpenClose,fullName} = useContext(GlobalContext)
-
+  
   return (
     <div className='h-full overflow-x-hidden overflow-y-auto '>
       <Card className="w-full h-full p-3 rounded-0 ">
