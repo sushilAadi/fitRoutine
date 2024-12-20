@@ -16,8 +16,13 @@ import CCard from "@/components/CCard";
 import { GlobalContext } from "@/context/GloablContext";
 import WorkoutDayAccordion from "./WorkoutDayAccordian";
 import toast from "react-hot-toast";
+import { supabase } from "@/createClient";
+import { useUser } from '@clerk/clerk-react';
+
 
 const createPlanPage = () => {
+  const { user } = useUser();
+    const {id} = user || {}
   const { handleOpenClose: menuOpenClose } = useContext(GlobalContext);
 
   const [toggleForm, setToggleForm] = useState(true);
@@ -80,13 +85,7 @@ const createPlanPage = () => {
     workoutPlan,
   };
 
-  useEffect(() => {
-    // Load saved plans on component mount
-    const plans = Object.keys(localStorage)
-      .filter((key) => key.startsWith("workoutPlan_"))
-      .map((key) => JSON.parse(localStorage.getItem(key)));
-    setSavedPlans(plans);
-  }, []);
+
 
   const generateWorkoutPlan = (e) => {
     e.preventDefault();
@@ -95,11 +94,12 @@ const createPlanPage = () => {
       return;
     }
 
-    const existingPlan = localStorage.getItem(`workoutPlan_${planName}`);
+    const existingPlan = savedPlans.find(plan => plan.planName === `workoutPlan_${planName}`);
     if (existingPlan) {
-      setNameError("A plan with this name already exists");
-      return;
-    }
+        setNameError("A plan with this name already exists");
+        return;
+      }
+
     setToggleForm(!toggleForm);
 
     setNameError("");
@@ -210,6 +210,66 @@ const createPlanPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  const exercisePlanDetail =async(planName,plan)=>{
+    
+    const planToSave = {
+      name: planName,
+      weeks: weeks,
+      daysPerWeek: daysPerWeek,
+      workoutPlan: plan,
+      exerciseHistory: exerciseHistory,
+      weekNames: weekNames,
+      dayNames: dayNames,
+      date: new Date(),
+      setUpdate: isChecked,
+    };
+
+    const { data, error } = await supabase
+      .from('workoutPlan')
+      .insert(
+        {
+          "userIdCl": id,
+          "planName":`workoutPlan_${planName}`,
+          "workoutPlanDB":planToSave
+        }
+      );
+    if (error) {
+      toast.error("Error saving Plan")
+    } else {
+      toast.success("Plan Saved Successfully")
+      
+    }
+  }
+
+  const updatePlanDetail = async(planName,plan)=>{
+
+     const planToSave = {
+      name: planName,
+      weeks: weeks,
+      daysPerWeek: daysPerWeek,
+      workoutPlan: plan,
+      exerciseHistory: exerciseHistory,
+      weekNames: weekNames,
+      dayNames: dayNames,
+      date: new Date(),
+      setUpdate: isChecked,
+    };
+
+     const { data, error } = await supabase
+      .from('workoutPlan')
+      .update(
+        {
+           "workoutPlanDB":planToSave
+        }
+      ).eq('planName', `workoutPlan_${planName}`).eq('userIdCl', id)
+    if (error) {
+       toast.error("Error updating Plan")
+    } else {
+       toast.success("Plan updated Successfully")
+      fetchPlans();
+    }
+  }
+  
   const savePlan = () => {
     if (!validatePlan()) {
       return;
@@ -219,36 +279,27 @@ const createPlanPage = () => {
       setErrors((prev) => ({ ...prev, planName: "Please enter a plan name" }));
       return;
     }
-
-    const planToSave = {
-      name: planName,
-      weeks: weeks,
-      daysPerWeek: daysPerWeek,
-      workoutPlan: workoutPlan,
-      exerciseHistory: exerciseHistory,
-      weekNames: weekNames,
-      dayNames: dayNames,
-      date: new Date(),
-      setUpdate: isChecked,
-    };
-
-    const storageKey = `workoutPlan_${planName}`;
+    
+    const planToSave = workoutPlan;
+    const storageKey =  planName;
 
     if (isEditingExistingPlan) {
-      localStorage.setItem(storageKey, JSON.stringify(planToSave));
-      setSavedPlans((prevPlans) =>
-        prevPlans.map((plan) => (plan.name === planName ? planToSave : plan))
+        updatePlanDetail(storageKey, planToSave);
+        setSavedPlans((prevPlans) =>
+        prevPlans.map((plan) => (plan.planName === `workoutPlan_${storageKey}` ? {...plan,workoutPlanDB: planToSave} : plan))
       );
     } else {
-      if (localStorage.getItem(storageKey)) {
+    const existingPlan = savedPlans.find(plan => plan.planName === `workoutPlan_${planName}`);
+
+      if (existingPlan) {
         setErrors((prev) => ({
           ...prev,
           planName: "A plan with this name already exists",
         }));
         return;
       }
-      localStorage.setItem(storageKey, JSON.stringify(planToSave));
-      setSavedPlans((prevPlans) => [...prevPlans, planToSave]);
+
+      exercisePlanDetail(storageKey,planToSave);
     }
   };
 
@@ -329,7 +380,7 @@ const createPlanPage = () => {
       savePlan();
 
       // Reset the component state after successful save
-      alert("Workout plan saved successfully!");
+      toast.success("Workout plan saved successfully!");
       setToggleForm(true);
       setPlanName("");
       setWeeks(3);
@@ -398,7 +449,7 @@ const createPlanPage = () => {
       date: new Date(),
       setUpdate: isChecked,
     };
-    localStorage.setItem(`workoutPlan_${planName}`, JSON.stringify(planToSave));
+    // localStorage.setItem(`workoutPlan_${planName}`, JSON.stringify(planToSave));
   };
 
   return (
@@ -431,9 +482,7 @@ const createPlanPage = () => {
                       setPlanName(newName);
 
                       // Live validation for existing plan names
-                      const existingPlan = localStorage.getItem(
-                        `workoutPlan_${newName}`
-                      );
+                      const existingPlan = savedPlans.find(plan => plan.planName === `workoutPlan_${newName}`);
                       if (existingPlan) {
                         setNameError("A plan with this name already exists");
                       } else {
@@ -605,80 +654,7 @@ const createPlanPage = () => {
                         }
                         updateExerciseSets={updateExerciseSets}
                       />
-                      {/* <div
-                      key={dayIndex}
-                      className={` p-2 ${
-                        day.exercises?.length > 0 && " bg-white  "
-                      } `}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-lg font-medium ">
-                          {dayNames[dayIndex]}
-                          
-                        </h3>
-                        {!isEditingExistingPlan && (
-                          <>
-                            <i
-                              className="text-gray-500 cursor-pointer fa-regular fa-pen-to-square"
-                              onClick={() => {
-                                const newName = prompt(
-                                  "Enter new day name:",
-                                  dayNames[dayIndex]
-                                );
-                                if (newName) updateDayName(dayIndex, newName);
-                              }}
-                            />
-                            <i
-                              className="cursor-pointer fa-duotone fa-solid fa-rectangle-history-circle-plus"
-                              onClick={() => {
-                                handleOpenClose();
-                                setSelectedWeekIndex(weekIndex);
-                                setSelectedDayIndex(dayIndex);
-                              }}
-                            ></i>
-                          </>
-                        )}
-                      </div>
 
-                      <ul className="flex p-0 mb-0 overflow-y-auto">
-                        {day.exercises.map((exercise, exerciseIndex) => (
-                          <>
-                            <li
-                              key={exerciseIndex}
-                              className={`relative ${
-                                exerciseIndex !== 0 ? "ml-5" : ""
-                              }`}
-                            >
-                              <CCard
-                                key={exerciseIndex}
-                                img={exercise.gifUrl}
-                                bgColor="bg-[#DBFE02]"
-                                parentStyle="w-full min-w-[180px] max-w-[180px]"
-                                caption={exercise?.bodyPart}
-                                title={exercise?.target}
-                                name={exercise?.name}
-                              />
-                              {!isEditingExistingPlan && (
-                                <div
-                                  className="absolute w-[30px] h-[20px] rounded-l-lg bg-red-500 top-[44px] right-[0] flex justify-center items-center"
-                                  onClick={() => {
-                                    if (!isEditingExistingPlan) {
-                                      removeExercise(
-                                        weekIndex,
-                                        dayIndex,
-                                        exerciseIndex
-                                      );
-                                    }
-                                  }}
-                                >
-                                  <i class="fa-solid fa-xmark text-white cursor-pointer" />
-                                </div>
-                              )}
-                            </li>
-                          </>
-                        ))}
-                      </ul>
-                    </div> */}
                     </>
                   ))}
                 </div>

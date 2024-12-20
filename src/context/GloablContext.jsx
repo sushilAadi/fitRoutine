@@ -51,6 +51,20 @@ export default function GlobalContextProvider({ children }) {
       }
     }
   };
+  const fetchPlans = async () => {
+    if (userId) {
+      const { data, error } = await supabase
+        .from('workoutPlan')
+        .select('*')
+        .eq('userIdCl', userId);
+      if (error) {
+        throw error;
+      } else {
+        return data;
+      }
+    }
+  };
+
 
   const { data: userDetail, error: userDetailError,refetch:userRefetch,isFetching } = useQuery({
     queryKey: ['userDetail', userId],
@@ -66,6 +80,14 @@ export default function GlobalContextProvider({ children }) {
     refetchOnWindowFocus: false,
     infinite: false,
   });
+  const { data: userPlanData, error: userPlanError,refetch:userPlanRefetch,isFetching:userPlanisFetching } = useQuery({
+    queryKey: ['userPlanData', userId],
+    queryFn: fetchPlans,
+    enabled: !!userId,
+    refetchOnWindowFocus: false,
+    infinite: false,
+  });
+  console.log("userPlanData",userPlanData)
   
   const userDetailData = userDetail?.[0] || {}
 
