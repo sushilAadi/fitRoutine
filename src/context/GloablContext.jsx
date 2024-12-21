@@ -124,9 +124,9 @@ export default function GlobalContextProvider({ children }) {
     console.log("process image",data)
   }
 
-  useEffect(()=>{
-    handleImage()
-  },[])
+  // useEffect(()=>{
+  //   handleImage()
+  // },[])
   
 
   const contextValue = useMemo(() => {
