@@ -98,11 +98,11 @@ const PlanDetail = ({ params }) => {
 
       const initialExerciseDetails = {};
       if (parsedData.exerciseHistory) {
-        Object.entries(parsedData.exerciseHistory).forEach(([key, sets]) => {
-          initialExerciseDetails[key] = sets.map((set) => ({
+        Object.entries(parsedData?.exerciseHistory).forEach(([key, sets]) => {
+          initialExerciseDetails[key] = sets?.map((set) => ({
             ...set,
             isCompleted: true,
-            restTime: set.restTime || null,
+            restTime: set?.restTime || null,
           }));
         });
       }
@@ -192,7 +192,9 @@ const PlanDetail = ({ params }) => {
 
     if (currentSets === 0 && configuredSets > 0) {
       const updatedWarnings = { ...setWarnings };
-      updatedWarnings[key] = `This exercise is configured for ${configuredSets} sets.`;
+      updatedWarnings[
+        key
+      ] = `This exercise is configured for ${configuredSets} sets.`;
       setSetWarnings(updatedWarnings);
     } else {
       const updatedWarnings = { ...setWarnings };
@@ -220,25 +222,29 @@ const PlanDetail = ({ params }) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
     const sets = workoutData?.exerciseHistory[key] || [];
     const exercise =
-      workoutData?.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
+      workoutData?.workoutPlan[weekIndex][dayIndex]?.exercises[exerciseIndex];
 
     let total = 0;
     sets.forEach((set) => {
       if (exercise.equipment === "body weight") {
         total += calculateSetVolume(
           USER_WEIGHT_KG,
-          set.reps,
-          exercise.equipment
+          set?.reps,
+          exercise?.equipment
         );
       } else {
-        total += calculateSetVolume(set.weight, set.reps, exercise.equipment);
+        total += calculateSetVolume(
+          set?.weight,
+          set?.reps,
+          exercise?.equipment
+        );
       }
     });
     return total;
   };
   const calculateDailyTotal = (weekIndex, dayIndex) => {
     const exercises =
-      workoutData?.workoutPlan[weekIndex][dayIndex].exercises || [];
+      workoutData?.workoutPlan[weekIndex][dayIndex]?.exercises || [];
     let dailyTotal = 0;
 
     exercises.forEach((exercise, index) => {
@@ -391,22 +397,22 @@ const PlanDetail = ({ params }) => {
       );
     });
   };
-    const isAllExercisesInDayCompleted = () => {
-        const exercises =
-          workoutData?.workoutPlan[selectedWeek][selectedDay].exercises || [];
-          if (exercises.length === 0) {
-            return false;
-          }
+  const isAllExercisesInDayCompleted = () => {
+    const exercises =
+      workoutData?.workoutPlan[selectedWeek][selectedDay].exercises || [];
+    if (exercises.length === 0) {
+      return false;
+    }
 
-        return exercises.every((_, exerciseIndex) => {
-          const key = `${selectedWeek}-${selectedDay}-${exerciseIndex}`;
-          return (
-             workoutData?.exerciseHistory[key] &&
-             workoutData.exerciseHistory[key].length > 0 &&
-             exerciseDetails[key]?.every((set) => set.isCompleted)
-           );
-        });
-    };
+    return exercises.every((_, exerciseIndex) => {
+      const key = `${selectedWeek}-${selectedDay}-${exerciseIndex}`;
+      return (
+        workoutData?.exerciseHistory[key] &&
+        workoutData.exerciseHistory[key].length > 0 &&
+        exerciseDetails[key]?.every((set) => set.isCompleted)
+      );
+    });
+  };
 
   const isExerciseCompleted = (weekIndex, dayIndex, exerciseIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
@@ -507,18 +513,19 @@ const PlanDetail = ({ params }) => {
     exerciseIndex,
     autoAdd = false
   ) => {
-    const updatedExerciseDetails = { ...exerciseDetails };
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-
+    const updatedExerciseDetails = { ...exerciseDetails };
+  
     if (!updatedExerciseDetails[key]) {
       updatedExerciseDetails[key] = [];
     }
-
+  
     const exercise =
       workoutData.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
     const configuredSets =
       exercise?.weeklySetConfig?.find((i) => i?.isConfigured)?.sets || 0;
-
+  
+    let setsAdded = 0; // Keep track of how many sets we are adding
     if (autoAdd) {
       const setsToAdd = configuredSets - updatedExerciseDetails[key].length;
       if (!workoutData?.setUpdate) {
@@ -529,6 +536,7 @@ const PlanDetail = ({ params }) => {
             isCompleted: false,
           });
         }
+        setsAdded = setsToAdd; // Keep track of added sets for update
       }
     } else {
       updatedExerciseDetails[key].push({
@@ -536,12 +544,51 @@ const PlanDetail = ({ params }) => {
         reps: "",
         isCompleted: false,
       });
+      setsAdded = 1; // Keep track of added sets for update
     }
-
+  
     setExerciseDetails(updatedExerciseDetails);
+  
+    // Update workoutPlan.exercises.weeklySetConfig
+    const updatedWorkoutData = { ...workoutData };
+    let setsChanged = false;
+  
+    if (
+      updatedWorkoutData.workoutPlan &&
+      updatedWorkoutData.workoutPlan[weekIndex] &&
+      updatedWorkoutData.workoutPlan[weekIndex][dayIndex] &&
+      updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises &&
+      updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex]
+    ) {
+      const exerciseToUpdate =
+        updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises[
+          exerciseIndex
+        ];
+      const weeklySetConfig = exerciseToUpdate.weeklySetConfig || [];
+      const currentSets = weeklySetConfig.find((i) => i?.isConfigured)?.sets || 0;
+      const newSetCount = updatedExerciseDetails[key].length;
+  
+      if (currentSets !== newSetCount) {
+        // Update the sets value
+        weeklySetConfig.forEach((config, index) => {
+          config.isConfigured = index === 0; // Ensure only the first one remains configured
+          if (index === 0) {
+            config.sets = newSetCount; // Update the sets count
+          }
+        });
+  
+        setsChanged = true; // Indicate sets were changed
+      }
+    }
+  
+    if (setsChanged) {
+      updateWorkoutData(updatedWorkoutData);
+    }
+  
     setWarningMessage("");
     checkSetWarnings(weekIndex, dayIndex, exerciseIndex);
   };
+  
   const isSetEnabledFunc = (weekIndex, dayIndex, exerciseIndex, setIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
     const sets = exerciseDetails[key];
@@ -605,6 +652,7 @@ const PlanDetail = ({ params }) => {
         setError("Failed to update workout plan.");
       } else {
         setWorkoutData(updatedWorkoutData);
+        
       }
     } catch (err) {
       console.error("Error during update:", err);
@@ -612,12 +660,23 @@ const PlanDetail = ({ params }) => {
     }
   };
 
-  const removeExerciseDetail = (
+  const removeExerciseDetail = async (
     weekIndex,
     dayIndex,
     exerciseIndex,
     detailIndex
   ) => {
+    await new Promise((resolve) => {
+      setSetTimers((prevSetTimers) => {
+        const updatedTimers = { ...prevSetTimers };
+        const timerKey = `${weekIndex}-${dayIndex}-${exerciseIndex}-${detailIndex}`;
+        delete updatedTimers[timerKey];
+        console.log(updatedTimers, "updatedTimers");
+        resolve(updatedTimers);
+        return updatedTimers;
+      });
+    });
+
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
     const updatedExerciseDetails = { ...exerciseDetails };
     if (updatedExerciseDetails[key]) {
@@ -629,13 +688,49 @@ const PlanDetail = ({ params }) => {
     if (!updatedWorkoutData.exerciseHistory) {
       updatedWorkoutData.exerciseHistory = {};
     }
+
     if (updatedWorkoutData.exerciseHistory[key]) {
-      updatedWorkoutData.exerciseHistory[key].splice(detailIndex, 1);
+      // Remove the entry from exerciseHistory
+      const updatedHistory = [...updatedWorkoutData.exerciseHistory[key]]; // Create a copy
+      updatedHistory.splice(detailIndex, 1);
+
+      if (updatedHistory.length === 0) {
+        delete updatedWorkoutData.exerciseHistory[key];
+      } else {
+        updatedWorkoutData.exerciseHistory[key] = updatedHistory;
+      }
+    }
+
+    // Update weeklySetConfig.sets here
+    if (
+      updatedWorkoutData.workoutPlan &&
+      updatedWorkoutData.workoutPlan[weekIndex] &&
+      updatedWorkoutData.workoutPlan[weekIndex][dayIndex] &&
+      updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises &&
+      updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises[
+        exerciseIndex
+      ] &&
+      updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises[
+        exerciseIndex
+      ].weeklySetConfig &&
+      updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises[
+        exerciseIndex
+      ].weeklySetConfig[0]
+    ) {
+      const currentSets =
+        updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises[
+          exerciseIndex
+        ].weeklySetConfig[0].sets;
+      updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises[
+        exerciseIndex
+      ].weeklySetConfig[0].sets = Math.max(0, currentSets - 1); // Ensure sets don't go below 0
     }
     updateWorkoutData(updatedWorkoutData);
+
     setWarningMessage("");
     checkSetWarnings(weekIndex, dayIndex, exerciseIndex);
   };
+
   useEffect(() => {
     if (workoutData && selectedWeek !== null && selectedDay !== null) {
       workoutData.workoutPlan[selectedWeek][selectedDay].exercises.forEach(
@@ -646,7 +741,12 @@ const PlanDetail = ({ params }) => {
     }
   }, [exerciseDetails, selectedWeek, selectedDay, workoutData]);
 
-  const saveExerciseSet = async (weekIndex, dayIndex, exerciseIndex, detailIndex) => {
+  const saveExerciseSet = async (
+    weekIndex,
+    dayIndex,
+    exerciseIndex,
+    detailIndex
+  ) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
     const details = exerciseDetails[key];
     const exercise =
@@ -659,61 +759,53 @@ const PlanDetail = ({ params }) => {
       (isBodyWeightOrBand || details?.[detailIndex]?.weight);
 
     if (isValidSet) {
-        const currentDate = new Date();
-       
-        
-      
-        const updatedWorkoutData = {...workoutData};
-          let updatedHistory = updatedWorkoutData.exerciseHistory || {};
-          if (!updatedHistory[key]) {
-              updatedHistory[key] = [];
-          }
-          if (!updatedHistory[key][detailIndex]) {
-              updatedHistory[key][detailIndex] = {};
-          }
-          const existingDuration =
-                updatedHistory[key][detailIndex]?.duration || 0;
-                updatedHistory[key][detailIndex] = {
-                    weight: details[detailIndex].weight,
-                    reps: details[detailIndex].reps,
-                    restTime: null,
-                    duration: existingDuration,
-                    date: {
-                        fullDate: currentDate.toISOString(),
-                        dayOfWeek: currentDate.toLocaleDateString("en-US", {
-                        weekday: "long",
-                        }),
-                        dayOfMonth: currentDate.getDate(),
-                        month: currentDate.toLocaleDateString("en-US", { month: "long" }),
-                        year: currentDate.getFullYear(),
-                        timestamp: currentDate.getTime(),
-                    },
-                    };
-           
-        if (editValue === "edit"){
-            
-            await updateWorkoutData(updatedWorkoutData)
-            
-        } else {
+      const currentDate = new Date();
 
-             stopSetTimer(weekIndex, dayIndex, exerciseIndex, detailIndex);
-               await updateWorkoutData(updatedWorkoutData)
-            startTimer(weekIndex, dayIndex, exerciseIndex, detailIndex);
-         }
+      const updatedWorkoutData = { ...workoutData };
+      let updatedHistory = updatedWorkoutData.exerciseHistory || {};
+      if (!updatedHistory[key]) {
+        updatedHistory[key] = [];
+      }
+      if (!updatedHistory[key][detailIndex]) {
+        updatedHistory[key][detailIndex] = {};
+      }
+      const existingDuration = updatedHistory[key][detailIndex]?.duration || 0;
+      updatedHistory[key][detailIndex] = {
+        weight: details[detailIndex].weight,
+        reps: details[detailIndex].reps,
+        restTime: null,
+        duration: existingDuration,
+        date: {
+          fullDate: currentDate.toISOString(),
+          dayOfWeek: currentDate.toLocaleDateString("en-US", {
+            weekday: "long",
+          }),
+          dayOfMonth: currentDate.getDate(),
+          month: currentDate.toLocaleDateString("en-US", { month: "long" }),
+          year: currentDate.getFullYear(),
+          timestamp: currentDate.getTime(),
+        },
+      };
 
-         const updatedExerciseDetails = { ...exerciseDetails };
-              if (!updatedExerciseDetails[key]) {
-                  updatedExerciseDetails[key] = [];
-              }
-              if (!updatedExerciseDetails[key][detailIndex]) {
-                  updatedExerciseDetails[key][detailIndex] = {};
-              }
-              updatedExerciseDetails[key][detailIndex].isCompleted = true;
-              setExerciseDetails(updatedExerciseDetails);
+      if (editValue === "edit") {
+        await updateWorkoutData(updatedWorkoutData);
+      } else {
+        stopSetTimer(weekIndex, dayIndex, exerciseIndex, detailIndex);
+        await updateWorkoutData(updatedWorkoutData);
+        startTimer(weekIndex, dayIndex, exerciseIndex, detailIndex);
+      }
 
+      const updatedExerciseDetails = { ...exerciseDetails };
+      if (!updatedExerciseDetails[key]) {
+        updatedExerciseDetails[key] = [];
+      }
+      if (!updatedExerciseDetails[key][detailIndex]) {
+        updatedExerciseDetails[key][detailIndex] = {};
+      }
+      updatedExerciseDetails[key][detailIndex].isCompleted = true;
+      setExerciseDetails(updatedExerciseDetails);
 
-        setWorkoutData(updatedWorkoutData);
-       
+      setWorkoutData(updatedWorkoutData);
 
       setWarningMessage("");
     } else {
@@ -822,7 +914,7 @@ const PlanDetail = ({ params }) => {
     try {
       await supabase
         .from("workoutPlan")
-        .update({ workoutPlanDB: { ...workoutData} })
+        .update({ workoutPlanDB: { ...workoutData } })
         .eq("id", workoutData.id);
       localStorage.removeItem(`lastPosition_${workoutData.name}`);
       localStorage.removeItem(`restTime_${workoutData.name}`);
@@ -859,26 +951,25 @@ const PlanDetail = ({ params }) => {
 
     setSetTimers((prev) => {
       const setTimerDuration = prev[key] || 0;
-      
-    setWorkoutData((prevWorkoutData)=>{
-      
-        const updatedWorkoutData = {...prevWorkoutData};
+
+      setWorkoutData((prevWorkoutData) => {
+        const updatedWorkoutData = { ...prevWorkoutData };
         if (!updatedWorkoutData.exerciseHistory) {
-            updatedWorkoutData.exerciseHistory = {};
-          }
+          updatedWorkoutData.exerciseHistory = {};
+        }
         if (!updatedWorkoutData.exerciseHistory[historyKey]) {
-             updatedWorkoutData.exerciseHistory[historyKey] = [];
-            }
-         if (!updatedWorkoutData.exerciseHistory[historyKey][setIndex]) {
-             updatedWorkoutData.exerciseHistory[historyKey][setIndex] = {};
-          }
+          updatedWorkoutData.exerciseHistory[historyKey] = [];
+        }
+        if (!updatedWorkoutData.exerciseHistory[historyKey][setIndex]) {
+          updatedWorkoutData.exerciseHistory[historyKey][setIndex] = {};
+        }
 
         updatedWorkoutData.exerciseHistory[historyKey][setIndex] = {
-                ...updatedWorkoutData.exerciseHistory[historyKey][setIndex],
-                duration: setTimerDuration,
-            };
-            return updatedWorkoutData
-    });
+          ...updatedWorkoutData.exerciseHistory[historyKey][setIndex],
+          duration: setTimerDuration,
+        };
+        return updatedWorkoutData;
+      });
 
       return prev;
     });
@@ -940,7 +1031,7 @@ const PlanDetail = ({ params }) => {
               Current Progress: Week {currentWeek + 1}, Day {currentDay + 1}
             </span>
             <span className="text-base text-gray-400">
-              Daily Volume:  
+              Daily Volume:
               {formatVolume(calculateDailyTotal(selectedWeek, selectedDay))}
             </span>
           </div>
@@ -963,91 +1054,89 @@ const PlanDetail = ({ params }) => {
                       disabled={!isWeekAccessible(index)}
                     >
                       {weekName}
-                      </TabButton>
-                    ))}
-                  </div>
+                    </TabButton>
+                  ))}
                 </div>
-
-                <div className="mb-4">
-                  <div className="flex">
-                    {workoutData.dayNames.map((dayName, index) => (
-                      <TabButton
-                        key={index}
-                        active={selectedDay === index}
-                        onClick={() => setSelectedDay(index)}
-                        disabled={!isDayAccessible(selectedWeek, index)}
-                      >
-                        {dayName}
-                      </TabButton>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">
-            {warningMessage && (
-              <div className="relative px-4 py-3 mb-4 text-red-700 bg-red-100 border border-red-400 rounded">
-                {warningMessage}
               </div>
-            )}
-            <div className="space-y-4">
-              {workoutData.workoutPlan[selectedWeek][selectedDay].exercises.map(
-                (exercise, exerciseIndex) => {
-                  const isEnabled = isExerciseEnabled(
-                    selectedWeek,
-                    selectedDay,
-                    exerciseIndex
-                  );
-                  const key = `${selectedWeek}-${selectedDay}-${exerciseIndex}`;
-                  const warning = setWarnings[key];
-                  return (
-                    <div key={exerciseIndex}>
-                      <div className={`p-3 my-3 bg-gray-800 rounded-xl`}>
-                        <div
-                          className={`flex p-2 "bg-gray-900 gap-x-4 rounded-xl`}
-                        >
-                          <div className="min-w-[50px] min-h-[50px] max-h-[50px] max-w-[50px] overflow-hidden">
-                            <Image
-                              src={exercise.gifUrl}
-                              alt={exercise.name}
-                              width={50}
-                              height={50}
-                              className="object-cover rounded-full max-w-[50px] max-h-50px]"
-                              onClick={() => {
-                                setSelectedExercise(exercise);
-                                handleOpenClose();
-                              }}
-                            />
-                          </div>
-                          <div className="text-conatiner w-100">
-                            <p
-                              className={`text-gray-400`}
-                              onClick={() => {
-                                setSelectedExercise(exercise);
-                                handleOpenClose();
-                              }}
+
+              <div className="mb-4">
+                <div className="flex">
+                  {workoutData.dayNames.map((dayName, index) => (
+                    <TabButton
+                      key={index}
+                      active={selectedDay === index}
+                      onClick={() => setSelectedDay(index)}
+                      disabled={!isDayAccessible(selectedWeek, index)}
+                    >
+                      {dayName}
+                    </TabButton>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">
+          {warningMessage && (
+            <div className="relative px-4 py-3 mb-4 text-red-700 bg-red-100 border border-red-400 rounded">
+              {warningMessage}
+            </div>
+          )}
+          <div className="space-y-4">
+            {workoutData.workoutPlan[selectedWeek][selectedDay].exercises.map(
+              (exercise, exerciseIndex) => {
+                const isEnabled = isExerciseEnabled(
+                  selectedWeek,
+                  selectedDay,
+                  exerciseIndex
+                );
+                const key = `${selectedWeek}-${selectedDay}-${exerciseIndex}`;
+                const warning = setWarnings[key];
+                return (
+                  <div key={exerciseIndex}>
+                    <div className={`p-3 my-3 bg-gray-800 rounded-xl`}>
+                      <div
+                        className={`flex p-2 "bg-gray-900 gap-x-4 rounded-xl`}
+                      >
+                        <div className="min-w-[50px] min-h-[50px] max-h-[50px] max-w-[50px] overflow-hidden">
+                          <Image
+                            src={exercise.gifUrl}
+                            alt={exercise.name}
+                            width={50}
+                            height={50}
+                            className="object-cover rounded-full max-w-[50px] max-h-50px]"
+                            onClick={() => {
+                              setSelectedExercise(exercise);
+                              handleOpenClose();
+                            }}
+                          />
+                        </div>
+                        <div className="text-conatiner w-100">
+                          <p
+                            className={`text-gray-400`}
+                            onClick={() => {
+                              setSelectedExercise(exercise);
+                              handleOpenClose();
+                            }}
+                          >
+                            {_.upperFirst(exercise.name)}
+                          </p>
+                          <div className="flex items-center justify-between ">
+                            <div
+                              className={`flex items-center gap-x-4 text-white`}
                             >
-                              {_.upperFirst(exercise.name)}
-                            </p>
-                            <div className="flex items-center justify-between ">
-                              <div
-                                className={`flex items-center gap-x-4 text-white`}
-                              >
-                                <p className="text-sm font-semibold ">
-                                  Target: {_.upperFirst(exercise.target)}
-                                </p>
-                                <p className="text-sm font-semibold">
-                                  {" "}
-                                  Sets :{" "}
-                                  {
-                                    exercise?.weeklySetConfig?.find(
-                                      (i) => i?.isConfigured
-                                    )?.sets??0
-                                  }
-                                </p>
-                                {/* <p className="text-sm font-semibold text-white">
+                              <p className="text-sm font-semibold ">
+                                Target: {_.upperFirst(exercise.target)}
+                              </p>
+                              <p className="text-sm font-semibold">
+                                {" "}
+                                Sets :{" "}
+                                {exercise?.weeklySetConfig?.find(
+                                  (i) => i?.isConfigured
+                                )?.sets ?? 0}
+                              </p>
+                              {/* <p className="text-sm font-semibold text-white">
                               {" "}
                               TV : {formatVolume(
                             calculateExerciseTotal(
@@ -1060,364 +1149,364 @@ const PlanDetail = ({ params }) => {
                           {exercise.equipment === "body weight" &&
                             ` (based on ${USER_WEIGHT_KG}kg body weight)`}
                             </p> */}
-                              </div>
-                              {!isEntirePlanCompleted() && (
-                                <i
-                                  className="text-xl text-white cursor-pointer fa-solid fa-circle-plus"
-                                  onClick={() => {
-                                    addExerciseDetails(
-                                      selectedWeek,
-                                      selectedDay,
-                                      exerciseIndex
-                                    );
-                                  }}
-                                />
-                              )}
                             </div>
+                            {
+                              <i
+                                className="text-xl text-white cursor-pointer fa-solid fa-circle-plus"
+                                onClick={() => {
+                                  addExerciseDetails(
+                                    selectedWeek,
+                                    selectedDay,
+                                    exerciseIndex
+                                  );
+                                }}
+                              />
+                            }
                           </div>
                         </div>
-                        {warning && (
-                          <div className="text-sm text-amber-600">
-                            {warning}
-                          </div>
-                        )}
-                        {exerciseDetails[
-                          `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                        ]?.map((detail, detailIndex) => {
-                          const timerKey = `${selectedWeek}-${selectedDay}-${exerciseIndex}-${detailIndex}`;
+                      </div>
+                      {warning && (
+                        <div className="text-sm text-amber-600">{warning}</div>
+                      )}
+                      {exerciseDetails[
+                        `${selectedWeek}-${selectedDay}-${exerciseIndex}`
+                      ]?.map((detail, detailIndex) => {
+                        const timerKey = `${selectedWeek}-${selectedDay}-${exerciseIndex}-${detailIndex}`;
 
-                          const isSetEnabled =
-                            isEnabled &&
-                            isSetEnabledFunc(
-                              selectedWeek,
-                              selectedDay,
-                              exerciseIndex,
-                              detailIndex
-                            );
-                          const setVolume = detail.isCompleted
-                            ? calculateSetVolume(
-                                exercise.equipment === "body weight"
-                                  ? USER_WEIGHT_KG
-                                  : detail.weight,
-                                detail.reps,
-                                exercise.equipment
-                              )
-                            : 0;
+                        const isSetEnabled =
+                          isEnabled &&
+                          isSetEnabledFunc(
+                            selectedWeek,
+                            selectedDay,
+                            exerciseIndex,
+                            detailIndex
+                          );
+                        const setVolume = detail.isCompleted
+                          ? calculateSetVolume(
+                              exercise.equipment === "body weight"
+                                ? USER_WEIGHT_KG
+                                : detail.weight,
+                              detail.reps,
+                              exercise.equipment
+                            )
+                          : 0;
 
-                          return (
-                            <div key={detailIndex}>
-                              <div className="flex items-center justify-between mt-3 mb-1 overflow-hidden gap-x-3">
-                                <div className="flex gap-x-1 w-100">
-                                  {exercise.equipment !== "body weight" &&
-                                    exercise.equipment !== "band" && (
-                                      <input
-                                        type="number"
-                                        placeholder="weight"
-                                        className="px-3 py-2 text-white bg-gray-700 outline-none rounded-xl w-100"
-                                        disabled={
-                                          detail.isCompleted || !isSetEnabled
-                                        }
-                                        value={detail.weight}
-                                        onChange={(e) =>
-                                          updateExerciseDetail(
-                                            selectedWeek,
-                                            selectedDay,
-                                            exerciseIndex,
-                                            detailIndex,
-                                            "weight",
-                                            e.target.value
-                                          )
-                                        }
-                                        min={1}
-                                      />
-                                    )}
-                                  <input
-                                    type="number"
-                                    placeholder="reps"
-                                    className="px-3 py-2 text-white bg-gray-700 outline-none rounded-xl w-100"
-                                    value={detail.reps}
-                                    onChange={(e) =>
-                                      updateExerciseDetail(
-                                        selectedWeek,
-                                        selectedDay,
-                                        exerciseIndex,
-                                        detailIndex,
-                                        "reps",
-                                        e.target.value
-                                      )
-                                    }
-                                    disabled={detail.isCompleted || !isSetEnabled}
-                                    min={1}
-                                  />
-                                </div>
-                                {
-                                  <div className="flex items-center gap-x-3">
-                                    {!detail?.isCompleted && detail.reps && (
-                                      <>
-                                        {timerIntervals.current[timerKey] ===
-                                          undefined && (
-                                          <>
-                                            {EditToggle &&
-                                              <i
-                                                className="text-red-500 cursor-pointer fa-solid fa-play"
-                                                disabled={!isSetEnabled}
-                                                onClick={() => {
-                                                  startSetTimer(
-                                                    selectedWeek,
-                                                    selectedDay,
-                                                    exerciseIndex,
-                                                    detailIndex
-                                                  );
-                                                  setToggleCheck(true);
-                                                }}
-                                              />}
-                                          </>
-                                        )}
-                                      </>
-                                    )}
-                                    {!detail.isCompleted ? (
-                                      <>
-                                        {isSetEnabled && toggleCheck && (
+                        return (
+                          <div key={detailIndex}>
+                            <div className="flex items-center justify-between mt-3 mb-1 overflow-hidden gap-x-3">
+                              <div className="flex gap-x-1 w-100">
+                                {exercise.equipment !== "body weight" &&
+                                  exercise.equipment !== "band" && (
+                                    <input
+                                      type="number"
+                                      placeholder="weight"
+                                      className="px-3 py-2 text-white bg-gray-700 outline-none rounded-xl w-100"
+                                      disabled={
+                                        detail.isCompleted || !isSetEnabled
+                                      }
+                                      value={detail.weight}
+                                      onChange={(e) =>
+                                        updateExerciseDetail(
+                                          selectedWeek,
+                                          selectedDay,
+                                          exerciseIndex,
+                                          detailIndex,
+                                          "weight",
+                                          e.target.value
+                                        )
+                                      }
+                                      min={1}
+                                    />
+                                  )}
+                                <input
+                                  type="number"
+                                  placeholder="reps"
+                                  className="px-3 py-2 text-white bg-gray-700 outline-none rounded-xl w-100"
+                                  value={detail.reps}
+                                  onChange={(e) =>
+                                    updateExerciseDetail(
+                                      selectedWeek,
+                                      selectedDay,
+                                      exerciseIndex,
+                                      detailIndex,
+                                      "reps",
+                                      e.target.value
+                                    )
+                                  }
+                                  disabled={detail.isCompleted || !isSetEnabled}
+                                  min={1}
+                                />
+                              </div>
+                              {
+                                <div className="flex items-center gap-x-3">
+                                  {!detail?.isCompleted && detail.reps && (
+                                    <>
+                                      {timerIntervals.current[timerKey] ===
+                                        undefined && (
+                                        <>
+                                          {
+                                            <i
+                                              className="text-red-500 cursor-pointer fa-solid fa-play"
+                                              disabled={!isSetEnabled}
+                                              onClick={() => {
+                                                startSetTimer(
+                                                  selectedWeek,
+                                                  selectedDay,
+                                                  exerciseIndex,
+                                                  detailIndex
+                                                );
+                                                setToggleCheck(true);
+                                              }}
+                                            />
+                                          }
+                                        </>
+                                      )}
+                                    </>
+                                  )}
+                                  {!detail.isCompleted ? (
+                                    <>
+                                      {isSetEnabled && toggleCheck && (
+                                        <i
+                                          className={`text-white cursor-pointer fa-solid fa-check`}
+                                          onClick={() => {
+                                            saveExerciseSet(
+                                              selectedWeek,
+                                              selectedDay,
+                                              exerciseIndex,
+                                              detailIndex
+                                            );
+                                            setToggleCheck(false);
+                                            setEditToggle(true);
+                                          }}
+                                          disabled={!isSetEnabled}
+                                        />
+                                      )}
+                                    </>
+                                  ) : (
+                                    <button
+                                      className={`text-white cursor-pointer`}
+                                      onClick={() => {
+                                        editExerciseSet(
+                                          selectedWeek,
+                                          selectedDay,
+                                          exerciseIndex,
+                                          detailIndex
+                                        );
+
+                                        setToggleCheck(true);
+                                        setEditToggle(false);
+                                        // setEditValue("edit");
+                                      }}
+                                    >
+                                      ✎
+                                    </button>
+                                  )}
+
+                                  {workoutData?.setUpdate && (
+                                    <>
+                                      {!detail?.isCompleted &&
+                                        editValue !== "edit" && (
                                           <i
-                                            className={`text-white cursor-pointer fa-solid fa-check`}
-                                            onClick={() => {
-                                              saveExerciseSet(
+                                            className="text-red-500 cursor-pointer fa-solid fa-circle-xmark"
+                                            onClick={async () => {
+                                              await removeExerciseDetail(
+                                                selectedWeek,
+                                                selectedDay,
+                                                exerciseIndex,
+                                                detailIndex
+                                              );
+                                              stopSetTimer(
                                                 selectedWeek,
                                                 selectedDay,
                                                 exerciseIndex,
                                                 detailIndex
                                               );
                                               setToggleCheck(false);
-                                              setEditToggle(true);
                                             }}
-                                            disabled={!isSetEnabled}
                                           />
                                         )}
-                                      </>
-                                    ) : (
-                                      <button
-                                        className={`text-white cursor-pointer`}
-                                        onClick={() => {
-                                          editExerciseSet(
-                                            selectedWeek,
-                                            selectedDay,
-                                            exerciseIndex,
-                                            detailIndex
-                                          );
-                                          setToggleCheck(true);
-                                          setEditToggle(false);
-                                          // setEditValue("edit");
-                                        }}
-                                      >
-                                        ✎
-                                      </button>
-                                    )}
-                                    
-                                    {workoutData?.setUpdate && (
-                                      <>
-                                        {!detail?.isCompleted &&
-                                          editValue !== "edit" && (
-                                            <i
-                                              className="text-red-500 cursor-pointer fa-solid fa-circle-xmark"
-                                              onClick={() => {
-                                                removeExerciseDetail(
-                                                  selectedWeek,
-                                                  selectedDay,
-                                                  exerciseIndex,
-                                                  detailIndex
-                                                );
-                                                stopSetTimer(
-                                                  selectedWeek,
-                                                  selectedDay,
-                                                  exerciseIndex,
-                                                  detailIndex
-                                                );
-                                                setSetTimers({});
-                                                setToggleCheck(false);
-                                              }}
-                                            />
-                                          )}
-                                      </>
-                                    )}
-                                  </div>
-                                }
-                              </div>
-                              <div
-                                className={`flex items-center pb-2 text-white cursor-pointer`}
-                              >
-                                {setTimers[timerKey] !== undefined &&
-                                  !detail.isCompleted && (
+                                    </>
+                                  )}
+                                </div>
+                              }
+                            </div>
+                            <div
+                              className={`flex items-center pb-2 text-white cursor-pointer`}
+                            >
+                              {setTimers[timerKey] !== undefined &&
+                                !detail.isCompleted && (
+                                  <>
+                                    <p>
+                                      <i className="mr-2 font-semibold fa-duotone fa-solid fa-timer "></i>
+                                    </p>
+                                    <p className="pr-3 text-xs whitespace-nowrap">
+                                      {formatSetTimer(setTimers[timerKey])} sec
+                                    </p>
+                                  </>
+                                )}
+
+                              {detail.isCompleted && (
+                                <>
+                                  <p>
+                                    <i className="mr-2 font-semibold text-white fa-duotone fa-solid fa-timer "></i>
+                                  </p>
+
+                                  <p className="pr-3 text-xs text-gray-300 whitespace-nowrap">
+                                    {formatSetTimer(
+                                      workoutData?.exerciseHistory[
+                                        `${selectedWeek}-${selectedDay}-${exerciseIndex}`
+                                      ]?.[detailIndex]?.duration || 0
+                                    )}{" "}
+                                    Sec
+                                  </p>
+                                </>
+                              )}
+
+                              {detail?.isCompleted && (
+                                <>
+                                  {workoutData?.exerciseHistory[
+                                    `${selectedWeek}-${selectedDay}-${exerciseIndex}`
+                                  ][detailIndex]?.restTime && (
                                     <>
+                                      {" "}
                                       <p>
-                                        <i className="mr-2 font-semibold fa-duotone fa-solid fa-timer "></i>
+                                        <i className="pr-2 font-semibold text-white fa-solid fa-person-seat"></i>
                                       </p>
-                                      <p className="pr-3 text-xs whitespace-nowrap">
-                                        {formatSetTimer(setTimers[timerKey])} sec
+                                      <p className="pr-3 text-xs text-gray-300 whitespace-nowrap">
+                                        {formatTime(
+                                          workoutData.exerciseHistory[
+                                            `${selectedWeek}-${selectedDay}-${exerciseIndex}`
+                                          ][detailIndex].restTime
+                                        )}{" "}
+                                        sec
                                       </p>
                                     </>
                                   )}
+                                </>
+                              )}
 
-                                  {detail.isCompleted && (
-                                      <>
-                                        <p>
-                                          <i className="mr-2 font-semibold text-white fa-duotone fa-solid fa-timer "></i>
-                                        </p>
-                                       
-                                          <p className="pr-3 text-xs text-gray-300 whitespace-nowrap">
-                                          {formatSetTimer(
-                                              workoutData?.exerciseHistory[
-                                                  `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                                                ]?.[detailIndex]?.duration || 0
-                                              )}{" "}
-                                           Sec
-                                        </p>
-                                      </>
-                                  )}
-
-                                {detail?.isCompleted && (
-                                  <>
-                                    {workoutData?.exerciseHistory[
-                                      `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                                    ][detailIndex]?.restTime && (
-                                      <>
-                                        {" "}
-                                        <p>
-                                          <i className="pr-2 font-semibold text-white fa-solid fa-person-seat"></i>
-                                        </p>
-                                        <p className="pr-3 text-xs text-gray-300 whitespace-nowrap">
-                                          {formatTime(
-                                            workoutData.exerciseHistory[
-                                              `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                                            ][detailIndex].restTime
-                                          )}{" "}
-                                          sec
-                                        </p>
-                                      </>
+                              {detail.isCompleted && (
+                                <>
+                                  <p>
+                                    <i className="pr-2 font-semibold text-white fa-duotone fa-solid fa-weight-hanging whitespace-nowrap"></i>
+                                  </p>
+                                  <p className="text-xs text-gray-300 whitespace-nowrap">
+                                    {formatVolume(
+                                      setVolume,
+                                      exercise.equipment
                                     )}
-                                  </>
-                                )}
+                                  </p>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {selectedWeek > 0 &&
+                        getPreviousRecord(
+                          selectedWeek,
+                          selectedDay,
+                          exerciseIndex
+                        ) && (
+                          <div className="mt-2 text-sm text-gray-300">
+                            Previous:{" "}
+                            {getPreviousRecord(
+                              selectedWeek,
+                              selectedDay,
+                              exerciseIndex
+                            ).map((set, index) => (
+                              <span key={index}>
+                                {set.weight && `${set.weight} kg x `}
+                                {set.reps} reps
+                                {index <
+                                getPreviousRecord(
+                                  selectedWeek,
+                                  selectedDay,
+                                  exerciseIndex
+                                ).length -
+                                  1
+                                  ? ", "
+                                  : ""}
+                              </span>
+                            ))}
+                          </div>
+                        )}
 
-                                {detail.isCompleted && (
-                                  <>
-                                    <p>
-                                      <i className="pr-2 font-semibold text-white fa-duotone fa-solid fa-weight-hanging whitespace-nowrap"></i>
-                                    </p>
-                                    <p className="text-xs text-gray-300 whitespace-nowrap">
-                                      {formatVolume(
-                                        setVolume,
-                                        exercise.equipment
-                                      )}
-                                    </p>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {selectedWeek > 0 &&
-                          getPreviousRecord(
-                            selectedWeek,
-                            selectedDay,
-                            exerciseIndex
-                          ) && (
-                            <div className="mt-2 text-sm text-gray-300">
-                              Previous:{" "}
-                              {getPreviousRecord(
-                                selectedWeek,
-                                selectedDay,
-                                exerciseIndex
-                              ).map((set, index) => (
-                                <span key={index}>
-                                  {set.weight && `${set.weight} kg x `}
-                                  {set.reps} reps
-                                  {index <
-                                  getPreviousRecord(
-                                    selectedWeek,
-                                    selectedDay,
-                                    exerciseIndex
-                                  ).length -
-                                    1
-                                    ? ", "
-                                    : ""}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                        {isTimerRunning &&
-                          activeExerciseSet?.exercise === exerciseIndex && (
-                            <div className="flex items-center justify-center gap-x-4">
-                              <button
-                                onClick={stopTimer}
-                                className="px-3 py-2 mt-3 text-sm font-semibold text-white bg-red-500 rounded-full"
-                                disabled={!EditToggle}
-                              >
-                                <i className="mr-3 fa-solid fa-circle-stop"></i>
-                                Stop  ({formatTime(elapsedTime)})
-                              </button>
-                            </div>
-                          )}
-                      </div>
+                      {isTimerRunning &&
+                        activeExerciseSet?.exercise === exerciseIndex && (
+                          <div className="flex items-center justify-center gap-x-4">
+                            <button
+                              onClick={stopTimer}
+                              className="px-3 py-2 mt-3 text-sm font-semibold text-white bg-red-500 rounded-full"
+                              disabled={!EditToggle}
+                            >
+                              <i className="mr-3 fa-solid fa-circle-stop"></i>
+                              Stop  ({formatTime(elapsedTime)})
+                            </button>
+                          </div>
+                        )}
                     </div>
-                  );
-                }
-              )}
-            </div>
-
-            {!isTimerRunning && <>
-              {!isEntirePlanCompleted() && (
-              <>
-                {isAllExercisesInDayCompleted() &&
-                  (selectedDay < workoutData.daysPerWeek - 1 ||
-                    selectedWeek < workoutData.weeks - 1) && (
-                    <button
-                      onClick={() => {
-                        lockPreviousTabs && moveToNextDay();
-
-                        router.push("/SavedPlan");
-                      }}
-                      className="float-right px-6 py-2 mt-4 mb-2 text-white bg-black rounded-lg"
-                    >
-                      
-                      Complete Workout
-                    </button>
-                  )}
-              </>
+                  </div>
+                );
+              }
             )}
-            </>}
-            {!isTimerRunning && <>
+          </div>
+
+          {!isTimerRunning && (
+            <>
+              {!isEntirePlanCompleted() && (
+                <>
+                  {isAllExercisesInDayCompleted() &&
+                    (selectedDay < workoutData.daysPerWeek - 1 ||
+                      selectedWeek < workoutData.weeks - 1) && (
+                      <button
+                        onClick={() => {
+                          lockPreviousTabs && moveToNextDay();
+
+                          router.push("/SavedPlan");
+                        }}
+                        className="float-right px-6 py-2 mt-4 mb-2 text-white bg-black rounded-lg"
+                      >
+                        Complete Workout
+                      </button>
+                    )}
+                </>
+              )}
+            </>
+          )}
+          {!isTimerRunning && (
+            <>
               {isEntirePlanCompleted() && (
                 <>
-                {isAllExercisesInDayCompleted() &&
-              <button
-                onClick={() => finishPlan()}
-                className="px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
-              >
-                Finish Plan
-              </button>
-                }
-              </>
-            )}
-            </>}
+                  {isAllExercisesInDayCompleted() && (
+                    <button
+                      onClick={() => finishPlan()}
+                      className="px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
+                    >
+                      Finish Plan
+                    </button>
+                  )}
+                </>
+              )}
+            </>
+          )}
 
-            
-
-            <OffCanvasComp
-              placement="end"
-              name="savePlan"
-              showProps={show}
+          <OffCanvasComp
+            placement="end"
+            name="savePlan"
+            showProps={show}
+            handleClose={handleOpenClose}
+            customStyle="pl-4 py-4"
+          >
+            <ExerciseDeatil
               handleClose={handleOpenClose}
-              customStyle="pl-4 py-4"
-            >
-              <ExerciseDeatil
-                handleClose={handleOpenClose}
-                data={selectedExercise}
-              />
-            </OffCanvasComp>
-          </div>
+              data={selectedExercise}
+            />
+          </OffCanvasComp>
         </div>
-      </>
-    );
-  };
+      </div>
+    </>
+  );
+};
 
 export default PlanDetail;

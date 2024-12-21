@@ -47,7 +47,7 @@ const createPlanPage = () => {
   const [saveAttempted, setSaveAttempted] = useState(false);
   const weekRefs = useRef([]);
   const scrollContainerRef = useRef(null);
-  const [isChecked, setIsChecked] = useState(false);
+  const [isChecked, setIsChecked] = useState(true);
 
   const [openAccordion, setOpenAccordion] = useState({
     weekIndex: null,
