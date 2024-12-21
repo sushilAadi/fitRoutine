@@ -63,7 +63,7 @@ const PlanDetail = ({ params }) => {
 
     try {
       if (!userId) {
-        setError("User not logged in.");
+        setError("Loading...");
         return;
       }
 
@@ -997,7 +997,7 @@ const PlanDetail = ({ params }) => {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="p-4 text-red-700 bg-red-100 border border-red-400 rounded-md">
-          Error: {error}
+           {error}
         </div>
       </div>
     );
@@ -1321,7 +1321,7 @@ const PlanDetail = ({ params }) => {
                                                 exerciseIndex,
                                                 detailIndex
                                               );
-                                              setToggleCheck(false);
+                                              // setToggleCheck(false);
                                             }}
                                           />
                                         )}
