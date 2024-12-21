@@ -6,6 +6,7 @@ import { supabase } from '@/createClient';
 import { useQuery } from '@tanstack/react-query';
 import Dexie from "dexie";
 import _ from "lodash";
+import { getExercisesGif } from "@/service/exercise";
 
 // Initialize Dexie database
 const db = new Dexie("WorkoutApp");
@@ -117,6 +118,15 @@ export default function GlobalContextProvider({ children }) {
 
   const handleOpenClose = () => setShow(!show);
   const latestWeight = _.maxBy(userWeightData, (entry) => new Date(entry?.created_at))?.userWeights;
+
+  const handleImage=async()=>{
+    const data =await  getExercisesGif()
+    console.log("process image",data)
+  }
+
+  useEffect(()=>{
+    handleImage()
+  },[])
   
 
   const contextValue = useMemo(() => {

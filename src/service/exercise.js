@@ -30,6 +30,14 @@ export const getExercises = async () => {
     handleApiError(error);
   }
 };
+export const getExercisesGif = async () => {
+  try {
+    const response = await exerciseApi.get('/exercises/exercise/0001');
+    return response.data.gifUrl;
+  } catch (error) {
+    handleApiError(error);
+  }
+};
 
 export const getExercisesByName = async (name, limit = 800, offset = 0) => {
   try {
