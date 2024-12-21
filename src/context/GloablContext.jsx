@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import Dexie from "dexie";
 import _ from "lodash";
 import { getExercisesGif } from "@/service/exercise";
+import { calculateAge } from "@/utils";
 
 // Initialize Dexie database
 const db = new Dexie("WorkoutApp");
@@ -101,7 +102,7 @@ export default function GlobalContextProvider({ children }) {
   
   const userDetailData = userDetail?.[0] || {}
 
-
+  
   const [gender, setGender] = useState(null);
   const [weight, setWeight] = useState(50);
   const [height, setHeight] = useState(152);
@@ -112,12 +113,12 @@ export default function GlobalContextProvider({ children }) {
   const [activityLevel,setActivityLevel] = useState(null);
   
 
-
+  const userAgeCal = calculateAge(userDetailData?.userBirthDate);
 
   const [show, setShow] = useState(false);
 
   const handleOpenClose = () => setShow(!show);
-  const latestWeight = _.maxBy(userWeightData, (entry) => new Date(entry?.created_at))?.userWeights;
+  const latestWeight = _.maxBy(userWeightData, (entry) => new Date(entry?.created_at));
 
   const handleImage=async()=>{
     const data =await  getExercisesGif()
@@ -146,9 +147,10 @@ export default function GlobalContextProvider({ children }) {
       userWeightRefetch,
       latestWeight,
       userId,
-      fetchPlans
+      fetchPlans,
+      userAgeCal
     };
-  }, [ gender, weight, height, age,userDetailData,isFetching,show,selectedGoals,activityLevel,latestWeight]);
+  }, [ gender, weight, height, age,userDetailData,isFetching,show,selectedGoals,activityLevel,latestWeight,userAgeCal]);
 
   return (
    

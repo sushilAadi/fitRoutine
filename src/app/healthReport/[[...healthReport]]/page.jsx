@@ -34,7 +34,7 @@ const healthReport = () => {
 
   
 
-  if (!latestWeight || !userHeight || !userBirthDate || !userGender) {
+  if (!latestWeight?.userWeights || !userHeight || !userBirthDate || !userGender) {
     return (
       <SecureComponent>
         <div className="p-4 text-red-700 bg-red-100 rounded">
@@ -46,7 +46,7 @@ const healthReport = () => {
 
   const userAgeCal = calculateAge(userBirthDate);
   const heightInMeters = userHeight / 100;
-  const weightInKg = Number(latestWeight);
+  const weightInKg = Number(latestWeight?.userWeights);
   
 
   const safeCalculate = (calculation, fallback = 0) => {

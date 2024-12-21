@@ -51,9 +51,9 @@ export default function FitnessTrackerDashboard() {
   const userAgeCal = calculateAge(userBirthDate);
   
 
-  const bmi = calculateBMI(latestWeight, userHeight);
+  const bmi = calculateBMI(latestWeight?.userWeights, userHeight);
   const maintenanceCalories = calculateCalories(
-    latestWeight,
+    latestWeight?.userWeights,
     userHeight,
     userAgeCal,
     userGender,
@@ -88,11 +88,11 @@ export default function FitnessTrackerDashboard() {
     },
     {
       name: "Weight",
-      value: `${latestWeight} kg`, // Show weight directly
+      value: `${latestWeight?.userWeights} kg`, // Show weight directly
       trend: "down",
       color: "bg-[#F2CCFF]",
       textColor: "text-[#B55CC2]",
-      requirement: `Current: ${latestWeight} kg`,
+      requirement: `Current: ${latestWeight?.userWeights} kg`,
     },
   ];
 

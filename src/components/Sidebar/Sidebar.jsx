@@ -74,6 +74,14 @@ const Sidebar = ({}) => {
             </Link>
           </ListItem>
           <ListItem>
+            <ListItemPrefix>
+            <i className="fa-duotone fa-light fa-user-vneck-hair h-5 w-5 !mr-2 drop-shadow-lg"></i>
+            </ListItemPrefix>
+            <Link href="/profile" className="no-underline text-inherit" onClick={handleOpenClose}>
+              Profile
+            </Link>
+          </ListItem>
+          <ListItem>
             <UserButton />
           </ListItem>
         </List>

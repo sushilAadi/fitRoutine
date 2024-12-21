@@ -10,18 +10,14 @@ import { useUser } from '@clerk/clerk-react';
 import { supabase } from '@/createClient'
 import { Calendar } from 'primereact/calendar';
 import { format } from 'date-fns';
+import { normalizeToLocalDate } from "@/utils";
 
 const AgeSelection = ({ step, setStep }) => {
     const { user } = useUser();
     const {id,fullName,primaryEmailAddress} = user || {}
     const {age,height,gender,weight, setAge,userRefetch,selectedGoals,activityLevel,userWeightRefetch} = useContext(GlobalContext)
     
-    const normalizeToLocalDate = (date) => {
-      if (!date) return null;
-      // Create a new Date object with only the date part (set hours to 0)
-      const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      return normalizedDate.toISOString().split('T')[0]; // Return "YYYY-MM-DD"
-  };
+
 
     const postUserDetail =async()=>{
       const localAge = normalizeToLocalDate(age);

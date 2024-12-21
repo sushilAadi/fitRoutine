@@ -59,3 +59,10 @@ export const calculateBMI = (weight, height) => {
   const heightInMeters = height / 100;
   return (weight / (heightInMeters * heightInMeters)).toFixed(1);
 };
+
+export const normalizeToLocalDate = (date) => {
+  if (!date) return null;
+  // Create a new Date object with only the date part (set hours to 0)
+  const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  return normalizedDate.toISOString().split('T')[0]; // Return "YYYY-MM-DD"
+};
