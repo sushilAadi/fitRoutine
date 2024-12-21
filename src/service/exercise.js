@@ -24,7 +24,7 @@ const handleApiError = (error) => {
 
 export const getExercises = async () => {
   try {
-    const response = await exerciseApi.get('/exercises?limit=500&offset=0');
+    const response = await exerciseApi.get('/exercises?limit=2000&offset=0');
     return response.data;
   } catch (error) {
     handleApiError(error);

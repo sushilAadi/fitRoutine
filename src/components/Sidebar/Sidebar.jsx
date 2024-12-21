@@ -22,12 +22,12 @@ const Sidebar = ({}) => {
   
   return (
     <div className='h-full overflow-x-hidden overflow-y-auto '>
-      <Card className="w-full h-full p-3 rounded-0 ">
+      <Card className="w-full h-full p-3 bg-glass rounded-0 ">
         <div className="flex items-center justify-between px-4 ">
             <Image src={logo} alt="logo" width={45} height={45} />
             <i className="text-red-500 cursor-pointer fa-solid fa-xmark" onClick={handleOpenClose}/>
         </div>
-        <List>
+        <List className="font-semibold text-white">
           
           
           {/* <ListItem>
@@ -40,7 +40,7 @@ const Sidebar = ({}) => {
           </ListItem> */}
           <ListItem>
             <ListItemPrefix>
-            <i className="fa-duotone fa-light fa-house h-5 w-5 !mr-2"/>
+            <i className="fa-duotone fa-light fa-house h-5 w-5 !mr-2 drop-shadow-lg "/>
               
             </ListItemPrefix>
             <Link href="/" className="no-underline text-inherit" onClick={handleOpenClose}>
@@ -49,7 +49,7 @@ const Sidebar = ({}) => {
           </ListItem>
           <ListItem>
             <ListItemPrefix>
-            <i className="fa-duotone fa-solid fa-layer-plus h-5 w-5 !mr-2"></i>
+            <i className="fa-duotone fa-solid fa-layer-plus h-5 w-5 !mr-2 drop-shadow-lg"></i>
               
             </ListItemPrefix>
             <Link href="/createPlanPage" className="no-underline text-inherit" onClick={handleOpenClose}>
@@ -58,7 +58,7 @@ const Sidebar = ({}) => {
           </ListItem>
           <ListItem>
             <ListItemPrefix>
-            <i className="fa-duotone fa-thin fa-floppy-disk h-5 w-5 !mr-2"></i>
+            <i className="fa-duotone fa-thin fa-floppy-disk h-5 w-5 !mr-2 drop-shadow-lg"></i>
             </ListItemPrefix>
             <Link href="/SavedPlan" className="no-underline text-inherit" onClick={handleOpenClose}>
               Saved Plan
@@ -66,7 +66,7 @@ const Sidebar = ({}) => {
           </ListItem>
           <ListItem>
             <ListItemPrefix>
-            <i className="fa-duotone fa-solid fa-notes-medical h-5 w-5 !mr-2"></i>
+            <i className="fa-duotone fa-solid fa-notes-medical h-5 w-5 !mr-2 drop-shadow-lg"></i>
               
             </ListItemPrefix>
             <Link href="/healthReport" className="no-underline text-inherit" onClick={handleOpenClose}>

@@ -1,20 +1,21 @@
 import React, { useEffect, useMemo, useState } from "react";
 import _ from "lodash";
+import { FixedSizeList } from 'react-window';
 import PillButton from "../Button/PillButton";
 import { useQuery } from "@tanstack/react-query";
 import { getExercises } from "@/service/exercise";
 import CCard from "../CCard";
 import ButtonCs from "../Button/ButtonCs";
 
-const ExerciseCard = ({ onSelectExercise, handleClose, formData,currentWeekIndex, currentDayIndex  }) => {
-  const { planName, weeks, daysPerWeek, workoutPlan } = formData;
+const ExerciseCard = ({ onSelectExercise, handleClose, formData, currentWeekIndex, currentDayIndex }) => {
+  const { planName, workoutPlan } = formData;
+  const CARD_WIDTH = 166; // Width of each card
+  const ROW_HEIGHT = 280; // Increased height to accommodate vertical spacing
+  const ROW_PADDING = 16; // Horizontal padding
+  const VERTICAL_SPACING = 24; // Vertical spacing between cards
 
   const isExerciseSelected = (exercise) => {
-    if (!workoutPlan || !workoutPlan[currentWeekIndex] || !workoutPlan[currentWeekIndex][currentDayIndex]) {
-      return false;
-    }
-    
-    // Only check exercises for the current day
+    if (!workoutPlan?.[currentWeekIndex]?.[currentDayIndex]) return false;
     const currentDayExercises = workoutPlan[currentWeekIndex][currentDayIndex].exercises;
     return currentDayExercises.some(e => e.id === exercise.id);
   };
@@ -28,76 +29,112 @@ const ExerciseCard = ({ onSelectExercise, handleClose, formData,currentWeekIndex
   };
 
   const [buttonText, setButtonText] = useState("Please select and proceed");
-
-  useEffect(() => {
-    if (!workoutPlan[currentWeekIndex] || !workoutPlan[currentWeekIndex][currentDayIndex]) {
-      setButtonText("Please select and proceed");
-      return;
-    }
-    
-    const currentDayExercises = workoutPlan[currentWeekIndex][currentDayIndex].exercises;
-    setButtonText(currentDayExercises.length === 0 ? "Please select and proceed" : "Complete");
-  }, [workoutPlan, currentWeekIndex, currentDayIndex]);
-
-  const {
-    data: exercisesData,
-    error: exerciseError,
-    refetch: exerciseRefetch,
-    isFetching,
-  } = useQuery({
-    queryKey: ["exercise"],
-    queryFn: getExercises,
-    refetchOnWindowFocus: false,
-    infinite: false,
-  });
-
   const [filterToggle, setFilterToggle] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
 
-  const getFilterArray = _.memoize((exercisesData) => {
-    if (!exercisesData) return ["All"];
-    return ["All", ..._.sortBy(_.uniq(exercisesData.map((i) => i?.target)))];
+  // Ref for the container div
+  const containerRef = React.useRef(null);
+
+  // Update container size on mount and resize
+  useEffect(() => {
+    const updateSize = () => {
+      if (containerRef.current) {
+        setContainerSize({
+          width: containerRef.current.offsetWidth,
+          height: containerRef.current.offsetHeight
+        });
+      }
+    };
+
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
+  const { data: exercisesData = [] } = useQuery({
+    queryKey: ["exercise"],
+    queryFn: getExercises,
+    refetchOnWindowFocus: false,
   });
 
-  const getFilteredExercises = _.memoize((exercisesData, selectedFilter) => {
-    if (!exercisesData) return [];
-    return exercisesData.filter(
-      (exercise) => selectedFilter === "All" || exercise.target === selectedFilter
-    );
-  });
-
-  const getSearchedExercises = _.memoize((filteredExercises, searchTerm) => {
-    return filteredExercises.filter(
-      (exercise) =>
-        exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        exercise.bodyPart.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  });
-
-  const getSortedExercises = _.memoize((searchedExercises, selectedFilter) => {
-    return _.sortBy(searchedExercises, (exercise) =>
-      exercise.target === selectedFilter ? -1 : 1
-    );
-  });
-
-  const filterArray = useMemo(
-    () => getFilterArray(exercisesData),
+  // Memoized filter and sort operations
+  const filterArray = useMemo(() => 
+    ["All", ..._.sortBy(_.uniq(exercisesData.map(i => i?.target)))],
     [exercisesData]
   );
-  const shortedFilter = [..._.sortBy(filterArray)];
-  const filteredExercises = useMemo(
-    () => getFilteredExercises(exercisesData, selectedFilter),
-    [exercisesData, selectedFilter]
-  );
-  const searchedExercises = useMemo(
-    () => getSearchedExercises(filteredExercises, searchTerm),
-    [filteredExercises, searchTerm]
-  );
-  const sortedExercises = useMemo(
-    () => getSortedExercises(searchedExercises, selectedFilter),
-    [searchedExercises, selectedFilter]
-  );
+
+  const sortedExercises = useMemo(() => {
+    let filtered = exercisesData;
+    
+    if (selectedFilter !== "All") {
+      filtered = filtered.filter(exercise => exercise.target === selectedFilter);
+    }
+    
+    if (searchTerm) {
+      filtered = filtered.filter(exercise => 
+        exercise.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        exercise.bodyPart.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    return _.sortBy(filtered, exercise => 
+      exercise.target === selectedFilter ? -1 : 1
+    );
+  }, [exercisesData, selectedFilter, searchTerm]);
+
+  // Calculate items per row based on container width
+  const itemsPerRow = Math.floor((containerSize.width - (ROW_PADDING * 2)) / CARD_WIDTH);
+  const rows = Math.ceil(sortedExercises.length / itemsPerRow);
+
+  // Row renderer for react-window
+  const Row = ({ index, style }) => {
+    const startIndex = index * itemsPerRow;
+    const rowExercises = sortedExercises.slice(startIndex, startIndex + itemsPerRow);
+    
+    return (
+      <div style={{
+        ...style,
+        display: 'flex',
+        justifyContent: 'space-between',
+        padding: `0 ${ROW_PADDING}px`,
+        marginBottom: VERTICAL_SPACING,
+      }}>
+        {rowExercises.map((exercise) => (
+          <div 
+            className="relative" 
+            key={exercise.id}
+            style={{ marginBottom: VERTICAL_SPACING }}
+          >
+            <CCard
+              onClick={() => handleExerciseClick(exercise)}
+              img={exercise.gifUrl}
+              bgColor="bg-[#DBFE02]"
+              parentStyle="min-w-[166px] max-w-[166px]"
+              caption={exercise.bodyPart}
+              title={exercise.target}
+              name={exercise.name}
+            />
+            {isExerciseSelected(exercise) && (
+              <div className="absolute w-[20px] h-[20px] bg-white rounded bottom-[8px] right-[-6px] z-10 flex justify-center items-center">
+                <i className="text-red-500 fa-regular fa-circle-check"/>
+              </div>
+            )}
+          </div>
+        ))}
+        {/* Add spacer elements to maintain justify-between alignment */}
+        {rowExercises.length < itemsPerRow && 
+          [...Array(itemsPerRow - rowExercises.length)].map((_, i) => (
+            <div 
+              key={`spacer-${i}`} 
+              style={{ width: CARD_WIDTH }}
+            />
+          ))
+        }
+      </div>
+    );
+  };
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -108,6 +145,7 @@ const ExerciseCard = ({ onSelectExercise, handleClose, formData,currentWeekIndex
         </div>
         
         <p className="my-2 text-gray-400">Week {currentWeekIndex + 1} | Day {currentDayIndex + 1}</p>
+        
         <div className="flex gap-1">
           <PillButton
             onClick={() => setFilterToggle(!filterToggle)}
@@ -115,23 +153,23 @@ const ExerciseCard = ({ onSelectExercise, handleClose, formData,currentWeekIndex
             title="Filter"
             icon={<i className="pr-2 fa-solid fa-arrow-right-arrow-left" />}
           />
-
+          
           <div className="flex overflow-y-scroll no-scrollbar rounded-pill">
-            {filterToggle &&
-              shortedFilter?.map((i) => (
-                <PillButton
-                  key={i}
-                  onClick={() => {
-                    setSelectedFilter(i);
-                    setSearchTerm("");
-                  }}
-                  className={`${
-                    i === selectedFilter ? "bg-black text-white" : "bg-white"
-                  } borderOne mr-2 h-[36px] flex items-center justify-center w-100`}
-                  title={_.upperFirst(i)}
-                />
-              ))}
+            {filterToggle && filterArray.map(filter => (
+              <PillButton
+                key={filter}
+                onClick={() => {
+                  setSelectedFilter(filter);
+                  setSearchTerm("");
+                }}
+                className={`${
+                  filter === selectedFilter ? "bg-black text-white" : "bg-white"
+                } borderOne mr-2 h-[36px] flex items-center justify-center w-100`}
+                title={_.upperFirst(filter)}
+              />
+            ))}
           </div>
+          
           <div className={`flex items-center bg-white justfy-end border-2 rounded-pill overflow-hidden h-[36px] min-w-[36px] inputContainer ${
             !filterToggle ? "w-full" : "w-0"
           }`}>
@@ -152,36 +190,28 @@ const ExerciseCard = ({ onSelectExercise, handleClose, formData,currentWeekIndex
             />
           </div>
         </div>
+        
         <h6 className="mt-2 font-semibold text-white">
           {_.upperFirst(selectedFilter)} ({sortedExercises?.length})
         </h6>
       </div>
-      <div className="flex flex-wrap justify-between p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">
-        {sortedExercises.map((i) => {
-          const image = i?.gifUrl;
-          const isSelected = isExerciseSelected(i);
-          
-          return (
-            <div className="relative" key={i.id}>
-              <CCard
-                onClick={() => handleExerciseClick(i)}
-                img={image}
-                bgColor="bg-[#DBFE02]"
-                parentStyle="min-w-[166px] max-w-[166px] mb-3"
-                caption={i?.bodyPart}
-                title={i?.target}
-                name={i?.name}
-              />
-              {isSelected && (
-                <div className="absolute w-[20px] h-[20px] bg-white rounded bottom-[8px] right-[-6px] z-10 flex justify-center items-center">
-                  <i className="text-red-500 fa-regular fa-circle-check"/>
-                </div>
-              )}
-            </div>
-          );
-        })}
+
+      <div ref={containerRef} className="flex-1 overflow-hidden">
+        {containerSize.width > 0 && (
+          <FixedSizeList
+            className="my-4 no-scrollbar"
+            height={containerSize.height}
+            itemCount={rows}
+            itemSize={ROW_HEIGHT}
+            width={containerSize.width}
+            overscanCount={2}
+          >
+            {Row}
+          </FixedSizeList>
+        )}
       </div>
-      {sortedExercises?.length !== 0 && (
+
+      {sortedExercises?.length > 0 && (
         <div className="p-3">
           <ButtonCs
             title={buttonText}
