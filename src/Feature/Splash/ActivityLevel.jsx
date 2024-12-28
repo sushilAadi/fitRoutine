@@ -1,53 +1,13 @@
 "use client";
 import FooterButton from "@/components/Button/FooterButton";
 import { GlobalContext } from "@/context/GloablContext";
+import { activity_goals } from "@/utils";
 import React, { useContext } from "react";
 
 const ActivityLevel = ({ step, setStep }) => {
   const { activityLevel, setActivityLevel } = useContext(GlobalContext);
 
-  const goals = [
-    {
-      id: "sedentary",
-      title: "Sedentary",
-      subtitle: "Little to no exercise",
-      icon: "🪑",
-      color: "bg-gray-100",
-      factor: 1.2,
-    },
-    {
-      id: "lightly-active",
-      title: "Lightly Active",
-      subtitle: "Light exercise/sports 1-3 days/week",
-      icon: "🚶‍♂️",
-      color: "bg-green-100",
-      factor: 1.375,
-    },
-    {
-      id: "moderately-active",
-      title: "Moderately Active",
-      subtitle: "Moderate exercise/sports 3-5 days/week",
-      icon: "🏃‍♂️",
-      color: "bg-yellow-100",
-      factor: 1.55,
-    },
-    {
-      id: "very-active",
-      title: "Very Active",
-      subtitle: "Hard exercise/sports 6-7 days/week",
-      icon: "🏋️‍♂️",
-      color: "bg-orange-100",
-      factor: 1.725,
-    },
-    {
-      id: "super-active",
-      title: "Super Active",
-      subtitle: "Very hard exercise/physical job",
-      icon: "🔥",
-      color: "bg-red-100",
-      factor: 1.9,
-    },
-  ];
+  
 
   // Set selected activity level with its factor
   const selectActivityLevel = (goal) => {
@@ -75,7 +35,7 @@ const ActivityLevel = ({ step, setStep }) => {
         <div className="max-w-md mx-auto">
           {/* Goals */}
           <div className="space-y-3">
-            {goals.map((goal) => (
+            {activity_goals.map((goal) => (
               <button
                 key={goal.id}
                 onClick={() => selectActivityLevel(goal)}

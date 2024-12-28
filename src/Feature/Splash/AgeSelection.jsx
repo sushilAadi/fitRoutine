@@ -79,7 +79,10 @@ const AgeSelection = ({ step, setStep }) => {
                 <p className="text-center text-gray-500">
                 tailored just for you.
                 </p>
+                <div className="flex justify-center">
+
             <Calendar value={age} onChange={(e) => setAge(e.value)} inline showWeek className="px-4 mt-5" maxDate={new Date()} showButtonBar />
+                </div>
             </div>
             
        

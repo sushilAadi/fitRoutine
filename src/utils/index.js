@@ -66,3 +66,79 @@ export const normalizeToLocalDate = (date) => {
   const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   return normalizedDate.toISOString().split('T')[0]; // Return "YYYY-MM-DD"
 };
+
+export const goals = [
+  {
+    id: "weight-loss",
+    title: "Weight loss",
+    icon: "🍎",
+    color: "bg-rose-200",
+  },
+  {
+    id: "weight-gain",
+    title: "Weight Gain",
+    icon: "🍛",
+    color: "bg-yellow-200",
+  },
+  {
+    id: "better-sleep",
+    title: "Better sleeping habit",
+    icon: "🌙",
+    color: "bg-slate-700",
+  },
+  {
+    id: "nutrition",
+    title: "Track my nutrition",
+    icon: "🥑",
+    color: "bg-gray-100",
+  },
+  {
+    id: "fitness",
+    title: "Improve overall fitness",
+    icon: "💪",
+    color: "bg-gray-100",
+  },
+];
+
+export const activity_goals = [
+  {
+    id: "sedentary",
+    title: "Sedentary",
+    subtitle: "Little to no exercise",
+    icon: "🪑",
+    color: "bg-gray-100",
+    factor: 1.2,
+  },
+  {
+    id: "lightly-active",
+    title: "Lightly Active",
+    subtitle: "Light exercise/sports 1-3 days/week",
+    icon: "🚶‍♂️",
+    color: "bg-green-100",
+    factor: 1.375,
+  },
+  {
+    id: "moderately-active",
+    title: "Moderately Active",
+    subtitle: "Moderate exercise/sports 3-5 days/week",
+    icon: "🏃‍♂️",
+    color: "bg-yellow-100",
+    factor: 1.55,
+  },
+  {
+    id: "very-active",
+    title: "Very Active",
+    subtitle: "Hard exercise/sports 6-7 days/week",
+    icon: "🏋️‍♂️",
+    color: "bg-orange-100",
+    factor: 1.725,
+  },
+  {
+    id: "super-active",
+    title: "Super Active",
+    subtitle: "Very hard exercise/physical job",
+    icon: "🔥",
+    color: "bg-red-100",
+    factor: 1.9,
+  },
+];

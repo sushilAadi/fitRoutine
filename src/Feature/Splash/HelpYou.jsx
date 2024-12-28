@@ -1,43 +1,13 @@
 "use client";
 import FooterButton from "@/components/Button/FooterButton";
 import { GlobalContext } from "@/context/GloablContext";
+import { goals } from "@/utils";
 import React, { useContext } from "react";
 
 const HelpYou = ({ step, setStep }) => {
   const { selectedGoals, setSelectedGoals } = useContext(GlobalContext);
 
-  const goals = [
-    {
-      id: "weight-loss",
-      title: "Weight loss",
-      icon: "🍎",
-      color: "bg-rose-200",
-    },
-    {
-      id: "weight-gain",
-      title: "Weight Gain",
-      icon: "🍛",
-      color: "bg-yellow-200",
-    },
-    {
-      id: "better-sleep",
-      title: "Better sleeping habit",
-      icon: "🌙",
-      color: "bg-slate-700",
-    },
-    {
-      id: "nutrition",
-      title: "Track my nutrition",
-      icon: "🥑",
-      color: "bg-gray-100",
-    },
-    {
-      id: "fitness",
-      title: "Improve overall fitness",
-      icon: "💪",
-      color: "bg-gray-100",
-    },
-  ];
+ 
 
   const toggleGoal = (goalId) => {
     const newSelectedGoals = new Set(selectedGoals || []);
