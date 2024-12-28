@@ -1,85 +1,41 @@
 'use client'
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 
-const AngleDetector = () => {
-    const [angle, setAngle] = useState(0);
-    const [isCalibrated, setIsCalibrated] = useState(false);
-    const [calibrationOffset, setCalibrationOffset] = useState({ beta: 0, gamma: 0 });
-    const [debouncedAngle, setDebouncedAngle] = useState(0);
-    const previousDataRef = useRef({
-        beta: 0,
-        gamma: 0
-    });
-    const debounceTimeoutRef = useRef(null);
+const AngleChecker = () => {
+  const [beta, setBeta] = useState(0); // Tilt front-to-back
+  const [gamma, setGamma] = useState(0); // Tilt left-to-right
+  const [isFlat, setIsFlat] = useState(false);
 
-    // Filter constant
-    const ALPHA = 0.1; // Adjust this value to fine-tune smoothing (lower = more smoothing)
-    // Debounce timeout
-    const DEBOUNCE_TIMEOUT = 100; // Adjust this to fine-tune the time before values are recalculated (lower = more reactivity)
+  useEffect(() => {
+    const handleOrientation = (event) => {
+      const { beta: tiltFB, gamma: tiltLR } = event;
 
+      setBeta(tiltFB);
+      setGamma(tiltLR);
 
-    useEffect(() => {
-        const handleOrientation = (event) => {
-            if (!event || event.beta == null || event.gamma == null || event.alpha == null) return;
-            let { beta, gamma, alpha } = event;
+      // Check if the device is flat
+      if (Math.abs(tiltFB) < 5 && Math.abs(tiltLR) < 5) {
+        setIsFlat(true);
+      } else {
+        setIsFlat(false);
+      }
+    };
 
-            // Correct if inverted
-            let correctedBeta = beta;
-            let correctedGamma = gamma;
+    window.addEventListener('deviceorientation', handleOrientation);
 
-            if (alpha > 180) {
-                correctedBeta = -beta;
-                correctedGamma = -gamma;
-            }
+    return () => {
+      window.removeEventListener('deviceorientation', handleOrientation);
+    };
+  }, []);
 
-            // Apply EMA filtering
-            const filteredBeta = ALPHA * correctedBeta + (1 - ALPHA) * previousDataRef.current.beta;
-            const filteredGamma = ALPHA * correctedGamma + (1 - ALPHA) * previousDataRef.current.gamma;
-            previousDataRef.current = { beta: filteredBeta, gamma: filteredGamma };
-
-            let newAngle = 0;
-
-            if (isCalibrated) {
-                // Calculate angle with calibration offset
-                newAngle = Math.atan2(filteredGamma - calibrationOffset.gamma, filteredBeta - calibrationOffset.beta) * (180 / Math.PI);
-            } else {
-                // Initial calibration
-                setCalibrationOffset({ beta: filteredBeta, gamma: filteredGamma });
-                setIsCalibrated(true);
-                return; // Don't calculate angle on first update
-            }
-
-            // Debounce the change
-            if (debounceTimeoutRef.current) {
-                clearTimeout(debounceTimeoutRef.current);
-            }
-            debounceTimeoutRef.current = setTimeout(() => {
-                setDebouncedAngle(newAngle);
-            }, DEBOUNCE_TIMEOUT);
-
-        };
-
-        window.addEventListener('deviceorientation', handleOrientation);
-
-        return () => {
-            window.removeEventListener('deviceorientation', handleOrientation);
-            if (debounceTimeoutRef.current) {
-                clearTimeout(debounceTimeoutRef.current)
-            }
-        };
-    }, [isCalibrated, calibrationOffset]);
-
-    useEffect(() => {
-        setAngle(debouncedAngle);
-    }, [debouncedAngle])
-
-
-    return (
-        <div>
-            <h1>Device Angle:</h1>
-            {angle !== null ? <p>{angle.toFixed(2)} degrees </p> : <p>Calibrating...</p>}
-        </div>
-    );
+  return (
+    <div style={{ textAlign: 'center', padding: '20px' }}>
+      <h1>Angle Checker</h1>
+      <p>Beta (Front-to-Back): {beta?.toFixed(2)}°</p>
+      <p>Gamma (Left-to-Right): {gamma?.toFixed(2)}°</p>
+      <h2>{isFlat ? 'Device is flat on the surface!' : 'Device is not flat!'}</h2>
+    </div>
+  );
 };
 
-export default AngleDetector;
+export default AngleChecker;
