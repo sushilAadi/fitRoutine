@@ -99,7 +99,7 @@ const Profile = () => {
   const filteredGoals = goals?.filter((goal) =>
     splitHelpYou?.map((item) => item?.trim()).includes(goal?.id)
   );
-  console.log("splitHelpYou", filteredGoals);
+  
 
   return (
     <SecureComponent>
@@ -127,11 +127,11 @@ const Profile = () => {
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="text-gray-600">
                 <p>Gender</p>
-                <p className="font-semibold">{userGender}</p>
+                <p className="font-semibold text-black">{userGender}</p>
               </div>
               <div className="text-right text-gray-600">
                 <p>Age</p>
-                <p className="font-semibold">{userAgeCal} years</p>
+                <p className="font-semibold text-black">{userAgeCal} years</p>
               </div>
               <div className="text-gray-600">
                 <p>Height</p>
@@ -143,7 +143,7 @@ const Profile = () => {
                     className="w-20 px-2 py-1 border rounded"
                   />
                 ) : (
-                  <p className="font-semibold">{height} cms</p>
+                  <p className="font-semibold text-black">{height} cms</p>
                 )}
               </div>
               <div className="text-right text-gray-600">
@@ -156,7 +156,7 @@ const Profile = () => {
                     className="w-20 px-2 py-1 border rounded"
                   />
                 ) : (
-                  <p className="font-semibold">{weight} kgs</p>
+                  <p className="font-semibold text-black">{weight} kgs</p>
                 )}
               </div>
             </div>
@@ -164,7 +164,7 @@ const Profile = () => {
               <p className="text-gray-600">Help to</p>
               <div className="gap-2 mt-2">
                 {filteredGoals?.map((i) => (
-                  <p className={`p-2 whitespace-nowrap w-100  ${i?.color}`}>
+                  <p className={`p-2 whitespace-nowrap w-100 text-black  ${i?.color}`}>
                     <span className="mr-2">{i?.icon}</span>
                     {i?.title}
                   </p>
