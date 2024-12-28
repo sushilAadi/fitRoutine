@@ -11,7 +11,7 @@ export function AppleCardsCarouselDemo({title,data}) {
   return (
     (<div className="w-full h-full ">
       <h2
-        className="mx-auto font-sans text-xl text-gray-500 max-w-7xl md:text-5xl">
+        className="font-sans text-xl text-gray-500 max-w-7xl md:text-5xl">
         {title}
       </h2>
       <Carousel items={cards} />
