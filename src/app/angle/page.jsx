@@ -1,58 +1,85 @@
 'use client'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 const AngleDetector = () => {
-  const [angle, setAngle] = useState(null);
-  const [previousData, setPreviousData] = useState({
-    alpha: 0,
-    beta: 0,
-    gamma: 0
-  });
+    const [angle, setAngle] = useState(0);
+    const [isCalibrated, setIsCalibrated] = useState(false);
+    const [calibrationOffset, setCalibrationOffset] = useState({ beta: 0, gamma: 0 });
+    const [debouncedAngle, setDebouncedAngle] = useState(0);
+    const previousDataRef = useRef({
+        beta: 0,
+        gamma: 0
+    });
+    const debounceTimeoutRef = useRef(null);
+
+    // Filter constant
+    const ALPHA = 0.1; // Adjust this value to fine-tune smoothing (lower = more smoothing)
+    // Debounce timeout
+    const DEBOUNCE_TIMEOUT = 100; // Adjust this to fine-tune the time before values are recalculated (lower = more reactivity)
 
 
-  useEffect(() => {
-    const handleOrientation = (event) => {
-      const { alpha, beta, gamma } = event;
+    useEffect(() => {
+        const handleOrientation = (event) => {
+            if (!event || event.beta == null || event.gamma == null || event.alpha == null) return;
+            let { beta, gamma, alpha } = event;
 
-      // Implement a basic filter to reduce noise. You may need to adjust constants.
-      const alphaFiltered = previousData.alpha * 0.9 + alpha * 0.1;
-      const betaFiltered = previousData.beta * 0.9 + beta * 0.1;
-      const gammaFiltered = previousData.gamma * 0.9 + gamma * 0.1;
+            // Correct if inverted
+            let correctedBeta = beta;
+            let correctedGamma = gamma;
 
-      setPreviousData({
-        alpha: alphaFiltered,
-        beta: betaFiltered,
-        gamma: gammaFiltered
-      })
+            if (alpha > 180) {
+                correctedBeta = -beta;
+                correctedGamma = -gamma;
+            }
 
-      // Correct if it has been inverted
-      let correctedBeta = betaFiltered;
-      let correctedGamma = gammaFiltered;
-      
-      if(alphaFiltered>180){
-        correctedBeta = -betaFiltered;
-        correctedGamma = -gammaFiltered;
-      }
+            // Apply EMA filtering
+            const filteredBeta = ALPHA * correctedBeta + (1 - ALPHA) * previousDataRef.current.beta;
+            const filteredGamma = ALPHA * correctedGamma + (1 - ALPHA) * previousDataRef.current.gamma;
+            previousDataRef.current = { beta: filteredBeta, gamma: filteredGamma };
 
-      // Calculate the angle. For our "surface angle", we primarily use beta and gamma.
-      const tiltAngle = Math.atan2(correctedGamma, correctedBeta) * (180 / Math.PI); // Angle in degrees
+            let newAngle = 0;
 
-      setAngle(tiltAngle);
-    };
+            if (isCalibrated) {
+                // Calculate angle with calibration offset
+                newAngle = Math.atan2(filteredGamma - calibrationOffset.gamma, filteredBeta - calibrationOffset.beta) * (180 / Math.PI);
+            } else {
+                // Initial calibration
+                setCalibrationOffset({ beta: filteredBeta, gamma: filteredGamma });
+                setIsCalibrated(true);
+                return; // Don't calculate angle on first update
+            }
 
-    window.addEventListener('deviceorientation', handleOrientation);
+            // Debounce the change
+            if (debounceTimeoutRef.current) {
+                clearTimeout(debounceTimeoutRef.current);
+            }
+            debounceTimeoutRef.current = setTimeout(() => {
+                setDebouncedAngle(newAngle);
+            }, DEBOUNCE_TIMEOUT);
 
-    return () => {
-      window.removeEventListener('deviceorientation', handleOrientation);
-    };
-  }, [previousData]);
+        };
 
-  return (
-    <div>
-      <h1>Device Angle:</h1>
-      {angle !== null ? <p>{angle.toFixed(2)} degrees</p> : <p>Measuring...</p>}
-    </div>
-  );
+        window.addEventListener('deviceorientation', handleOrientation);
+
+        return () => {
+            window.removeEventListener('deviceorientation', handleOrientation);
+            if (debounceTimeoutRef.current) {
+                clearTimeout(debounceTimeoutRef.current)
+            }
+        };
+    }, [isCalibrated, calibrationOffset]);
+
+    useEffect(() => {
+        setAngle(debouncedAngle);
+    }, [debouncedAngle])
+
+
+    return (
+        <div>
+            <h1>Device Angle:</h1>
+            {angle !== null ? <p>{angle.toFixed(2)} degrees </p> : <p>Calibrating...</p>}
+        </div>
+    );
 };
 
 export default AngleDetector;
