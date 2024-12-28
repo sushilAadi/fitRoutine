@@ -162,12 +162,12 @@ const Profile = () => {
             </div>
             <div className="mb-2 ">
               <p className="text-gray-600">Help to</p>
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="gap-2 mt-2">
                 {filteredGoals?.map((i) => (
-                  <button className={`p-2 whitespace-nowrap  ${i?.color}`}>
+                  <p className={`p-2 whitespace-nowrap w-100  ${i?.color}`}>
                     <span className="mr-2">{i?.icon}</span>
                     {i?.title}
-                  </button>
+                  </p>
                 ))}
               </div>
             </div>
