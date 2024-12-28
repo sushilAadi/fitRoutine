@@ -23,9 +23,9 @@ const Sidebar = ({}) => {
   return (
     <div className='h-full overflow-x-hidden overflow-y-auto '>
       <Card className="w-full h-full p-3 bg-glass rounded-0 ">
-        <div className="flex items-center justify-between px-4 ">
+        <div className="z-20 flex items-center justify-between px-4 ">
             <Image src={logo} alt="logo" width={45} height={45} />
-            <i className="text-red-500 cursor-pointer fa-solid fa-xmark" onClick={handleOpenClose}/>
+            <i className="text-red-500 cursor-pointer fa-solid fa-xmark hambergerMenu" onClick={handleOpenClose}/>
         </div>
         <List className="font-semibold text-white">
           
@@ -87,6 +87,22 @@ const Sidebar = ({}) => {
             </ListItemPrefix>
             <Link href="/angle" className="no-underline text-inherit" onClick={handleOpenClose}>
               Angle
+            </Link>
+          </ListItem>
+          <ListItem>
+            <ListItemPrefix>
+            <i className="fa-duotone fa-light fa-user-vneck-hair h-5 w-5 !mr-2 drop-shadow-lg"></i>
+            </ListItemPrefix>
+            <Link href="/mentors" className="no-underline text-inherit" onClick={handleOpenClose}>
+              Coach
+            </Link>
+          </ListItem>
+          <ListItem>
+            <ListItemPrefix>
+            <i className="fa-duotone fa-light fa-user-vneck-hair h-5 w-5 !mr-2 drop-shadow-lg"></i>
+            </ListItemPrefix>
+            <Link href="/join" className="no-underline text-inherit" onClick={handleOpenClose}>
+              Join as Coach
             </Link>
           </ListItem>
           <ListItem>

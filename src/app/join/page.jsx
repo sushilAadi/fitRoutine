@@ -11,7 +11,7 @@ import { supabase } from '@/createClient';
 
 
 
-const Profile = () => {
+const MentorRegistration = () => {
 
 
   
@@ -30,4 +30,4 @@ const Profile = () => {
   )
 }
 
-export default Profile
+export default MentorRegistration

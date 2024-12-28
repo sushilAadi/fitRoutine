@@ -142,3 +142,65 @@ export const activity_goals = [
     factor: 1.9,
   },
 ];
+
+const DummyContent = () => {
+  return (<>
+    <div
+          key={"dummy-content"}
+          className="mb-4 md:p-14 ">
+          <p
+            className="max-w-3xl mx-auto font-sans text-base text-neutral-600 md:text-2xl">
+            <span className="font-bold text-neutral-700">
+              sushil The first rule of Apple club is that you boast about Apple club.
+            </span>{" "}
+            Keep a journal, quickly jot down a grocery list, and take amazing
+            class notes. Want to convert those notes to text? No problem.
+            Langotiya jeetu ka mara hua yaar is ready to capture every
+            thought.
+          </p>
+          
+        </div>
+      
+
+  </>);
+};
+
+export const Dummydata = [
+  {
+    category: "Artificial Intelligence",
+    title: "You can do more with AI.",
+    src: "https://img.freepik.com/premium-photo/fitness-enthusiast-doing-leg-extensions_1154722-1830.jpg?uid=R100761551&ga=GA1.1.1872205971.1727020370",
+    content: <DummyContent />,
+  },
+  {
+    category: "Productivity",
+    title: "Enhance your productivity.",
+    src: "https://img.freepik.com/free-photo/portrait-handsome-man_23-2150770955.jpg?t=st=1735409616~exp=1735413216~hmac=fb922b4d8c509322ebe7cd71210662a7b48d9a54da59e460ef5b5d0064223791&w=740",
+    content: <DummyContent />,
+  },
+  {
+    category: "Product",
+    title: "Launching the new Apple Vision Pro.",
+    src: "https://img.freepik.com/free-photo/fit-individual-doing-sport_23-2151764395.jpg?t=st=1735409704~exp=1735413304~hmac=79805a697ca9056b5ba8446c6c83d10bcf252dabda5fa4c8addb6d7b0c4f38d0&w=740",
+    content: <DummyContent />,
+  },
+
+  {
+    category: "Product",
+    title: "Maps for your iPhone 15 Pro Max.",
+    src: "https://img.freepik.com/free-photo/cinematic-fitness-man-photography_1409-6468.jpg?uid=R100761551&ga=GA1.1.1872205971.1727020370&semt=ais_hybrid",
+    content: <DummyContent />,
+  },
+  {
+    category: "iOS",
+    title: "Photography just got better.",
+    src: "https://img.freepik.com/free-photo/adult-training-with-dumbbell_23-2151717289.jpg?uid=R100761551&ga=GA1.1.1872205971.1727020370&semt=ais_hybrid",
+    content: <DummyContent />,
+  },
+  {
+    category: "Hiring",
+    title: "Hiring for a Staff Software Engineer",
+    src: "https://img.freepik.com/free-photo/athletic-man-practicing-gymnastics-keep-fit_23-2150989955.jpg?uid=R100761551&ga=GA1.1.1872205971.1727020370&semt=ais_hybrid",
+    content: <DummyContent />,
+  },
+];
