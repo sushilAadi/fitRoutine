@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 
-const BMICard = ({ bmi, lastUpdate = "9 Jan, 2024 at 10:12" }) => {
+const BMICard = ({ bmi, lastUpdate = "9 Jan, 2024 at 10:12",hideDoc=true }) => {
   const maxBMI = 40;
 
   const getColor = (value) => {
@@ -62,7 +62,7 @@ const BMICard = ({ bmi, lastUpdate = "9 Jan, 2024 at 10:12" }) => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold">BMI</h2>
-            <p className="text-sm text-gray-500">Last Update: {lastUpdate}</p>
+            {/* <p className="text-sm text-gray-500">Last Update: {lastUpdate}</p> */}
           </div>
           <i className="text-2xl fa-duotone fa-light fa-weight-scale text-tprimary " />
         </div>
@@ -119,8 +119,7 @@ const BMICard = ({ bmi, lastUpdate = "9 Jan, 2024 at 10:12" }) => {
             </div>
           </motion.div>
         </div> */}
-
-        <div className="mt-8">
+{hideDoc && <div className="mt-8">
           <h2 className="mb-2 text-lg font-semibold">BMI Categories:</h2>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4 ">
             <p className="font-semibold text-blue-500 text-[12px]">
@@ -136,7 +135,8 @@ const BMICard = ({ bmi, lastUpdate = "9 Jan, 2024 at 10:12" }) => {
               Obese: 30 or greater
             </p>
           </div>
-        </div>
+        </div>}
+        
 
         <p className="mt-3 text-sm text-gray-700">{getBMIStatus()}</p>
       </div>

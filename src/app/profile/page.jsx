@@ -1,16 +1,14 @@
 "use client";
 import SecureComponent from "@/components/SecureComponent/[[...SecureComponent]]/SecureComponent";
 import React, { useContext, useEffect, useState } from "react";
-import { Pencil } from "lucide-react";
-import { useAuth, useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import { GlobalContext } from "@/context/GloablContext";
 import ButtonCs from "@/components/Button/ButtonCs";
 import _ from "lodash";
 import { supabase } from "@/createClient";
-import BlurryBlob from "@/components/BlurryBlob/BlurryBlob";
 import { BackgroundGradientAnimation } from "@/components/AnimatedBackground";
-import { goals } from "@/utils";
-import { button } from "@material-tailwind/react";
+import { calculateBMI, goals } from "@/utils";
+
 
 const Profile = () => {
   const { user } = useUser();
@@ -21,7 +19,6 @@ const Profile = () => {
     userId,
     userWeightRefetch,
     userRefetch,
-    handleOpenClose,
     weight,
     setWeight,
     height,
@@ -40,13 +37,13 @@ const Profile = () => {
 
   const [isEditing, setIsEditing] = useState(false);
 
-  console.log("userDetailData", { helpYou, activityLevel });
+  
   useEffect(() => {
     setWeight(latestWeight?.userWeights);
     setHeight(userHeight);
   }, [userHeight, latestWeight?.userWeights]);
 
-  console.log("user", { user, userDetailData });
+ 
 
   const updateUserDetail = async () => {
     // Build the update object dynamically
@@ -99,6 +96,8 @@ const Profile = () => {
   const filteredGoals = goals?.filter((goal) =>
     splitHelpYou?.map((item) => item?.trim()).includes(goal?.id)
   );
+
+  const bmi = calculateBMI(latestWeight?.userWeights, userHeight);
   
 
   return (
