@@ -15,9 +15,9 @@ const Coaches = () => {
       <div className="flex flex-col h-screen overflow-hidden bg-tprimary">
         <div className="top-0 p-3 text-white bg-tprimary sticky-top z-1">
         <div className="flex justify-between">
-          <div className="">
-          <p className="text-4xl"> Learn, Grow, Succeed</p>
-          <p className="text-4xl"> with Top <i>Coaches</i></p>
+          <div className="mt-[-8px]">
+          <p className="text-3xl"> Choose </p>
+          <p className="text-3xl">your <i>Coach</i></p>
           </div>
           <i className="cursor-pointer  text-white fa-duotone fa-solid fa-bars text-[20px]  hambergerMenu" onClick={handleOpenClose}/>
         </div>
