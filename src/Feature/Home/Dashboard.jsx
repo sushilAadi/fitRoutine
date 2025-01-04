@@ -47,7 +47,7 @@ export default function FitnessTrackerDashboard() {
     activityLevel,
   } = userDetailData;
 
-
+  
   const userAgeCal = calculateAge(userBirthDate);
   
 

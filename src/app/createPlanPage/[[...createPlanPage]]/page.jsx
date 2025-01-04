@@ -16,14 +16,16 @@ import CCard from "@/components/CCard";
 import { GlobalContext } from "@/context/GloablContext";
 import WorkoutDayAccordion from "./WorkoutDayAccordian";
 import toast from "react-hot-toast";
-import { supabase } from "@/createClient";
 import { useUser } from '@clerk/clerk-react';
+import { addDoc, collection, doc,setDoc} from 'firebase/firestore';
+import { db } from "@/firebase/firebaseConfig";
+import { v4 as uuidv4 } from 'uuid';
 
 
 const createPlanPage = () => {
   const { user } = useUser();
     const {id} = user || {}
-  const { handleOpenClose: menuOpenClose } = useContext(GlobalContext);
+  const { handleOpenClose: menuOpenClose,plansRefetch } = useContext(GlobalContext);
 
   const [toggleForm, setToggleForm] = useState(true);
   const [weeks, setWeeks] = useState(3);
@@ -210,65 +212,73 @@ const createPlanPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const exercisePlanDetail =async(planName,plan)=>{
-    
+  const exercisePlanDetail = async (planName, plan) => {
+    try {
+      // Validate required fields
+      if (!planName || !plan || !id) {
+        throw new Error('Missing required data');
+      }
+  
+      // Serialize and prepare the plan data
+      const planToSave = {
+        name: planName,
+        weeks: JSON.stringify(weeks), // Serialize arrays if deeply nested
+        daysPerWeek: JSON.stringify(daysPerWeek),
+        workoutPlan: JSON.stringify(plan),
+        exerciseHistory: JSON.stringify(exerciseHistory),
+        weekNames: JSON.stringify(weekNames),
+        dayNames: JSON.stringify(dayNames),
+        date: new Date().toISOString(), // Store date in ISO string format
+        setUpdate: isChecked,
+      };
+  
+      // Add a new document with a generated ID
+      const planDocRef = await addDoc(collection(db, 'workoutPlans'), {
+        userIdCl: id,
+        planName: `workoutPlan_${planName}`,
+        workoutPlanDB: planToSave,
+      });
+  
+      toast.success('Plan Saved Successfully');
+      
+    } catch (e) {
+      
+      toast.error(`Error saving Plan: ${e.message}`);
+    }
+  };
+  
+  
+
+
+  const updatePlanDetail = async (planName, plan) => {
+    // Flatten or serialize data if needed
     const planToSave = {
       name: planName,
-      weeks: weeks,
-      daysPerWeek: daysPerWeek,
-      workoutPlan: plan,
-      exerciseHistory: exerciseHistory,
-      weekNames: weekNames,
-      dayNames: dayNames,
-      date: new Date(),
+      weeks: JSON.stringify(weeks), // Serialize arrays if deeply nested
+      daysPerWeek: JSON.stringify(daysPerWeek),
+      workoutPlan: JSON.stringify(plan),
+      exerciseHistory: JSON.stringify(exerciseHistory),
+      weekNames: JSON.stringify(weekNames),
+      dayNames: JSON.stringify(dayNames),
+      date: new Date().toISOString(), // Store date in ISO string format
       setUpdate: isChecked,
     };
 
-    const { data, error } = await supabase
-      .from('workoutPlan')
-      .insert(
-        {
-          "userIdCl": id,
-          "planName":`workoutPlan_${planName}`,
-          "workoutPlanDB":planToSave
-        }
-      );
-    if (error) {
-      toast.error("Error saving Plan")
-    } else {
-      toast.success("Plan Saved Successfully")
-      
+    try {
+      // Use userIdCl (id) as the document ID
+      const planDocRef = doc(db, 'workoutPlans', id); // Set userIdCl as the document ID
+      await setDoc(planDocRef, {
+        workoutPlanDB: planToSave,
+      }, { merge: true }); // Use merge: true to update existing document
+
+      toast.success('Plan updated Successfully');
+      fetchPlans(); // Call fetchPlans to refresh the data
+    } catch (error) {
+      console.error('Error updating document: ', error);
+      toast.error('Error updating Plan');
     }
-  }
+};
 
-  const updatePlanDetail = async(planName,plan)=>{
-
-     const planToSave = {
-      name: planName,
-      weeks: weeks,
-      daysPerWeek: daysPerWeek,
-      workoutPlan: plan,
-      exerciseHistory: exerciseHistory,
-      weekNames: weekNames,
-      dayNames: dayNames,
-      date: new Date(),
-      setUpdate: isChecked,
-    };
-
-     const { data, error } = await supabase
-      .from('workoutPlan')
-      .update(
-        {
-           "workoutPlanDB":planToSave
-        }
-      ).eq('planName', `workoutPlan_${planName}`).eq('userIdCl', id)
-    if (error) {
-       toast.error("Error updating Plan")
-    } else {
-       toast.success("Plan updated Successfully")
-      fetchPlans();
-    }
-  }
   
   const savePlan = () => {
     if (!validatePlan()) {
@@ -288,6 +298,7 @@ const createPlanPage = () => {
         setSavedPlans((prevPlans) =>
         prevPlans.map((plan) => (plan.planName === `workoutPlan_${storageKey}` ? {...plan,workoutPlanDB: planToSave} : plan))
       );
+      
     } else {
     const existingPlan = savedPlans.find(plan => plan.planName === `workoutPlan_${planName}`);
 
@@ -300,6 +311,7 @@ const createPlanPage = () => {
       }
 
       exercisePlanDetail(storageKey,planToSave);
+      
     }
   };
 
@@ -393,6 +405,7 @@ const createPlanPage = () => {
       setErrors({});
       setShowWarning(false);
       setSaveAttempted(false);
+      plansRefetch()
     }
   };
 

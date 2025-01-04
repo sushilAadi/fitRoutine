@@ -21,6 +21,7 @@
     "axios": "^1.7.7",
     "bootstrap": "^5.3.3",
     "clsx": "^2.1.1",
+    "country-list-with-dial-code-and-flag": "^5.0.6",
     "date-fns": "^4.1.0",
     "dexie": "^4.0.8",
     "firebase": "^11.1.0",
@@ -35,11 +36,13 @@
     "react-bootstrap": "^2.10.4",
     "react-dom": "^18",
     "react-hot-toast": "^2.4.1",
+    "react-select": "^5.9.0",
     "react-window": "^1.8.11",
     "recharts": "^2.13.3",
     "sharp": "^0.33.5",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.0.3",
     "workbox-webpack-plugin": "^7.3.0"
   },
   "devDependencies": {

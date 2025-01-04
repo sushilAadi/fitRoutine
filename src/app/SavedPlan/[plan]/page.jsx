@@ -8,6 +8,8 @@ import { calculateProgress, handleDate } from "@/utils";
 import Image from "next/image";
 import { supabase } from "@/createClient";
 import { GlobalContext } from "@/context/GloablContext";
+import { doc, getDoc, updateDoc } from "firebase/firestore"; 
+import { db } from "@/firebase/firebaseConfig";
 
 const TabButton = ({ active, onClick, children, disabled }) => (
   <button
@@ -60,42 +62,71 @@ const PlanDetail = ({ params }) => {
   const fetchWorkoutPlan = async () => {
     setLoading(true);
     setError(null);
-
+  
     try {
       if (!userId) {
         setError("Loading...");
         return;
       }
-
-      const { data, error } = await supabase
-        .from("workoutPlan")
-        .select("*")
-        .eq("userIdCl", userId)
-        .eq("id", selectedPlanId)
-        .single();
-
-      if (error) {
-        console.error("Error fetching workout plan:", error);
-        setError("Failed to load workout plan.");
+  
+      
+  
+      const planRef = doc(db, "workoutPlans", selectedPlanId);
+      const planDoc = await getDoc(planRef);
+  
+      if (!planDoc.exists()) {
+        setError("Workout plan not found.");
         return;
       }
-
+  
+      const data = planDoc.data();
+      
+  
       if (!data || !data.workoutPlanDB) {
         setError("Workout plan not found.");
         return;
       }
-
+  
+      // Create a deep copy of the data to avoid modifying the original
       const parsedData = {
         ...data.workoutPlanDB,
-        id: data.id,
+        id: planDoc.id,
         name: data.workoutPlanDB.name,
         progress: 0,
+        workoutPlan: null,
+        exerciseHistory: null,
       };
-
+  
+      // Parse the JSON strings if they exist
+      try {
+        // Check if workoutPlan is a string before parsing
+        if (typeof data.workoutPlanDB.workoutPlan === 'string') {
+          parsedData.workoutPlan = JSON.parse(data.workoutPlanDB.workoutPlan);
+        } else {
+          // If it's already an object, use it as is
+          parsedData.workoutPlan = data.workoutPlanDB.workoutPlan;
+        }
+  
+        // Check if exerciseHistory is a string before parsing
+        if (typeof data.workoutPlanDB.exerciseHistory === 'string') {
+          parsedData.exerciseHistory = JSON.parse(data.workoutPlanDB.exerciseHistory);
+        } else {
+          // If it's already an object, use it as is
+          parsedData.exerciseHistory = data.workoutPlanDB.exerciseHistory;
+        }
+      } catch (err) {
+        console.error("Error parsing workout plan:", err);
+        setError("Failed to parse workout plan.");
+        return;
+      }
+  
       const progress = calculateProgress(parsedData);
       parsedData.progress = progress;
+  
+      
       setWorkoutData(parsedData);
-
+  
+      // Rest of your initialization code...
       const initialExerciseDetails = {};
       if (parsedData.exerciseHistory) {
         Object.entries(parsedData?.exerciseHistory).forEach(([key, sets]) => {
@@ -106,21 +137,21 @@ const PlanDetail = ({ params }) => {
           }));
         });
       }
-
+  
+      // Initialize exercise details...
       parsedData.workoutPlan.forEach((week, weekIndex) => {
         week.forEach((day, dayIndex) => {
           day.exercises.forEach((exercise, exerciseIndex) => {
             const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
             const configuredSets =
-              exercise?.weeklySetConfig?.find((i) => i?.isConfigured)?.sets ||
-              0;
+              exercise?.weeklySetConfig?.find((i) => i?.isConfigured)?.sets || 0;
             const existingSets = initialExerciseDetails[key]?.length || 0;
             const setsToAdd = Math.max(configuredSets - existingSets, 0);
-
+  
             if (!initialExerciseDetails[key]) {
               initialExerciseDetails[key] = [];
             }
-
+  
             for (let i = 0; i < setsToAdd; i++) {
               initialExerciseDetails[key].push({
                 weight: "",
@@ -131,12 +162,11 @@ const PlanDetail = ({ params }) => {
           });
         });
       });
-
+  
       setExerciseDetails(initialExerciseDetails);
-
-      const lastPosition = localStorage.getItem(
-        `lastPosition_${parsedData.name}`
-      );
+  
+      // Handle position setting...
+      const lastPosition = localStorage.getItem(`lastPosition_${parsedData.name}`);
       if (lastPosition) {
         const { week, day } = JSON.parse(lastPosition);
         setSelectedWeek(week);
@@ -159,6 +189,8 @@ const PlanDetail = ({ params }) => {
           if (foundPosition) break;
         }
       }
+  
+      // Handle rest time...
       if (progress !== 100) {
         if (!localStorage.getItem(`restTime_${parsedData.name}`)) {
           const userRestTime = prompt(
@@ -169,14 +201,12 @@ const PlanDetail = ({ params }) => {
             localStorage.setItem(`restTime_${parsedData.name}`, userRestTime);
           }
         } else {
-          setRestTime(
-            parseInt(localStorage.getItem(`restTime_${parsedData.name}`))
-          );
+          setRestTime(parseInt(localStorage.getItem(`restTime_${parsedData.name}`)));
         }
       }
     } catch (err) {
-      console.error("Error during fetch:", err);
-      setError("Failed to load workout plan.");
+      console.error("Unexpected error during fetch:", err);
+      setError("An unexpected error occurred.");
     } finally {
       setLoading(false);
     }
@@ -641,19 +671,27 @@ const PlanDetail = ({ params }) => {
     setWarningMessage("");
   };
   const updateWorkoutData = async (updatedWorkoutData) => {
+    // Create a deep copy to avoid modifying the original data
+    const workoutDataUpdate = {
+      ...updatedWorkoutData,
+      workoutPlan: typeof updatedWorkoutData.workoutPlan === 'string' 
+        ? updatedWorkoutData.workoutPlan 
+        : JSON.stringify(updatedWorkoutData.workoutPlan),
+      exerciseHistory: typeof updatedWorkoutData.exerciseHistory === 'string'
+        ? updatedWorkoutData.exerciseHistory
+        : JSON.stringify(updatedWorkoutData.exerciseHistory)
+    };
+  
+    
+  
     try {
-      const { error } = await supabase
-        .from("workoutPlan")
-        .update({ workoutPlanDB: updatedWorkoutData })
-        .eq("id", workoutData.id);
-
-      if (error) {
-        console.error("Error updating workout plan:", error);
-        setError("Failed to update workout plan.");
-      } else {
-        setWorkoutData(updatedWorkoutData);
-        
-      }
+      const workoutPlanRef = doc(db, "workoutPlans", updatedWorkoutData.id);
+      await updateDoc(workoutPlanRef, {
+        workoutPlanDB: workoutDataUpdate,
+      });
+  
+      // Update local state with the original object (not stringified)
+      setWorkoutData(updatedWorkoutData);
     } catch (err) {
       console.error("Error during update:", err);
       setError("Failed to update workout plan.");
@@ -671,7 +709,7 @@ const PlanDetail = ({ params }) => {
         const updatedTimers = { ...prevSetTimers };
         const timerKey = `${weekIndex}-${dayIndex}-${exerciseIndex}-${detailIndex}`;
         delete updatedTimers[timerKey];
-        console.log(updatedTimers, "updatedTimers");
+        
         resolve(updatedTimers);
         return updatedTimers;
       });
@@ -1035,7 +1073,7 @@ const PlanDetail = ({ params }) => {
               {formatVolume(calculateDailyTotal(selectedWeek, selectedDay))}
             </span>
           </div>
-          {!lockPreviousTabs && (
+          {/* {!lockPreviousTabs && (
             <>
               <div className="mb-4">
                 <div className="flex">
@@ -1074,7 +1112,7 @@ const PlanDetail = ({ params }) => {
                 </div>
               </div>
             </>
-          )}
+          )} */}
         </div>
 
         <div className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">

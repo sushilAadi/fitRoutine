@@ -14,15 +14,11 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MSR_ID,
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Analytics
 const analytics = getAnalytics(app);
 
-// Initialize Firestore
-const db = getFirestore(app); // Firestore instance
+const db = getFirestore(app); 
 
-console.log("Firebase App Initialized:", app.name);
 
 export { app, analytics, db };

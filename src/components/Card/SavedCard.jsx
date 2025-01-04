@@ -7,33 +7,9 @@ const SavedCard = ({
   isDisabled,
   isCompleted,
 }) => {
-  const calculateProgress = () => {
-    let totalExercises = 0;
-    let completedExercises = 0;
+ 
 
-    plan?.workoutPlan.forEach((week, weekIndex) => {
-      week.forEach((day, dayIndex) => {
-        day.exercises.forEach((exercise, exerciseIndex) => {
-          const exerciseKey = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-          totalExercises++;
-          if (
-            plan.exerciseHistory[exerciseKey] &&
-            plan.exerciseHistory[exerciseKey].length > 0
-          ) {
-            completedExercises++;
-          }
-        });
-      });
-    });
-
-    const progress =
-      totalExercises > 0
-        ? Math.round((completedExercises / totalExercises) * 100)
-        : 0;
-    return { progress, completedExercises, totalExercises };
-  };
-
-  const { progress } = calculateProgress();
+  const  progress  = plan?.progress;
   const date = plan?.date ? new Date(plan.date) : null;
 
   const formattedDate =

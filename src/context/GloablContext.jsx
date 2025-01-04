@@ -1,162 +1,151 @@
 "use client";
 
 import { createContext, useMemo, useState, useEffect } from "react";
-import { useAuth,useUser } from '@clerk/nextjs';
-import { supabase } from '@/createClient';
-import { useQuery } from '@tanstack/react-query';
-import Dexie from "dexie";
+import { useAuth, useUser } from "@clerk/nextjs";
+import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
+
 import _ from "lodash";
-import { getExercisesGif } from "@/service/exercise";
 import { calculateAge } from "@/utils";
-
-// Initialize Dexie database
-const db = new Dexie("WorkoutApp");
-db.version(1).stores({
-  exercises: "++id,name"
-});
-
-
+import { db } from "@/firebase/firebaseConfig";
 
 export const GlobalContext = createContext("");
 
 export default function GlobalContextProvider({ children }) {
-
-  const { isLoaded, userId, sessionId, getToken } = useAuth();
+  const { isLoaded, userId } = useAuth();
   const { user } = useUser();
 
-  const userRole = user?.publicMetadata?.role??"user";
-  
+  const userRole = user?.publicMetadata?.role ?? "user";
 
-  const fetchUserDetail = async () => {
-    if (userId) {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('userIdCl', userId);
-      if (error) {
-        throw error;
-      } else {
-        return data;
-      }
-    }
-  };
-  const fetchUserWeight = async () => {
-    if (userId) {
-      const { data, error } = await supabase
-        .from('weight')
-        .select('*')
-        .eq('userIdCl', userId);
-      if (error) {
-        throw error;
-      } else {
-        return data;
-      }
-    }
-  };
-  const fetchPlans = async () => {
-    if (!userId) {
-      throw new Error("User ID is required to fetch workout plans.");
-    }
-  
-    const { data, error } = await supabase
-      .from('workoutPlan')
-      .select('*')
-      .eq('userIdCl', userId);
-  
-    if (error) {
-      throw error; // This will propagate to React Query's `error` state
-    }
-  
-    return data || []; // Ensure a valid return value, even if no data exists
-  };
-  
+  const [userDetail, setUserDetail] = useState(null);
+  const [userWeightData, setUserWeightData] = useState([]);
+  const [plans, setPlans] = useState([]);
+  const [isFetchingUser, setIsFetchingUser] = useState(false);
+  const [isFetchingWeight, setIsFetchingWeight] = useState(false);
+  const [isFetchingPlans, setIsFetchingPlans] = useState(false);
 
-
-  const { data: userDetail, error: userDetailError,refetch:userRefetch,isFetching } = useQuery({
-    queryKey: ['userDetail', userId],
-    queryFn: fetchUserDetail,
-    enabled: !!userId,
-    refetchOnWindowFocus: false,
-    infinite: false,
-  });
-  const { data: userWeightData, error: userWeightError,refetch:userWeightRefetch,isFetching:userWeightisFetching } = useQuery({
-    queryKey: ['userWeightData', userId],
-    queryFn: fetchUserWeight,
-    enabled: !!userId,
-    refetchOnWindowFocus: false,
-    infinite: false,
-  });
-  // const { data: userPlanData, error: userPlanError,refetch:userPlanRefetch,isLoading:userPlanisLoading } = useQuery({
-  //   queryKey: ['userPlanData', userId],
-  //   queryFn: fetchPlans,
-  //   enabled: !!userId,
-  //   refetchOnWindowFocus: false,
-  //   infinite: false,
-  // });
-  // const planList = {
-  //   userPlanData,
-  //   userPlanError,
-  //   userPlanRefetch,
-  //   userPlanisLoading
-  // }
-  
-  const userDetailData = userDetail?.[0] || {}
-
-  
   const [gender, setGender] = useState(null);
   const [weight, setWeight] = useState(50);
   const [height, setHeight] = useState(152);
   const [age, setAge] = useState(null);
-  const [selectedGoals, setSelectedGoals] = useState(
-    new Set([])
-  );
-  const [activityLevel,setActivityLevel] = useState(null);
-  
-
-  const userAgeCal = calculateAge(userDetailData?.userBirthDate);
-
+  const [selectedGoals, setSelectedGoals] = useState(new Set([]));
+  const [activityLevel, setActivityLevel] = useState(null);
   const [show, setShow] = useState(false);
+
+  const fetchUserDetail = async () => {
+    try {
+      setIsFetchingUser(true);
+      
+      const userDocRef = doc(db, "users", userId);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        
+        setUserDetail(userDoc.data());
+      } else {
+        
+        setUserDetail(null);
+      }
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+    } finally {
+      setIsFetchingUser(false);
+    }
+  };
+
+  const fetchUserWeight = async () => {
+    try {
+      setIsFetchingWeight(true);
+      
+      const weightCollectionRef = collection(db, "weight");
+      const weightQuery = query(weightCollectionRef, where("userIdCl", "==", userId));
+      const weightDocs = await getDocs(weightQuery);
+      const data = weightDocs.docs.map((doc) => doc.data());
+      
+      setUserWeightData(data);
+    } catch (error) {
+      console.error("Error fetching weight details:", error);
+    } finally {
+      setIsFetchingWeight(false);
+    }
+  };
+
+  const fetchPlans = async () => {
+    try {
+      setIsFetchingPlans(true);
+      
+      const plansCollectionRef = collection(db, "workoutPlans");
+      const plansQuery = query(plansCollectionRef, where("userIdCl", "==", userId));
+      const plansDocs = await getDocs(plansQuery);
+      const plansData = plansDocs.docs.map((doc) => ({...doc.data(), id: doc.id}));
+      
+      setPlans(plansData);
+    } catch (error) {
+      console.error("Error fetching plans context:", error);
+    } finally {
+      setIsFetchingPlans(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userId) {
+      fetchUserDetail();
+      fetchUserWeight();
+      fetchPlans();
+    }
+  }, [userId]);
+
+  const userRefetch = fetchUserDetail;
+  const userWeightRefetch = fetchUserWeight;
+  const plansRefetch = fetchPlans;
+
+  const userDetailData = userDetail || {};
+  
+  const userAgeCal = calculateAge(userDetailData?.userBirthDate);
 
   const handleOpenClose = () => setShow(!show);
   const latestWeight = _.maxBy(userWeightData, (entry) => new Date(entry?.created_at));
 
-  const handleImage=async()=>{
-    const data =await  getExercisesGif()
-    console.log("process image",data)
-  }
-
-  // useEffect(()=>{
-  //   handleImage()
-  // },[])
-  
+  const isFetching = isFetchingUser || isFetchingWeight || isFetchingPlans;
 
   const contextValue = useMemo(() => {
     return {
-
-      gender, setGender,
-      weight, setWeight,
-      height, setHeight,
-      age, setAge,
+      gender,
+      setGender,
+      weight,
+      setWeight,
+      height,
+      setHeight,
+      age,
+      setAge,
       userDetailData,
       userRefetch,
-      isFetching,
       handleOpenClose,
       show,
-      selectedGoals, setSelectedGoals,
-      activityLevel,setActivityLevel,
+      selectedGoals,
+      setSelectedGoals,
+      activityLevel,
+      setActivityLevel,
       userWeightRefetch,
+      plansRefetch,
       latestWeight,
+      plans,
       userId,
-      fetchPlans,
-      userAgeCal
+      userAgeCal,
+      isFetching,
     };
-  }, [ gender, weight, height, age,userDetailData,isFetching,show,selectedGoals,activityLevel,latestWeight,userAgeCal]);
+  }, [
+    gender,
+    weight,
+    height,
+    age,
+    userDetailData,
+    show,
+    selectedGoals,
+    activityLevel,
+    latestWeight,
+    plans,
+    userAgeCal,
+    isFetching,
+  ]);
 
-  return (
-   
-      <GlobalContext.Provider value={contextValue}>
-        {children}
-      </GlobalContext.Provider>
-
-  );
+  return <GlobalContext.Provider value={contextValue}>{children}</GlobalContext.Provider>;
 }

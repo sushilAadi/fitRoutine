@@ -9,9 +9,9 @@ export const handleDate = (data) => {
 export const calculateProgress = (plan) => {
   let totalExercises = 0;
   let completedExercises = 0;
-
-  plan?.workoutPlan.forEach((week, weekIndex) => {
-    week.forEach((day, dayIndex) => {
+const planWOrkoutPlan  = typeof plan?.workoutPlan === 'string' ? JSON.parse(plan?.workoutPlan) : plan?.workoutPlan
+planWOrkoutPlan?.forEach((week, weekIndex) => {
+    week?.forEach((day, dayIndex) => {
       day.exercises.forEach((_, exerciseIndex) => {
         totalExercises++;
         if (
@@ -33,8 +33,7 @@ export const calculateProgress = (plan) => {
 
 export const calculateAge = (dateString) => {
   if (!dateString) {
-    // Handle null or undefined input
-    console.warn("Date string is null or undefined.");
+    
     return "Invalid date";
   }
 

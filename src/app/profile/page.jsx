@@ -5,10 +5,11 @@ import { useUser } from "@clerk/nextjs";
 import { GlobalContext } from "@/context/GloablContext";
 import ButtonCs from "@/components/Button/ButtonCs";
 import _ from "lodash";
-import { supabase } from "@/createClient";
+
 import { BackgroundGradientAnimation } from "@/components/AnimatedBackground";
 import { calculateBMI, goals } from "@/utils";
-
+import { doc, updateDoc, setDoc } from "firebase/firestore";
+import { db } from "@/firebase/firebaseConfig";
 
 const Profile = () => {
   const { user } = useUser();
@@ -37,13 +38,10 @@ const Profile = () => {
 
   const [isEditing, setIsEditing] = useState(false);
 
-  
   useEffect(() => {
     setWeight(latestWeight?.userWeights);
     setHeight(userHeight);
   }, [userHeight, latestWeight?.userWeights]);
-
- 
 
   const updateUserDetail = async () => {
     // Build the update object dynamically
@@ -57,33 +55,32 @@ const Profile = () => {
 
     // Proceed only if there are fields to update
     if (Object.keys(updateFields).length === 0) {
-      console.log("No fields to update.");
+      
       return;
     }
 
-    const { data, error } = await supabase
-      .from("users")
-      .update(updateFields)
-      .eq("userIdCl", userId);
-
-    if (error) {
+    try {
+      const userDocRef = doc(db, "users", userId);
+      await updateDoc(userDocRef, updateFields);
+      
+      userRefetch();
+    } catch (error) {
       console.log("Error while updating user details: ", error);
-    } else {
-      console.log("User details updated successfully: ");
-      userRefetch;
     }
   };
 
   const insertWeight = async () => {
-    const { data, error } = await supabase.from("weight").insert({
-      userIdCl: userId,
-      userWeights: weight,
-    });
-    if (error) {
-      console.log("Weight Error: ", error);
-    } else {
-      console.log("Weight posted successfully: ", data);
+    try {
+      const weightDocRef = doc(db, "weight", `${userId}_${new Date().toISOString()}`);
+      await setDoc(weightDocRef, {
+        userIdCl: userId,
+        userWeights: weight,
+        created_at: new Date().toISOString(),
+      });
+      
       userWeightRefetch();
+    } catch (error) {
+      console.log("Error inserting weight: ", error);
     }
   };
 
@@ -92,13 +89,13 @@ const Profile = () => {
     updateUserDetail();
     insertWeight();
   };
+
   const splitHelpYou = helpYou?.split(",");
   const filteredGoals = goals?.filter((goal) =>
     splitHelpYou?.map((item) => item?.trim()).includes(goal?.id)
   );
 
   const bmi = calculateBMI(latestWeight?.userWeights, userHeight);
-  
 
   return (
     <SecureComponent>

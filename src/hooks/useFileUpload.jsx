@@ -1,99 +1,87 @@
-export const useFileUpload = (allowedTypes, maxSizeInMB, options = { single: true, multiple: false, append: true }) => {
-    const [fileData, setFileData] = useState(options.multiple ? [] : {
-      base64Data: null,
-      fileType: null,
-      errorMessage: null,
-      id:uuidv4()
-    });
-  
-    const handleFileUpload = (files) => {
-      if (!files || files.length === 0) {
-        setFileData(options.multiple ? [] : {
+'use client'
+import { useState } from "react";
+import { v4 as uuidv4 } from "uuid";
+
+export const useFileUpload = (
+  allowedTypes = ["image/*"],
+  maxSizeInMB = 5,
+  options = { single: true, multiple: false, append: true }
+) => {
+  const [fileData, setFileData] = useState(options.multiple ? [] : null);
+
+  const calculateTotalSize = (files) => {
+    return files.reduce((total, file) => {
+      const base64Length = file.base64Data?.length || 0;
+      const sizeInBytes = 4 * Math.ceil(base64Length / 3) * 0.75;
+      return total + sizeInBytes;
+    }, 0) / (1024 * 1024); // Convert bytes to MB
+  };
+
+  const isFileDuplicate = (newFile, existingFiles) => {
+    return existingFiles.some(file => 
+      file.base64Data === newFile.base64Data
+    );
+  };
+
+  const handleFileUpload = (files) => {
+    if (!files || files.length === 0) return;
+
+    const newFiles = Array.from(files).map(file => {
+      if (!allowedTypes.includes(file.type)) {
+        return {
           base64Data: null,
           fileType: null,
-          errorMessage: 'No file selected.',
-          id:uuidv4()
-        });
-        return;
+          errorMessage: "Invalid file type. Please upload allowed types.",
+          id: uuidv4(),
+        };
       }
-  
-      if (!options.multiple && options.single && files.length > 1) {
-        setFileData({
+
+      const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
+      if (file.size > maxSizeInBytes) {
+        return {
           base64Data: null,
           fileType: null,
-          errorMessage: 'Only single file upload allowed.',
-          id:uuidv4()
-        });
-        return;
+          errorMessage: `File exceeds the limit of ${maxSizeInMB}MB.`,
+          id: uuidv4(),
+        };
       }
-  
-      const processedFiles = [];
-  
-      for (const file of files) {
-        // Check if the file type is allowed
-        if (!allowedTypes.includes(file.type)) {
-          processedFiles.push({
-            base64Data: null,
-            fileType: null,
-            errorMessage: 'Invalid file type. Please upload only allowed types.',
-            id:uuidv4()
-          });
-          continue;
-        }
-  
-        // Check if the file size is within the limit
-        const maxSizeInBytes = maxSizeInMB * 1024 * 1024;
-        if (file.size > maxSizeInBytes) {
-          processedFiles.push({
-            base64Data: null,
-            fileType: null,
-            errorMessage: `File size exceeds the limit of ${maxSizeInMB}MB.`,
-            id:uuidv4()
-          });
-          continue;
-        }
-  
-        // Read the file as base64
+
+      return new Promise((resolve) => {
         const reader = new FileReader();
         reader.onloadend = () => {
-          const base64Data = reader.result;
-          processedFiles.push({
-            base64Data,
+          resolve({
+            base64Data: reader.result,
             fileType: file.type,
+            fileName: file.name,
             errorMessage: null,
-            id:uuidv4()
+            id: uuidv4(),
           });
-  
-          if (options.multiple) {
-            setFileData([...fileData, ...processedFiles]);
-          } else {
-            setFileData(processedFiles[0]);
-          }
         };
         reader.readAsDataURL(file);
-      }
-    };
-    const handleFileDelete = (id) => {
-      if (options.multiple) {
-        const updatedFiles = fileData.filter((file) => file.id !== id);
-        setFileData(updatedFiles);
-      } else {
-        setFileData({
-          base64Data: null,
-          fileType: null,
-          errorMessage: null,
-          id: uuidv4(),
-        });
-      }
-    };
-    const resetFileData = () => {
-      setFileData(options.multiple ? [] : {
-        base64Data: null,
-        fileType: null,
-        errorMessage: null,
-        id:uuidv4()
       });
-    };
-  
-    return { handleFileUpload,handleFileDelete,resetFileData, fileData };
+    });
+
+    Promise.all(newFiles).then((resolvedFiles) => {
+      setFileData((prevData) => {
+        if (options.multiple) {
+          const existingFiles = prevData || [];
+          const uniqueNewFiles = resolvedFiles.filter(newFile => !isFileDuplicate(newFile, existingFiles));
+          return options.append ? [...existingFiles, ...uniqueNewFiles] : uniqueNewFiles;
+        }
+        return options.single ? resolvedFiles[0] : resolvedFiles;
+      });
+    });
   };
+
+  const handleFileDelete = (id) => {
+    setFileData((prevData) =>
+      options.multiple
+        ? prevData.filter((file) => file.id !== id)
+        : null
+    );
+  };
+
+  const totalSizeInMB = calculateTotalSize(Array.isArray(fileData) ? fileData : fileData ? [fileData] : []);
+  return { handleFileUpload, handleFileDelete, fileData, totalSizeInMB };
+};
+
