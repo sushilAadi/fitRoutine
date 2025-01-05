@@ -9,10 +9,13 @@ const FileUpload = ({
   allowedTypes = ["image/*"],
   maxSizeInMB = 5,
   totalSizeInMB = 0,
+  multiple,
+  required
 }) => {
   const fileInputRef = useRef(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -28,6 +31,19 @@ const FileUpload = ({
     e.preventDefault();
     setIsDragging(false);
     const files = e.dataTransfer.files;
+    validateAndUpload(files);
+  };
+
+  const validateAndUpload = (files) => {
+    const fileArray = Array.from(files);
+    const oversizedFiles = fileArray.filter((file) => file.size / (1024 * 1024) > maxSizeInMB);
+
+    if (oversizedFiles.length > 0) {
+      setErrorMessage(`File size exceeds ${maxSizeInMB}MB limit.`);
+      return;
+    }
+
+    setErrorMessage("");
     simulateUpload(files);
   };
 
@@ -47,7 +63,7 @@ const FileUpload = ({
 
   const handleFileSelect = (e) => {
     const files = e.target.files;
-    simulateUpload(files);
+    validateAndUpload(files);
   };
 
   return (
@@ -65,7 +81,8 @@ const FileUpload = ({
           className="hidden"
           accept={allowedTypes.join(",")}
           onChange={handleFileSelect}
-          multiple
+          multiple={multiple}
+          required={required}
         />
 
         <div
@@ -80,6 +97,10 @@ const FileUpload = ({
             Maximum file size: {maxSizeInMB}MB | Total Uploaded: {totalSizeInMB.toFixed(2)}MB
           </p>
         </div>
+
+        {errorMessage && (
+          <p className="mt-2 text-sm text-center text-red-500">{errorMessage}</p>
+        )}
 
         {fileData && (
           <div className="flex flex-wrap gap-2 mt-4 space-y-3">
@@ -109,7 +130,7 @@ const FileUpload = ({
             )) : fileData && (
               <div
                 key={fileData.id}
-                className="flex items-center justify-between p-2 border rounded-lg"
+                className="flex items-center justify-between p-2 border rounded-lg flex-grow-1"
               >
                 <div className="flex items-center space-x-3">
                   <FileText className="w-6 h-6 text-blue-500" />

@@ -58,10 +58,10 @@ const SavedCard = ({
       <div className="mb-4 space-y-1">
         <p className="text-sm text-gray-500">{formattedDate}</p>
         <h2 className="text-xl font-semibold">{plan?.name}</h2>
-        <h2 className="text-xl font-semibold">{`${plan.weeks} weeks, ${plan.daysPerWeek} days/week`}</h2>
+        <h2 className="text-xl font-semibold">{`${plan?.weeks} weeks, ${plan?.daysPerWeek} days/week`}</h2>
       </div>
 
-      <p className="mb-2">{`${progress}% complete`}</p>
+      <p className="mb-2">{`${progress??0}% complete`}</p>
 
       <div className="flex gap-1 mb-6">
         {segments.map((isComplete, index) => (

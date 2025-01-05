@@ -624,7 +624,7 @@ const createPlanPage = () => {
                 <div
                   key={weekIndex}
                   className="mb-8"
-                  ref={(el) => (weekRefs.current[weekIndex] = el)}
+                  ref={(el) => (weekRefs.current[weekIndex] = el)} 
                 >
                   <div className="flex items-center gap-2 mb-4">
                     <h2 className="mr-2 text-xl font-semibold">
