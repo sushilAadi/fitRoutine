@@ -9,6 +9,7 @@ import { GlobalContext } from "@/context/GloablContext";
 import { calculateProgress } from "@/utils";
 import { getFirestore, collection, query, where, getDocs, deleteDoc, doc, getDoc } from "firebase/firestore";
 import SecureComponent from "@/components/SecureComponent/[[...SecureComponent]]/SecureComponent";
+import toast from "react-hot-toast";
 
 const CustomPlanPage = () => {
   const { handleOpenClose, userId, fetchPlans, setLastPosition, plans, isFetchingPlans } =
@@ -58,10 +59,9 @@ const CustomPlanPage = () => {
   
 
   const deletePlan = async (planId, planName) => {
-    if (window.confirm(`Are you sure you want to delete the plan "${planName}"?`)) {
+    if (typeof window !== "undefined" && window.confirm(`Are you sure you want to delete the plan "${planName}"?`)) {
       try {
         const db = getFirestore();
-        // Fetch the plan to check if it belongs to the current user
         const planRef = doc(db, "workoutPlans", planId);
         const planDoc = await getDoc(planRef);
   
@@ -71,17 +71,11 @@ const CustomPlanPage = () => {
   
         const planData = planDoc.data();
   
-        // Check if the plan belongs to the current user (userIdCl)
         if (planData.userIdCl !== userId) {
           throw new Error("You can only delete your own plans.");
         }
   
-        // Proceed to delete the plan if it belongs to the user
         await deleteDoc(planRef);
-  
-        
-  
-        // Optimistically update the UI to remove the deleted plan
         setSavedPlans((prevPlans) =>
           prevPlans.filter((plan) => plan.id !== planId)
         );
@@ -92,6 +86,7 @@ const CustomPlanPage = () => {
       }
     }
   };
+  
   
   
   
@@ -126,46 +121,36 @@ const CustomPlanPage = () => {
 
   const deleteAllPlans = async () => {
     if (
+      typeof window !== "undefined" &&
       window.confirm(
         "Are you sure you want to delete all workout plans? This action cannot be undone."
       )
     ) {
       try {
-        // Get Firestore instance
         const db = getFirestore();
-  
-        // Reference to the 'workoutPlans' collection
         const plansRef = collection(db, "workoutPlans");
-  
-        // Query to find all plans for the current user
-        const q = query(plansRef, where("userIdCl", "==", userId)); // Use userId from context
-  
-        // Get all plans for the current user
+        const q = query(plansRef, where("userIdCl", "==", userId));
         const querySnapshot = await getDocs(q);
   
-        // Check if plans exist for the user
         if (querySnapshot.empty) {
           toast.info("No plans found for the user.");
           return;
         }
   
-        // Delete each plan
         const deletePromises = querySnapshot.docs.map((docSnap) =>
           deleteDoc(doc(db, "workoutPlans", docSnap.id))
         );
   
         await Promise.all(deletePromises);
-  
         toast.success("All plans deleted successfully!");
-        // Clear state
         setSavedPlans([]);
-        // setLastPosition({});
       } catch (error) {
         toast.error(`Error deleting all plans: ${error.message}`);
         console.error("Error deleting all plans:", error);
       }
     }
   };
+  
 
   
 
