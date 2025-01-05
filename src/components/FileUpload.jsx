@@ -73,10 +73,10 @@ const FileUpload = ({
           onClick={() => fileInputRef.current?.click()}
         >
           <Upload className="w-12 h-12 mb-4 text-gray-400" />
-          <p className="mb-2 text-lg font-semibold text-gray-300">
+          <p className="mb-2 text-lg font-semibold text-center text-gray-300">
             Drag & Drop or Click to Upload
           </p>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-center text-gray-400">
             Maximum file size: {maxSizeInMB}MB | Total Uploaded: {totalSizeInMB.toFixed(2)}MB
           </p>
         </div>
@@ -86,7 +86,7 @@ const FileUpload = ({
             {Array.isArray(fileData) ? fileData.map((file) => (
               <div
                 key={file.id}
-                className="flex items-center justify-between p-2 border rounded-lg min-h-[60px] max-h-[60px] m-0"
+                className="flex items-center justify-between p-2 border rounded-lg flex-grow-1 min-h-[60px] max-h-[60px] m-0"
               >
                 <div className="flex items-center space-x-3">
                   <FileText className="w-6 h-6 text-blue-500" />
@@ -141,7 +141,7 @@ const FileUpload = ({
             </div>
             <div className="w-full h-2 bg-gray-700 rounded-full">
               <div
-                className="h-2 transition-all duration-300 bg-blue-500 rounded-full"
+                className="h-2 transition-all duration-300 bg-black rounded-full"
                 style={{ width: `${uploadProgress}%` }}
               />
             </div>

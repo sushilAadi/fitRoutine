@@ -369,6 +369,20 @@ const MentorRegistration = () => {
 <br/>
   </Col>
 </Row>
+<Row>
+              <Col xs={12}>
+                <InputBlk 
+                  title="Aadhar Card Number" 
+                  name="adhar_card_number" 
+                  placeholder="Enter Aadhar card number"
+                  type="number"
+                  value={formData.adhar_card_number}
+                  onChange={handleInputChange}
+                  required
+                />
+              </Col>
+            </Row>
+            <br/>
 
             <Row>
               <Col xs={12}>
@@ -471,19 +485,7 @@ const MentorRegistration = () => {
             </Row>
             <br />
 
-            <Row>
-              <Col xs={12}>
-                <InputBlk 
-                  title="Aadhar Card Number" 
-                  name="adhar_card_number" 
-                  placeholder="Enter Aadhar card number"
-                  type="number"
-                  value={formData.adhar_card_number}
-                  onChange={handleInputChange}
-                  required
-                />
-              </Col>
-            </Row>
+            
             <br />
 
             <Row>
