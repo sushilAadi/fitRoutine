@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 export const useFileUpload = (
   allowedTypes = ["image/*"],
   maxSizeInMB = 5,
-  options = { single: true, multiple: false, append: true }
+  options = { single: true, multiple: false, append: true, maxFiles: null }
 ) => {
   const [fileData, setFileData] = useState(options.multiple ? [] : null);
 
@@ -14,7 +14,7 @@ export const useFileUpload = (
       const base64Length = file.base64Data?.length || 0;
       const sizeInBytes = 4 * Math.ceil(base64Length / 3) * 0.75;
       return total + sizeInBytes;
-    }, 0) / (1024 * 1024); // Convert bytes to MB
+    }, 0) / (1024 * 1024);
   };
 
   const isFileDuplicate = (newFile, existingFiles) => {
@@ -25,6 +25,14 @@ export const useFileUpload = (
 
   const handleFileUpload = (files) => {
     if (!files || files.length === 0) return;
+
+    if (options.multiple && options.maxFiles) {
+      const totalFiles = (fileData?.length || 0) + files.length;
+      if (totalFiles > options.maxFiles) {
+        console.error(`Maximum ${options.maxFiles} files allowed`);
+        return;
+      }
+    }
 
     const newFiles = Array.from(files).map(file => {
       if (!allowedTypes.includes(file.type)) {
@@ -66,7 +74,8 @@ export const useFileUpload = (
         if (options.multiple) {
           const existingFiles = prevData || [];
           const uniqueNewFiles = resolvedFiles.filter(newFile => !isFileDuplicate(newFile, existingFiles));
-          return options.append ? [...existingFiles, ...uniqueNewFiles] : uniqueNewFiles;
+          const updatedFiles = options.append ? [...existingFiles, ...uniqueNewFiles] : uniqueNewFiles;
+          return options.maxFiles ? updatedFiles.slice(0, options.maxFiles) : updatedFiles;
         }
         return options.single ? resolvedFiles[0] : resolvedFiles;
       });
@@ -84,4 +93,3 @@ export const useFileUpload = (
   const totalSizeInMB = calculateTotalSize(Array.isArray(fileData) ? fileData : fileData ? [fileData] : []);
   return { handleFileUpload, handleFileDelete, fileData, totalSizeInMB };
 };
-

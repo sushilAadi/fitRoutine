@@ -13,6 +13,7 @@ export const GlobalContext = createContext("");
 export default function GlobalContextProvider({ children }) {
   const { isLoaded, userId } = useAuth();
   const { user } = useUser();
+  console.log("user",user)
 
   const userRole = user?.publicMetadata?.role ?? "user";
 
@@ -108,6 +109,7 @@ export default function GlobalContextProvider({ children }) {
 
   const contextValue = useMemo(() => {
     return {
+      user,
       gender,
       setGender,
       weight,

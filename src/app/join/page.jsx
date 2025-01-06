@@ -18,8 +18,8 @@ import { db } from "@/firebase/firebaseConfig";
 import { GlobalContext } from "@/context/GloablContext";
 
 const MentorRegistration = () => {
-
-  const {userId,handleOpenClose} = useContext(GlobalContext);
+  
+  const {userId,handleOpenClose,user} = useContext(GlobalContext);
 
  
 
@@ -51,16 +51,26 @@ const MentorRegistration = () => {
     half_yearly_rate: "",
     yearly_rate: "",
     certification_file: null,
+    profileImage: null,
   });
 
   const { handleFileUpload, handleFileDelete, fileData, totalSizeInMB } =
-    useFileUpload(["application/pdf", "image/jpeg", "image/png"], 5, {
+    useFileUpload(["image/jpeg", "image/png"], 5, {
       single: false,
       multiple: true,
       append: true,
+      maxFiles: 3
     });
+
   const { handleFileUpload:hanmdleAadharUpload, handleFileDelete:handleAadharDelete, fileData:aadharData, totalSizeInMB:aadharSize } =
     useFileUpload(["application/pdf", "image/jpeg", "image/png"], 1, {
+      single: true,
+      multiple: false,
+      append: false,
+    });
+
+    const { handleFileUpload: handleProfileUpload, handleFileDelete: handleProfileDelete, fileData: profileData, totalSizeInMB: profileSize } =
+    useFileUpload(["image/jpeg", "image/png"], 1, {
       single: true,
       multiple: false,
       append: false,
@@ -279,28 +289,34 @@ const MentorRegistration = () => {
         return;
     }
 
-    if (fileData.length === 0) {
-        toast.error("Certification is mandatory");
+    if (!profileData?.base64Data) {
+        toast.error("Profile image is mandatory");
+        return;
+    }
+
+    if (fileData.length === 0 || fileData.length > 3) {
+        toast.error("Please upload 1-3 certification documents");
         return;
     }
 
     const toastId = toast.loading("Uploading files...");
     
     try {
-        // Upload Aadhar
-        console.log('Starting Aadhar upload...'); // Debug log
         const uploadedAadharUrl = await uploadImageToCloudinary(
             aadharData.base64Data,
             `aadhar_${aadharData.fileName}`
         );
         
-        if (!uploadedAadharUrl) {
-            toast.error("Failed to upload Aadhar document");
+        const uploadedProfileUrl = await uploadImageToCloudinary(
+            profileData.base64Data,
+            `profile_${profileData.fileName}`
+        );
+        
+        if (!uploadedAadharUrl || !uploadedProfileUrl) {
+            toast.error("Failed to upload documents");
             return;
         }
 
-        // Upload Certifications
-        console.log('Starting certifications upload...'); // Debug log
         const uploadPromises = fileData.map((file, index) => 
             uploadImageToCloudinary(
                 file.base64Data,
@@ -310,27 +326,24 @@ const MentorRegistration = () => {
 
         const uploadCertificationUrls = await Promise.all(uploadPromises);
 
-        // Check if any certification upload failed
         if (uploadCertificationUrls.some(url => !url)) {
             throw new Error("Some certification uploads failed");
         }
 
-        // Prepare form data with URLs
         const formDataWithUrls = {
             ...formData,
             aadharImage: uploadedAadharUrl,
+            profileImage: uploadedProfileUrl,
             certificationImage: uploadCertificationUrls,
             userIdCl: userId,
-            uploadedAt: new Date().toISOString()
+            uploadedAt: new Date().toISOString(),
+            email: user.primaryEmailAddress?.emailAddress
         };
 
-        // Save to Firebase
-        console.log('Saving to Firebase...'); // Debug log
         const docRef = await addDoc(collection(db, "Mentor"), formDataWithUrls);
         
         if (docRef.id) {
             toast.success("Successfully registered!");
-            // Optional: Clear form or redirect
         } else {
             throw new Error("Firebase document creation failed");
         }
@@ -352,6 +365,33 @@ const MentorRegistration = () => {
         </div>
         <div className="flex-1 p-3 overflow-auto">
           <form onSubmit={handleSubmit}>
+          <Row>
+              <Col xs={12}>
+                <label className="text-[#8a8a8a] mb-1 block">
+                  Profile Image
+                </label>
+                <FileUpload
+                  handleFileUpload={handleProfileUpload}
+                  fileData={profileData}
+                  handleFileDelete={handleProfileDelete}
+                  allowedTypes={["image/jpeg", "image/png"]}
+                  maxSizeInMB={1}
+                  totalSizeInMB={profileSize}
+                  multiple={false}
+                  required={true}
+                />
+                {profileData?.base64Data && (
+                  <div className="mt-2">
+                    <img 
+                      src={profileData.base64Data} 
+                      alt="Profile Preview" 
+                      className="object-cover w-24 h-24 rounded-full"
+                    />
+                  </div>
+                )}
+                <br />
+              </Col>
+            </Row>
             <InputBlk
               title="Full Name"
               name="name"
@@ -382,9 +422,9 @@ const MentorRegistration = () => {
                   name="email"
                   placeholder="Enter Email id"
                   type="email"
-                  value={formData.email}
+                  value={user.primaryEmailAddress?.emailAddress}
                   onChange={handleInputChange}
-                  required
+                  disabled
                 />
                 <br />
               </Col>
@@ -567,6 +607,11 @@ const MentorRegistration = () => {
                   multiple={true}
                   required={true}
                 />
+                {fileData.length > 3 && (
+                  <div className="mt-1 text-sm text-red-500">
+                    Maximum 3 certification files allowed
+                  </div>
+                )}
                 <br />
               </Col>
             </Row>
