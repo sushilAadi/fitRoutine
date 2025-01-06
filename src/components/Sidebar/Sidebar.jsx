@@ -18,7 +18,10 @@ import { UserButton } from "@clerk/nextjs";
 import { GlobalContext } from "@/context/GloablContext";
 
 const Sidebar = ({}) => {
-  const {handleOpenClose,fullName} = useContext(GlobalContext)
+  const {handleOpenClose,fullName,user} = useContext(GlobalContext)
+  console.log("role",user?.publicMetadata?.role)
+
+  const userRole = user?.publicMetadata?.role
   
   return (
     <div className='h-full overflow-x-hidden overflow-y-auto '>
@@ -105,6 +108,17 @@ const Sidebar = ({}) => {
               Join as Coach
             </Link>
           </ListItem>
+          {(userRole === "admin" || userRole === "coach") &&
+            <ListItem>
+            <ListItemPrefix>
+            <i className="fa-duotone fa-light fa-user-vneck-hair h-5 w-5 !mr-2 drop-shadow-lg"></i>
+            </ListItemPrefix>
+            <Link href="/clients" className="no-underline text-inherit" onClick={handleOpenClose}>
+              Enrolled Clients
+            </Link>
+          </ListItem>
+          }
+          
           <ListItem>
             <UserButton />
           </ListItem>
