@@ -21,7 +21,7 @@ const MentorRegistration = () => {
   
   const {userId,handleOpenClose,user} = useContext(GlobalContext);
 
- 
+ console.log("user",user)
 
 
   const [selectedCountry, setSelectedCountry] = useState(null);

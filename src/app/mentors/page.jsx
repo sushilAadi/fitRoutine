@@ -12,7 +12,7 @@ import React, { useContext, useEffect, useState } from "react";
 
 
 const Coaches = () => {
-  const { handleOpenClose,userDetailData } = useContext(GlobalContext);
+  const { handleOpenClose,userDetailData,user } = useContext(GlobalContext);
   const [mentors, setMentors] = useState([]);
   const [loading, setLoading] = useState(true);
 
