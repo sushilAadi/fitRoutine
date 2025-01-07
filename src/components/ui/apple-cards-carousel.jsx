@@ -183,7 +183,7 @@ export const Card = ({
             exit={{ opacity: 0 }}
             ref={containerRef}
             layoutId={layout ? `card-${card.title}` : undefined}
-            className="max-w-5xl mx-auto bg-tprimary  h-full text-white  z-[60] p-4 md:p-10 font-sans relative">
+            className="max-w-5xl mx-auto   h-full text-white  z-[60] p-4 md:p-10 font-sans relative">
             <button
               className="sticky right-0 flex items-center justify-center w-8 h-8 ml-auto rounded-full top-4 "
               onClick={handleClose}>

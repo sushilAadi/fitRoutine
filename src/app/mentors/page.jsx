@@ -53,8 +53,8 @@ const Coaches = () => {
 
   return (
     <SecureComponent>
-      <div className="flex flex-col h-screen overflow-hidden bg-tprimary">
-        <div className="top-0 p-3 text-white bg-tprimary sticky-top z-1">
+      <div className="flex flex-col h-full min-h-screen overflow-hidden bg-tprimary">
+        <div className="top-0 p-3 text-white sticky-top z-1">
           <div className="flex justify-between">
             <div className="mt-[-8px]">
               <p className="text-3xl">Choose</p>
