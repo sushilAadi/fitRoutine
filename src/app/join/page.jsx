@@ -337,7 +337,7 @@ const MentorRegistration = () => {
             certificationImage: uploadCertificationUrls,
             userIdCl: userId,
             uploadedAt: new Date().toISOString(),
-            email: user.primaryEmailAddress?.emailAddress
+            email: user?.primaryEmailAddress?.emailAddress
         };
 
         const docRef = await addDoc(collection(db, "Mentor"), formDataWithUrls);
@@ -422,7 +422,7 @@ const MentorRegistration = () => {
                   name="email"
                   placeholder="Enter Email id"
                   type="email"
-                  value={user.primaryEmailAddress?.emailAddress}
+                  value={user?.primaryEmailAddress?.emailAddress}
                   onChange={handleInputChange}
                   disabled
                 />
