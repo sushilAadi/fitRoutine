@@ -1,5 +1,5 @@
 "use client";
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import SecureComponent from "@/components/SecureComponent/[[...SecureComponent]]/SecureComponent";
 import ButtonCs from "@/components/Button/ButtonCs";
 import InputBlk from "@/components/InputCs/InputBlk";
@@ -9,25 +9,30 @@ import Creatable from "react-select/creatable";
 import Select from "react-select";
 import FileUpload from "@/components/FileUpload";
 import { useFileUpload } from "@/hooks/useFileUpload";
-import { v4 as uuidv4 } from 'uuid';
-import {  collection, addDoc } from "firebase/firestore";
-
+import { collection, addDoc, query, where, getDocs } from "firebase/firestore";
 import { Cloudinary } from "@cloudinary/url-gen";
 import toast from "react-hot-toast";
 import { db } from "@/firebase/firebaseConfig";
 import { GlobalContext } from "@/context/GloablContext";
+import TextBlk from "@/components/InputCs/TextArea";
 
 const MentorRegistration = () => {
   
   const {userId,handleOpenClose,user} = useContext(GlobalContext);
+  const [isAlreadyRegistered, setIsAlreadyRegistered] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
 
  console.log("user",user)
+
+
 
 
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [formData, setFormData] = useState({
     availability: null,
     certification: null,
+    AboutMe:'',
     nutrition_consultation: null,
     meal_planning: null,
     qualifications: [],
@@ -53,6 +58,31 @@ const MentorRegistration = () => {
     certification_file: null,
     profileImage: null,
   });
+
+
+  useEffect(() => {
+    const checkExistingRegistration = async () => {
+      try {
+        const mentorsRef = collection(db, "Mentor");
+        const q = query(mentorsRef, where("userIdCl", "==", userId));
+        const querySnapshot = await getDocs(q);
+        
+        if (!querySnapshot.empty) {
+          setIsAlreadyRegistered(true);
+          toast.error("You are already registered as a mentor!");
+        }
+      } catch (error) {
+        console.error("Error checking registration:", error);
+        toast.error("Error checking registration status");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (userId) {
+      checkExistingRegistration();
+    }
+  }, [userId]);
 
   const { handleFileUpload, handleFileDelete, fileData, totalSizeInMB } =
     useFileUpload(["image/jpeg", "image/png"], 5, {
@@ -284,78 +314,87 @@ const MentorRegistration = () => {
    const handleSubmit = async (e) => {
     e.preventDefault();
     
+    if (isAlreadyRegistered) {
+      toast.error("You are already registered as a mentor!");
+      return;
+    }
+
     if (!aadharData?.base64Data) {
-        toast.error("Aadhar is mandatory");
-        return;
+      toast.error("Aadhar is mandatory");
+      return;
     }
 
     if (!profileData?.base64Data) {
-        toast.error("Profile image is mandatory");
-        return;
+      toast.error("Profile image is mandatory");
+      return;
     }
 
     if (fileData.length === 0 || fileData.length > 3) {
-        toast.error("Please upload 1-3 certification documents");
-        return;
+      toast.error("Please upload 1-3 certification documents");
+      return;
     }
 
     const toastId = toast.loading("Uploading files...");
     
     try {
-        const uploadedAadharUrl = await uploadImageToCloudinary(
-            aadharData.base64Data,
-            `aadhar_${aadharData.fileName}`
-        );
-        
-        const uploadedProfileUrl = await uploadImageToCloudinary(
-            profileData.base64Data,
-            `profile_${profileData.fileName}`
-        );
-        
-        if (!uploadedAadharUrl || !uploadedProfileUrl) {
-            toast.error("Failed to upload documents");
-            return;
-        }
+      // Double-check registration status before proceeding
+      const mentorsRef = collection(db, "Mentor");
+      const q = query(mentorsRef, where("userIdCl", "==", userId));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        toast.error("You are already registered as a mentor!");
+        return;
+      }
 
-        const uploadPromises = fileData.map((file, index) => 
-            uploadImageToCloudinary(
-                file.base64Data,
-                `cert_${index}_${file.fileName}`
-            )
-        );
 
-        const uploadCertificationUrls = await Promise.all(uploadPromises);
+      const formDataWithUrls = {
+        ...formData,
+        aadharImage: uploadedAadharUrl,
+        profileImage: uploadedProfileUrl,
+        certificationImage: uploadCertificationUrls,
+        userIdCl: userId,
+        uploadedAt: new Date().toISOString(),
+        email: user?.primaryEmailAddress?.emailAddress
+      };
 
-        if (uploadCertificationUrls.some(url => !url)) {
-            throw new Error("Some certification uploads failed");
-        }
-
-        const formDataWithUrls = {
-            ...formData,
-            aadharImage: uploadedAadharUrl,
-            profileImage: uploadedProfileUrl,
-            certificationImage: uploadCertificationUrls,
-            userIdCl: userId,
-            uploadedAt: new Date().toISOString(),
-            email: user?.primaryEmailAddress?.emailAddress
-        };
-
-        const docRef = await addDoc(collection(db, "Mentor"), formDataWithUrls);
-        
-        if (docRef.id) {
-            toast.success("Successfully registered!");
-        } else {
-            throw new Error("Firebase document creation failed");
-        }
+      const docRef = await addDoc(collection(db, "Mentor"), formDataWithUrls);
+      
+      if (docRef.id) {
+        toast.success("Successfully registered!");
+        setIsAlreadyRegistered(true);
+      } else {
+        throw new Error("Firebase document creation failed");
+      }
 
     } catch (error) {
-        console.error("Form submission error:", error);
-        toast.error(error.message || "Registration failed. Please try again.");
+      console.error("Form submission error:", error);
+      toast.error(error.message || "Registration failed. Please try again.");
     } finally {
-        toast.dismiss(toastId);
+      toast.dismiss(toastId);
     }
-};
-  console.log("Form Data:", fileData);
+  };
+
+  if (isAlreadyRegistered) {
+    return (
+      <SecureComponent>
+        <div className="flex flex-col items-center justify-center h-screen text-white bg-tprimary">
+          <h2 className="text-xl font-semibold">Already Registered</h2>
+          <p className="mt-4 text-center">
+            You have already registered as a mentor. Our team will review your application and get back to you soon.
+          </p>
+          <ButtonCs 
+            title="Go Back" 
+            className="mt-6"
+            onClick={handleOpenClose}
+          >
+            Go Back
+          </ButtonCs>
+        </div>
+      </SecureComponent>
+    );
+  }
+  
 
   return (
     <SecureComponent>
@@ -397,6 +436,15 @@ const MentorRegistration = () => {
               name="name"
               placeholder="Enter Your Full Name"
               value={formData.name}
+              onChange={handleInputChange}
+              required
+            />
+            <br />
+            <TextBlk
+              title="About You"
+              name="AboutMe"
+              placeholder="Enter about yourself"
+              value={formData.AboutMe}
               onChange={handleInputChange}
               required
             />
