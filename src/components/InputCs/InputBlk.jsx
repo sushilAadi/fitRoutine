@@ -15,6 +15,7 @@ const InputBlk = ({title,name, placeholder,onChange,value,inputClass,type="text"
                 value={value}
                 required={required}
                 disabled={disabled}
+                autoComplete='off'
                 
               />
             </div>

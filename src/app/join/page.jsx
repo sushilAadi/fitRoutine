@@ -260,7 +260,7 @@ const MentorRegistration = () => {
     e.preventDefault();
     
     if (isAlreadyRegistered) {
-      toast.error("You are already registered as a mentor!");
+      // toast.error("You are already registered as a mentor!");
       return;
     }
   
