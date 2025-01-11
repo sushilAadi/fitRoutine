@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 import { db } from "@/firebase/firebaseConfig";
 import { GlobalContext } from "@/context/GloablContext";
 import TextBlk from "@/components/InputCs/TextArea";
+import { booleanOptions, daysOptions, hoursOptions, languageOptions, qualificationOptions, specializationOptions, trainingLocationOptions } from "@/utils";
 
 const MentorRegistration = () => {
   
@@ -22,8 +23,8 @@ const MentorRegistration = () => {
   const [isAlreadyRegistered, setIsAlreadyRegistered] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
+  const userRole = user?.publicMetadata?.role ?? "user";
 
- console.log("user",user)
 
 
 
@@ -55,7 +56,6 @@ const MentorRegistration = () => {
     quarterly_rate: "",
     half_yearly_rate: "",
     yearly_rate: "",
-    certification_file: null,
     profileImage: null,
   });
 
@@ -72,7 +72,6 @@ const MentorRegistration = () => {
           toast.error("You are already registered as a mentor!");
         }
       } catch (error) {
-        console.error("Error checking registration:", error);
         toast.error("Error checking registration status");
       } finally {
         setIsLoading(false);
@@ -111,7 +110,7 @@ const MentorRegistration = () => {
     languages: "",
   });
 
-  console.log("fileData",{fileData,aadharData})
+  
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -136,63 +135,11 @@ const MentorRegistration = () => {
     setFormData({ ...formData, [field]: value });
   };
 
-  const qualificationOptions = [
-    {
-      value: "Certified Personal Trainer",
-      label: "Certified Personal Trainer",
-    },
-    { value: "Nutritionist", label: "Nutritionist" },
-    { value: "Fitness Coach", label: "Fitness Coach" },
-  ];
+ 
 
-  const specializationOptions = [
-    { value: "Weight Training", label: "Weight Training" },
-    { value: "Cardio", label: "Cardio" },
-    { value: "Yoga", label: "Yoga" },
-    { value: "Nutrition Planning", label: "Nutrition Planning" },
-  ];
+  
 
-  const languageOptions = [
-    { value: "Hindi", label: "Hindi" },
-    { value: "English", label: "English" },
-    { value: "Assamese", label: "Assamese" },
-    { value: "Bengali", label: "Bengali" },
-    { value: "Gujarati", label: "Gujarati" },
-    { value: "Kannada", label: "Kannada" },
-    { value: "Malayalam", label: "Malayalam" },
-    { value: "Marathi", label: "Marathi" },
-    { value: "Punjabi", label: "Punjabi" },
-    { value: "Tamil", label: "Tamil" },
-    { value: "Telugu", label: "Telugu" },
-    { value: "Urdu", label: "Urdu" },
-    
-  ];
-
-  const trainingLocationOptions = [
-    { value: "Gym", label: "Gym" },
-    { value: "Home", label: "Home" },
-    { value: "Online", label: "Online" },
-  ];
-
-  const daysOptions = [
-    { value: "Monday", label: "Monday" },
-    { value: "Tuesday", label: "Tuesday" },
-    { value: "Wednesday", label: "Wednesday" },
-    { value: "Thursday", label: "Thursday" },
-    { value: "Friday", label: "Friday" },
-    { value: "Saturday", label: "Saturday" },
-    { value: "Sunday", label: "Sunday" },
-  ];
-
-  const hoursOptions = [
-    { value: "Morning", label: "Morning" },
-    { value: "Afternoon", label: "Afternoon" },
-    { value: "Evening", label: "Evening" },
-  ];
-  const booleanOptions = [
-    { value: true, label: "Yes" },
-    { value: false, label: "No" },
-  ];
+ 
 
   const handleSelectChange = (value, field) => {
     setFormData({ ...formData, [field]: value });
@@ -268,7 +215,7 @@ const MentorRegistration = () => {
         formData.append('folder', 'mentor-registration');
         formData.append('public_id', `${userId}/${fileName}`);
         
-        console.log('Starting upload to Cloudinary...'); // Debug log
+        
 
         const uploadResponse = await fetch(
             `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
@@ -280,12 +227,11 @@ const MentorRegistration = () => {
 
         if (!uploadResponse.ok) {
             const errorData = await uploadResponse.json();
-            console.error('Cloudinary Error Response:', errorData);
             throw new Error(errorData.error?.message || 'Upload failed');
         }
 
         const data = await uploadResponse.json();
-        console.log('Upload successful:', data); // Debug log
+        
         
         if (data.secure_url) {
             return data.secure_url;
@@ -293,7 +239,6 @@ const MentorRegistration = () => {
             throw new Error("No secure URL in response");
         }
     } catch (error) {
-        console.error('Detailed upload error:', error);
         toast.error(`Upload failed: ${error.message}`);
         return null;
     }
@@ -318,22 +263,22 @@ const MentorRegistration = () => {
       toast.error("You are already registered as a mentor!");
       return;
     }
-
+  
     if (!aadharData?.base64Data) {
       toast.error("Aadhar is mandatory");
       return;
     }
-
+  
     if (!profileData?.base64Data) {
       toast.error("Profile image is mandatory");
       return;
     }
-
+  
     if (fileData.length === 0 || fileData.length > 3) {
       toast.error("Please upload 1-3 certification documents");
       return;
     }
-
+  
     const toastId = toast.loading("Uploading files...");
     
     try {
@@ -346,18 +291,45 @@ const MentorRegistration = () => {
         toast.error("You are already registered as a mentor!");
         return;
       }
-
-
+  
+      // Upload Aadhar document
+      const uploadedAadharUrl = await uploadImageToCloudinary(
+        aadharData.base64Data,
+        `aadhar_${userId}`
+      );
+      if (!uploadedAadharUrl) throw new Error("Aadhar upload failed");
+  
+      // Upload Profile image
+      const uploadedProfileUrl = await uploadImageToCloudinary(
+        profileData.base64Data,
+        `profile_${userId}`
+      );
+      if (!uploadedProfileUrl) throw new Error("Profile image upload failed");
+  
+      // Upload certification files
+      const uploadCertificationUrls = await Promise.all(
+        fileData.map((file, index) =>
+          uploadImageToCloudinary(
+            file.base64Data,
+            `certification_${userId}_${index}`
+          )
+        )
+      );
+      
+      if (uploadCertificationUrls.includes(null)) {
+        throw new Error("One or more certification uploads failed");
+      }
+  
       const formDataWithUrls = {
         ...formData,
         aadharImage: uploadedAadharUrl,
         profileImage: uploadedProfileUrl,
-        certificationImage: uploadCertificationUrls,
+        certificationImages: uploadCertificationUrls,
         userIdCl: userId,
         uploadedAt: new Date().toISOString(),
         email: user?.primaryEmailAddress?.emailAddress
       };
-
+  
       const docRef = await addDoc(collection(db, "Mentor"), formDataWithUrls);
       
       if (docRef.id) {
@@ -366,9 +338,9 @@ const MentorRegistration = () => {
       } else {
         throw new Error("Firebase document creation failed");
       }
-
+  
     } catch (error) {
-      console.error("Form submission error:", error);
+      
       toast.error(error.message || "Registration failed. Please try again.");
     } finally {
       toast.dismiss(toastId);
@@ -381,7 +353,7 @@ const MentorRegistration = () => {
         <div className="flex flex-col items-center justify-center h-screen text-white bg-tprimary">
           <h2 className="text-xl font-semibold">Already Registered</h2>
           <p className="mt-4 text-center">
-            You have already registered as a mentor. Our team will review your application and get back to you soon.
+            You have already registered as a mentor. {(userRole !== "admin" && userRole !== "mentor") && "Our team will review your application and get back to you soon."} 
           </p>
           <ButtonCs 
             title="Go Back" 

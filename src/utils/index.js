@@ -142,6 +142,68 @@ export const activity_goals = [
   },
 ];
 
+export const qualificationOptions = [
+  {
+    value: "Certified Personal Trainer",
+    label: "Certified Personal Trainer",
+  },
+  { value: "Nutritionist", label: "Nutritionist" },
+  { value: "Fitness Coach", label: "Fitness Coach" },
+];
+export const specializationOptions = [
+  { value: "Weight Training", label: "Weight Training" },
+  { value: "Cardio", label: "Cardio" },
+  { value: "Yoga", label: "Yoga" },
+  { value: "Nutrition Planning", label: "Nutrition Planning" },
+];
+
+export const languageOptions = [
+  { value: "Hindi", label: "Hindi" },
+  { value: "English", label: "English" },
+  { value: "Assamese", label: "Assamese" },
+  { value: "Bengali", label: "Bengali" },
+  { value: "Gujarati", label: "Gujarati" },
+  { value: "Kannada", label: "Kannada" },
+  { value: "Malayalam", label: "Malayalam" },
+  { value: "Marathi", label: "Marathi" },
+  { value: "Punjabi", label: "Punjabi" },
+  { value: "Tamil", label: "Tamil" },
+  { value: "Telugu", label: "Telugu" },
+  { value: "Urdu", label: "Urdu" },
+  
+];
+
+export const trainingLocationOptions = [
+  { value: "Gym", label: "Gym" },
+  { value: "Home", label: "Home" },
+  { value: "Online", label: "Online" },
+];
+
+
+export const daysOptions = [
+  { value: "Monday", label: "Monday" },
+  { value: "Tuesday", label: "Tuesday" },
+  { value: "Wednesday", label: "Wednesday" },
+  { value: "Thursday", label: "Thursday" },
+  { value: "Friday", label: "Friday" },
+  { value: "Saturday", label: "Saturday" },
+  { value: "Sunday", label: "Sunday" },
+];
+
+export const hoursOptions = [
+  { value: "Morning", label: "Morning" },
+  { value: "Afternoon", label: "Afternoon" },
+  { value: "Evening", label: "Evening" },
+];
+export const booleanOptions = [
+  { value: true, label: "Yes" },
+  { value: false, label: "No" },
+];
+
+
+
+
+
 const DummyContent = () => {
   return (<>
     <div
