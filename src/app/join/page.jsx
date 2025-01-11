@@ -353,7 +353,7 @@ const MentorRegistration = () => {
         <div className="flex flex-col items-center justify-center h-screen text-white bg-tprimary">
           <h2 className="text-xl font-semibold">Already Registered</h2>
           <p className="mt-4 text-center">
-            You have already registered as a mentor. {(userRole !== "admin" && userRole !== "mentor") && "Our team will review your application and get back to you soon."} 
+            You have already registered as a mentor. {(userRole !== "admin" && userRole !== "coach") && "Our team will review your application and get back to you soon."} 
           </p>
           <ButtonCs 
             title="Go Back" 
