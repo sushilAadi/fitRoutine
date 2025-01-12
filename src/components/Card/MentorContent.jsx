@@ -13,6 +13,7 @@ const MentorContent = ({ mentor }) => {
   const { userDetailData, user } = useContext(GlobalContext);
   const [enrolling, setEnrolling] = useState(false);
   const [existingEnrollment, setExistingEnrollment] = useState(null);
+  const [pendingEnrollment, setPendingEnrollment] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const userRole = user?.publicMetadata?.role ?? "user";
@@ -26,41 +27,70 @@ const MentorContent = ({ mentor }) => {
   ];
 
   useEffect(() => {
-    const checkExistingEnrollment = async () => {
+    const checkEnrollments = async () => {
       if (!userDetailData?.userIdCl) return;
 
       try {
-        const enrollmentsRef = collection(db, "enrollments");
-        const q = query(
-          enrollmentsRef,
+        // Check for active enrollments
+        const activeEnrollmentsRef = collection(db, "enrollments");
+        const activeQuery = query(
+          activeEnrollmentsRef,
           where("clientIdCl", "==", userDetailData.userIdCl),
           where("status", "==", "active")
         );
 
-        const querySnapshot = await getDocs(q);
-        const enrollments = [];
-        querySnapshot.forEach((doc) => {
-          enrollments.push({ id: doc.id, ...doc.data() });
+        // Check for pending enrollments
+        const pendingEnrollmentsRef = collection(db, "enrollments");
+        const pendingQuery = query(
+          pendingEnrollmentsRef,
+          where("clientIdCl", "==", userDetailData.userIdCl),
+          where("status", "==", "pending")
+        );
+
+        const [activeSnapshot, pendingSnapshot] = await Promise.all([
+          getDocs(activeQuery),
+          getDocs(pendingQuery)
+        ]);
+
+        // Process active enrollments
+        const activeEnrollments = [];
+        activeSnapshot.forEach((doc) => {
+          activeEnrollments.push({ id: doc.id, ...doc.data() });
         });
 
-        if (enrollments.length > 0) {
-          const latestEnrollment = enrollments.reduce((latest, current) => {
+        if (activeEnrollments.length > 0) {
+          const latestActive = activeEnrollments.reduce((latest, current) => {
             return new Date(current.enrolledAt) > new Date(latest.enrolledAt)
               ? current
               : latest;
           });
-
-          setExistingEnrollment(latestEnrollment);
+          setExistingEnrollment(latestActive);
         }
+
+        // Process pending enrollments
+        const pendingEnrollments = [];
+        pendingSnapshot.forEach((doc) => {
+          pendingEnrollments.push({ id: doc.id, ...doc.data() });
+        });
+
+        if (pendingEnrollments.length > 0) {
+          const latestPending = pendingEnrollments.reduce((latest, current) => {
+            return new Date(current.enrolledAt) > new Date(latest.enrolledAt)
+              ? current
+              : latest;
+          });
+          setPendingEnrollment(latestPending);
+        }
+
       } catch (error) {
-        console.error("Error checking enrollment:", error);
+        console.error("Error checking enrollments:", error);
         toast.error("Failed to check enrollment status");
       } finally {
         setLoading(false);
       }
     };
 
-    checkExistingEnrollment();
+    checkEnrollments();
   }, [userDetailData]);
 
   const calculateEndDate = (enrollment) => {
@@ -70,12 +100,10 @@ const MentorContent = ({ mentor }) => {
     const packageType = enrollment.package.type;
     
     if (packageType === 'hourly') {
-      // For hourly packages, just add the exact minutes to the current time
       const minutes = parseInt(enrollment.package.rate) || 0;
-      const endDate = new Date(enrollmentDate.getTime() + minutes * 60000); // Convert minutes to milliseconds
+      const endDate = new Date(enrollmentDate.getTime() + minutes * 60000);
       return endDate;
     } else {
-      // For other package types, use the existing days logic
       const packageDays = rateOptions.find(opt => opt.id === packageType)?.days || 0;
       const endDate = new Date(enrollmentDate);
       endDate.setDate(endDate.getDate() + packageDays);
@@ -98,7 +126,6 @@ const MentorContent = ({ mentor }) => {
     const packageType = existingEnrollment?.package?.type;
     
     if (packageType === 'hourly') {
-      // For hourly packages, show precise time
       return date.toLocaleString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -108,7 +135,6 @@ const MentorContent = ({ mentor }) => {
         hour12: true
       });
     } else {
-      // For other packages, show only the date
       return date.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'long',
@@ -122,6 +148,19 @@ const MentorContent = ({ mentor }) => {
       return <div className="p-4 text-center">Checking enrollment status...</div>;
     }
 
+    // First check for pending enrollment
+    if (pendingEnrollment) {
+      return (
+        <div className="p-4 text-center bg-yellow-500 rounded-lg">
+          <p className="font-medium">
+            You have a pending enrollment request with {pendingEnrollment.mentorName}.
+            Please wait for their response before making new enrollment requests.
+          </p>
+        </div>
+      );
+    }
+
+    // Then check for active enrollment
     if (existingEnrollment) {
       const isSameMentor = existingEnrollment.mentorIdCl === mentor.userIdCl;
       const isActive = isEnrollmentActive(existingEnrollment);
@@ -129,7 +168,7 @@ const MentorContent = ({ mentor }) => {
 
       if (isSameMentor && isActive) {
         return (
-          <div className="p-4 text-center bg-red-500 rounded-lg">
+          <div className="p-4 text-center bg-green-500 rounded-lg">
             <p className="font-medium">
               You are currently enrolled with this mentor until{" "}
               {formatDate(endDate)}
@@ -149,6 +188,7 @@ const MentorContent = ({ mentor }) => {
       }
     }
 
+    // If no pending or active enrollments, show the enrollment form
     return (
       <EnrollmentForm
         mentor={mentor}

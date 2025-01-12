@@ -256,6 +256,8 @@ const MentorRegistration = () => {
     return cloud.image(publicId).toURL()
    }
 
+
+
    const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -327,13 +329,15 @@ const MentorRegistration = () => {
         certificationImages: uploadCertificationUrls,
         userIdCl: userId,
         uploadedAt: new Date().toISOString(),
-        email: user?.primaryEmailAddress?.emailAddress
+        email: user?.primaryEmailAddress?.emailAddress,
+        status: "pending",
       };
   
       const docRef = await addDoc(collection(db, "Mentor"), formDataWithUrls);
       
       if (docRef.id) {
         toast.success("Successfully registered!");
+        
         setIsAlreadyRegistered(true);
       } else {
         throw new Error("Firebase document creation failed");
@@ -353,7 +357,7 @@ const MentorRegistration = () => {
         <div className="flex flex-col items-center justify-center h-screen text-white bg-tprimary">
           <h2 className="text-xl font-semibold">Already Registered</h2>
           <p className="mt-4 text-center">
-            You have already registered as a mentor. {(userRole !== "admin" && userRole !== "coach") && "Our team will review your application and get back to you soon."} 
+            You have registered as a mentor. {(userRole !== "admin" && userRole !== "coach") && "Our team will review your application and get back to you soon."} 
           </p>
           <ButtonCs 
             title="Go Back" 
@@ -372,7 +376,7 @@ const MentorRegistration = () => {
     <SecureComponent>
       <div className="flex flex-col h-screen text-white bg-tprimary">
         <div className="top-0 p-3 sticky-top" onClick={handleOpenClose}>
-          <p className="text-xl">Join as Mentor</p>
+          <p className="text-xl" >Join as Mentor</p>
         </div>
         <div className="flex-1 p-3 overflow-auto">
           <form onSubmit={handleSubmit}>

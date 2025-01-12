@@ -6,48 +6,10 @@ import { GlobalContext } from '@/context/GloablContext';
 import SecureComponent from '@/components/SecureComponent/[[...SecureComponent]]/SecureComponent';
 import { Card } from 'react-bootstrap';
 import { db } from '@/firebase/firebaseConfig';
+import ClientCard from '@/Feature/Clients/ClientCard';
 
 
-const ClientCard = ({ client }) => {
-  // Calculate age from birthdate
-  const calculateAge = (birthDate) => {
-    const birth = new Date(birthDate);
-    const today = new Date();
-    let age = today.getFullYear() - birth.getFullYear();
-    const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
-    return age;
-  };
-  console.log(client,"client")
 
-  return (
-    <div className="p-6 mb-4 transition-all bg-gray-800 ">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="mb-2 text-xl font-bold text-white">{client.clientName}</h3>
-          <div className="space-y-2 text-gray-300">
-            <p>Age: {calculateAge(client.clientDetails?.birthDate)} years</p>
-            <p>Gender: {client.clientDetails?.gender}</p>
-            <p>Goals: {client.clientDetails?.goals}</p>
-            <div className="mt-4">
-              <p>Height: {client.clientDetails?.height} cm</p>
-              <p>Weight: {client.clientDetails?.weight} kg</p>
-            </div>
-            <div className="mt-4">
-              <p className="font-semibold">Activity Level:</p>
-              <p>{client.clientDetails?.activityLevel?.subtitle} Factor: {client.clientDetails?.activityLevel?.factor}</p>
-            </div>
-          </div>
-        </div>
-        <div className="px-3 py-1 text-sm text-white bg-green-600 rounded-full">
-          Active
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const Clients = () => {
   const [clients, setClients] = useState([]);

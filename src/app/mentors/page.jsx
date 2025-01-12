@@ -16,28 +16,32 @@ const Coaches = () => {
   const [mentors, setMentors] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  console.log("user",userDetailData)
+  console.log("user",{userDetailData,user})
 
   useEffect(() => {
     const fetchMentors = async () => {
       try {
         const mentorsRef = collection(db, "Mentor");
         const snapshot = await getDocs(mentorsRef);
+  
         const mentorsList = snapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data()
         }));
-
-        const formattedMentors = mentorsList.map(mentor => ({
+  
+        // Filter out mentors with a pending status
+        const filteredMentors = mentorsList.filter(mentor => mentor.status !== "pending");
+  
+        const formattedMentors = filteredMentors.map(mentor => ({
           category: mentor.qualifications[0]?.label || "Fitness Coach",
           title: mentor.name,
           src: mentor.profileImage,
           content: <MentorContent mentor={mentor} />,
           originalData: mentor,
           id: mentor.id,
-          mentorUserId:mentor.userIdCl
+          mentorUserId: mentor.userIdCl,
         }));
-
+  
         setMentors(formattedMentors);
       } catch (error) {
         console.error("Error fetching mentors:", error);
@@ -45,11 +49,12 @@ const Coaches = () => {
         setLoading(false);
       }
     };
-
+  
     fetchMentors();
   }, []);
+  
 
-
+console.log("mentors",mentors)
 
   return (
     <SecureComponent>

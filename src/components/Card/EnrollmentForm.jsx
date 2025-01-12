@@ -154,38 +154,38 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
         ? hour 
         : rateOptions.find((opt) => opt.id === formData.rateType)?.rate;
 
-      const enrollmentData = {
-        mentorIdCl: mentor.userIdCl,
-        mentorName: mentor.name,
-        mentorEmail: mentor.email,
-        clientIdCl: userDetailData?.userIdCl,
-        clientName: formData.fullName,
-        clientEmail: formData.email,
-        clientDetails: {
-          ...(userDetailData
-            ? {
-                gender: userDetailData.userGender,
-                birthDate: userDetailData.userBirthDate,
-                height: userDetailData.userHeight,
-                weight: userDetailData.userWeight,
-                goals: userDetailData.helpYou,
-                activityLevel: userDetailData.activityLevel,
-              }
-            : {}),
-        },
-        package: {
-          type: formData.rateType,
-          rate: selectedRate,
-          fullName: formData.fullName,
-          phoneNumber: formData.phoneNumber,
-          biography: formData.biography,
-          availability: formData.availability,
-          trainingLocations: selectedLocations,
-          profileImage: imageUrl,
-        },
-        enrolledAt: new Date().toISOString(),
-        status: "active",
-      };
+        const enrollmentData = {
+          mentorIdCl: mentor.userIdCl,
+          mentorName: mentor.name,
+          mentorEmail: mentor.email,
+          clientIdCl: userDetailData?.userIdCl,
+          clientName: formData.fullName,
+          clientEmail: formData.email,
+          clientDetails: {
+            ...(userDetailData
+              ? {
+                  gender: userDetailData.userGender,
+                  birthDate: userDetailData.userBirthDate,
+                  height: userDetailData.userHeight,
+                  weight: userDetailData.userWeight,
+                  goals: userDetailData.helpYou,
+                  activityLevel: userDetailData.activityLevel,
+                }
+              : {}),
+          },
+          package: {
+            type: formData.rateType,
+            rate: selectedRate,
+            fullName: formData.fullName,
+            phoneNumber: formData.phoneNumber,
+            biography: formData.biography,
+            availability: formData.availability,
+            trainingLocations: selectedLocations,
+            profileImage: imageUrl,
+          },
+          enrolledAt: new Date().toISOString(),
+          status: 'pending', 
+        };
 
       await addDoc(collection(db, "enrollments"), enrollmentData);
 
