@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase/firebaseConfig';
 import toast from 'react-hot-toast';
 
 const ClientCard = ({ client }) => {
+  const [enrollmentStatus, setEnrollmentStatus] = useState(client.status);
+
   const calculateAge = (birthDate) => {
     const birth = new Date(birthDate);
     const today = new Date();
@@ -15,6 +17,63 @@ const ClientCard = ({ client }) => {
     return age;
   };
 
+  const calculateEndDate = (enrollment) => {
+    if (!enrollment.acceptedAt || !enrollment.package) return null;
+
+    const startDate = new Date(enrollment.acceptedAt);
+    const packageType = enrollment.package.type;
+    
+    if (packageType === 'hourly') {
+      const minutes = parseInt(enrollment.package.rate) || 0;
+      return new Date(startDate.getTime() + minutes * 60000);
+    } else {
+      const packageDays = {
+        monthly: 30,
+        quarterly: 90,
+        halfYearly: 180,
+        yearly: 365
+      }[packageType] || 0;
+      
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + packageDays);
+      return endDate;
+    }
+  };
+
+  const checkEnrollmentStatus = async () => {
+    if (client.status === 'pending' || client.status === 'rejected') {
+      return client.status;
+    }
+
+    if (!client.acceptedAt) {
+      return 'pending';
+    }
+
+    const currentDate = new Date();
+    const endDate = calculateEndDate(client);
+
+    if (!endDate) return client.status;
+
+    const newStatus = currentDate > endDate ? 'completed' : 'active';
+
+    // Update status in Firestore if it has changed
+    if (newStatus !== client.status) {
+      try {
+        const enrollmentRef = doc(db, 'enrollments', client.id);
+        await updateDoc(enrollmentRef, { status: newStatus });
+        setEnrollmentStatus(newStatus);
+      } catch (error) {
+        console.error('Error updating enrollment status:', error);
+      }
+    }
+
+    return newStatus;
+  };
+
+  useEffect(() => {
+    checkEnrollmentStatus();
+  }, [client]);
+
   const handleEnrollmentAction = async (action) => {
     try {
       const enrollmentRef = doc(db, 'enrollments', client.id);
@@ -25,7 +84,7 @@ const ClientCard = ({ client }) => {
       };
       
       await updateDoc(enrollmentRef, updateData);
-      
+      setEnrollmentStatus(status);
       toast.success(`Successfully ${action}ed enrollment`);
     } catch (error) {
       console.error('Error updating enrollment:', error);
@@ -39,10 +98,34 @@ const ClientCard = ({ client }) => {
         return 'bg-yellow-600';
       case 'active':
         return 'bg-green-600';
+      case 'completed':
+        return 'bg-blue-600';
       case 'rejected':
         return 'bg-red-600';
       default:
         return 'bg-gray-600';
+    }
+  };
+
+  const formatEndDate = (client) => {
+    const endDate = calculateEndDate(client);
+    if (!endDate) return 'N/A';
+
+    if (client.package.type === 'hourly') {
+      return endDate.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true
+      });
+    } else {
+      return endDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
     }
   };
 
@@ -63,17 +146,20 @@ const ClientCard = ({ client }) => {
               <p className="font-semibold">Activity Level:</p>
               <p>{client.clientDetails?.activityLevel?.subtitle} Factor: {client.clientDetails?.activityLevel?.factor}</p>
             </div>
-            {client.status === 'active' && client.acceptedAt && (
-              <p className="mt-2">Enrolled: {new Date(client.acceptedAt).toLocaleDateString()}</p>
+            {client.acceptedAt && (
+              <>
+                <p className="mt-2">Enrolled: {new Date(client.acceptedAt).toLocaleDateString()}</p>
+                <p>End Date: {formatEndDate(client)}</p>
+              </>
             )}
           </div>
         </div>
-        <div className={`px-3 py-1 text-sm text-white rounded-full ${getStatusColor(client.status)}`}>
-          {client.status?.charAt(0).toUpperCase() + client.status?.slice(1)}
+        <div className={`px-3 py-1 text-sm text-white rounded-full ${getStatusColor(enrollmentStatus)}`}>
+          {enrollmentStatus?.charAt(0).toUpperCase() + enrollmentStatus?.slice(1)}
         </div>
       </div>
 
-      {client.status === 'pending' && (
+      {enrollmentStatus === 'pending' && (
         <div className="flex gap-3 mt-4">
           <button
             onClick={() => handleEnrollmentAction('accept')}
