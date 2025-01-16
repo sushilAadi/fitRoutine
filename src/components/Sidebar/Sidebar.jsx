@@ -104,6 +104,14 @@ const Sidebar = ({}) => {
             <ListItemPrefix>
             <i className="fa-duotone fa-light fa-user-vneck-hair h-5 w-5 !mr-2 drop-shadow-lg"></i>
             </ListItemPrefix>
+            <Link href="/myEnrollment" className="no-underline text-inherit" onClick={handleOpenClose}>
+              My Enrollment
+            </Link>
+          </ListItem>
+          <ListItem>
+            <ListItemPrefix>
+            <i className="fa-duotone fa-light fa-user-vneck-hair h-5 w-5 !mr-2 drop-shadow-lg"></i>
+            </ListItemPrefix>
             <Link href="/join" className="no-underline text-inherit" onClick={handleOpenClose}>
               Join as Coach
             </Link>

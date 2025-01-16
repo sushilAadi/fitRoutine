@@ -14,7 +14,7 @@ import EnrollmentStatus from '@/components/EnrollmentStatus';
 const MyEnrollment = () => {
   const [enrollment, setEnrollment] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { userDetailData } = useContext(GlobalContext);
+  const { userDetailData,handleOpenClose } = useContext(GlobalContext);
 
   const calculateEndDate = useCallback((enrollment) => {
     if (!enrollment?.acceptedAt || !enrollment?.package) return null;
@@ -100,12 +100,13 @@ const MyEnrollment = () => {
 
     fetchEnrollment();
   }, [userDetailData, checkAndUpdateStatus]);
+  console.log("enrollment",enrollment)
 
   return (
     <SecureComponent>
       <div className="flex flex-col min-h-screen bg-tprimary">
         <div className="p-6 text-white">
-          <h1 className="text-3xl font-bold">My Enrollment</h1>
+          <h1 className="text-3xl font-bold" onClick={handleOpenClose}>My Enrollment</h1>
           <p className="mt-2 text-gray-300">View your enrollment details and mentor information</p>
         </div>
 
