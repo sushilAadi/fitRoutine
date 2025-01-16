@@ -1,7 +1,7 @@
 import React, { useContext, useState, useEffect } from "react";
 import { GlobalContext } from "@/context/GloablContext";
 import { db } from "@/firebase/firebaseConfig";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
 import { Star, Play, ChevronLeft } from "lucide-react";
 import toast from "react-hot-toast";
 import InputBlk from "@/components/InputCs/InputBlk";
@@ -21,8 +21,18 @@ const MentorContent = ({ mentor }) => {
   const rateOptions = [
     { id: "hourly", label: "Hourly", rate: mentor.hourly_rate },
     { id: "monthly", label: "Monthly", rate: mentor.monthly_rate, days: 30 },
-    { id: "quarterly", label: "Quarterly", rate: mentor.quarterly_rate, days: 90 },
-    { id: "halfYearly", label: "Half Yearly", rate: mentor.half_yearly_rate, days: 180 },
+    {
+      id: "quarterly",
+      label: "Quarterly",
+      rate: mentor.quarterly_rate,
+      days: 90,
+    },
+    {
+      id: "halfYearly",
+      label: "Half Yearly",
+      rate: mentor.half_yearly_rate,
+      days: 180,
+    },
     { id: "yearly", label: "Yearly", rate: mentor.yearly_rate, days: 365 },
   ];
 
@@ -49,7 +59,7 @@ const MentorContent = ({ mentor }) => {
 
         const [activeSnapshot, pendingSnapshot] = await Promise.all([
           getDocs(activeQuery),
-          getDocs(pendingQuery)
+          getDocs(pendingQuery),
         ]);
 
         // Process active enrollments
@@ -81,7 +91,6 @@ const MentorContent = ({ mentor }) => {
           });
           setPendingEnrollment(latestPending);
         }
-
       } catch (error) {
         console.error("Error checking enrollments:", error);
         toast.error("Failed to check enrollment status");
@@ -98,13 +107,14 @@ const MentorContent = ({ mentor }) => {
 
     const enrollmentDate = new Date(enrollment.enrolledAt);
     const packageType = enrollment.package.type;
-    
-    if (packageType === 'hourly') {
+
+    if (packageType === "hourly") {
       const minutes = parseInt(enrollment.package.rate) || 0;
       const endDate = new Date(enrollmentDate.getTime() + minutes * 60000);
       return endDate;
     } else {
-      const packageDays = rateOptions.find(opt => opt.id === packageType)?.days || 0;
+      const packageDays =
+        rateOptions.find((opt) => opt.id === packageType)?.days || 0;
       const endDate = new Date(enrollmentDate);
       endDate.setDate(endDate.getDate() + packageDays);
       return endDate;
@@ -120,43 +130,80 @@ const MentorContent = ({ mentor }) => {
     return currentDate <= endDate;
   };
 
+  const handleEnrollmentAction = async (action) => {
+    try {
+      const enrollmentRef = doc(db, "enrollments", pendingEnrollment?.id);
+      const status = action === "accept" ? "active" : "rejected";
+      const updateData = {
+        status,
+        ...(status === "active" && { acceptedAt: new Date().toISOString() }),
+      };
+
+      await updateDoc(enrollmentRef, updateData);
+      toast.success(`Successfully ${action}ed enrollment`);
+    } catch (error) {
+      console.error("Error updating enrollment:", error);
+      toast.error(`Failed to ${action} enrollment`);
+    }
+  };
+
   const formatDate = (date) => {
-    if (!date) return '';
-    
+    if (!date) return "";
+
     const packageType = existingEnrollment?.package?.type;
-    
-    if (packageType === 'hourly') {
-      return date.toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: true
+
+    if (packageType === "hourly") {
+      return date.toLocaleString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+        hour12: true,
       });
     } else {
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       });
     }
   };
 
   const renderEnrollmentStatus = () => {
     if (loading) {
-      return <div className="p-4 text-center">Checking enrollment status...</div>;
+      return (
+        <div className="p-4 text-center">Checking enrollment status...</div>
+      );
     }
+    
 
+    const currentTime = new Date();
+    // Parse the enrolledAt time
+    const enrollmentTime = new Date(pendingEnrollment?.enrolledAt);
+
+    // Check if the enrolledAt time is in the past
+    const isEnrolledAtOver = enrollmentTime < currentTime;
     // First check for pending enrollment
     if (pendingEnrollment) {
       return (
-        <div className="p-4 text-center bg-yellow-500 rounded-lg">
-          <p className="font-medium">
-            You have a pending enrollment request with {pendingEnrollment.mentorName}.
-            Please wait for their response before making new enrollment requests.
-          </p>
-        </div>
+        <>
+          <div className="p-4 text-center bg-yellow-500 rounded-lg">
+            <p className="font-medium">
+              You have a pending enrollment request with{" "}
+              {pendingEnrollment?.mentorName}. Please wait for their response
+              before making new enrollment requests.
+            </p>
+          </div>
+          {isEnrolledAtOver && (
+            <button
+              onClick={() => handleEnrollmentAction("reject")}
+              className="px-4 py-2 mt-2 text-white bg-red-600 rounded-lg hover:bg-red-700 w-100"
+            >
+              Reject
+            </button>
+          )}
+        </>
       );
     }
 
@@ -179,9 +226,9 @@ const MentorContent = ({ mentor }) => {
         return (
           <div className="p-4 text-center bg-red-500 rounded-lg">
             <p className="font-medium">
-              You are currently enrolled with {existingEnrollment.mentorName} until{" "}
-              {formatDate(endDate)}. Please complete your current enrollment period 
-              before enrolling with a new mentor.
+              You are currently enrolled with {existingEnrollment.mentorName}{" "}
+              until {formatDate(endDate)}. Please complete your current
+              enrollment period before enrolling with a new mentor.
             </p>
           </div>
         );
@@ -204,9 +251,8 @@ const MentorContent = ({ mentor }) => {
       <MentorProfile mentor={mentor} />
       <div className="py-6">
         <MentorDetail mentor={mentor} />
-        {mentor.userIdCl !== userDetailData?.userIdCl && (
-          renderEnrollmentStatus()
-        )}
+        {mentor.userIdCl !== userDetailData?.userIdCl &&
+          renderEnrollmentStatus()}
       </div>
     </div>
   );

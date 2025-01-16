@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 const ClientCard = ({ client }) => {
   const [enrollmentStatus, setEnrollmentStatus] = useState(client.status);
 
+  
+
   const calculateAge = (birthDate) => {
     const birth = new Date(birthDate);
     const today = new Date();

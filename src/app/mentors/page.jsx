@@ -16,7 +16,7 @@ const Coaches = () => {
   const [mentors, setMentors] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  console.log("user",{userDetailData,user})
+  
 
   useEffect(() => {
     const fetchMentors = async () => {
@@ -54,7 +54,7 @@ const Coaches = () => {
   }, []);
   
 
-console.log("mentors",mentors)
+
 
   return (
     <SecureComponent>

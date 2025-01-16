@@ -100,8 +100,8 @@ const MyEnrollment = () => {
 
     fetchEnrollment();
   }, [userDetailData, checkAndUpdateStatus]);
-  console.log("enrollment",enrollment)
 
+  
   return (
     <SecureComponent>
       <div className="flex flex-col min-h-screen bg-tprimary">

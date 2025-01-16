@@ -186,6 +186,7 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
           enrolledAt: new Date().toISOString(),
           status: 'pending', 
         };
+        
 
       await addDoc(collection(db, "enrollments"), enrollmentData);
 
@@ -323,7 +324,7 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
             ))}
           </div>
         </div>
-{console.log("rateOptions", rateOptions)}
+
         {/* Rate Options */}
         <div>
           <h2 className="mb-3 text-lg font-medium">Rate and Plans *</h2>

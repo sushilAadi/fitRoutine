@@ -42,7 +42,7 @@ const Clients = () => {
     }
   }, [userDetailData]);
 
-  console.log("clients",clients)
+  
 
   return (
     <SecureComponent>

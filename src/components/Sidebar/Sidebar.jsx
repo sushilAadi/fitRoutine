@@ -19,7 +19,7 @@ import { GlobalContext } from "@/context/GloablContext";
 
 const Sidebar = ({}) => {
   const {handleOpenClose,fullName,user} = useContext(GlobalContext)
-  console.log("role",user?.publicMetadata?.role)
+  
 
   const userRole = user?.publicMetadata?.role
   

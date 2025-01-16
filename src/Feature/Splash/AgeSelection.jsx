@@ -59,7 +59,7 @@ const AgeSelection = ({ step, setStep }) => {
             const weightDocRef = doc(db, "weight", id);  // Set user ID as the document ID
             await setDoc(weightDocRef, weightDetails);
 
-            console.log("Weight posted successfully.");
+            
             userWeightRefetch();
         } catch (error) {
             console.error("Error while inserting weight:", error);
