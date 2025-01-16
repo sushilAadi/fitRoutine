@@ -82,7 +82,8 @@ const ClientCard = ({ client }) => {
       const status = action === 'accept' ? 'active' : 'rejected';
       const updateData = {
         status,
-        ...(status === 'active' && { acceptedAt: new Date().toISOString() })
+        ...(status === 'active' && { acceptedAt: new Date().toISOString() }),
+        ...(status === "rejected" && { rejectedBy: "mentor" }),
       };
       
       await updateDoc(enrollmentRef, updateData);

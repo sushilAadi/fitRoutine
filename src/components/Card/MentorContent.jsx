@@ -130,6 +130,8 @@ const MentorContent = ({ mentor }) => {
     return currentDate <= endDate;
   };
 
+  console.log("pendingEnrollment",pendingEnrollment)
+
   const handleEnrollmentAction = async (action) => {
     try {
       const enrollmentRef = doc(db, "enrollments", pendingEnrollment?.id);
@@ -137,6 +139,7 @@ const MentorContent = ({ mentor }) => {
       const updateData = {
         status,
         ...(status === "active" && { acceptedAt: new Date().toISOString() }),
+        ...(status === "rejected" && { rejectedBy: "user" }),
       };
 
       await updateDoc(enrollmentRef, updateData);
