@@ -14,7 +14,7 @@ import ClientCard from '@/Feature/Clients/ClientCard';
 const Clients = () => {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { userDetailData } = useContext(GlobalContext);
+  const { userDetailData,handleOpenClose } = useContext(GlobalContext);
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -48,7 +48,7 @@ const Clients = () => {
     <SecureComponent>
       <div className="flex flex-col h-screen overflow-hidden bg-tprimary">
         <div className="top-0 p-6 text-white bg-tprimary sticky-top z-1">
-          <h1 className="text-3xl font-bold">My Clients</h1>
+          <h1 className="text-3xl font-bold" onClick={handleOpenClose}>My Clients</h1>
           <p className="mt-2 text-gray-300">Manage and track your client progress</p>
         </div>
         
