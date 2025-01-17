@@ -153,7 +153,7 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
 
       // Modify the rate calculation based on whether it's hourly or not
       const selectedRate = formData.rateType === "hourly" 
-        ? hour 
+        ? hour+1
         : rateOptions.find((opt) => opt.id === formData.rateType)?.rate;
 
         const enrollmentData = {

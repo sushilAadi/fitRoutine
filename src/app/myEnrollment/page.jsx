@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState, useContext, useCallback } from 'react';
-import { collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 
 import SecureComponent from "@/components/SecureComponent/[[...SecureComponent]]/SecureComponent";
 import { GlobalContext } from "@/context/GloablContext";
@@ -15,6 +15,7 @@ const MyEnrollment = () => {
   const { userDetailData, handleOpenClose } = useContext(GlobalContext);
 
   const calculateEndDate = useCallback((enrollment) => {
+    console.log("ddd cal")
     if (!enrollment?.acceptedAt || !enrollment?.package) return null;
 
     const startDate = new Date(enrollment.acceptedAt);
@@ -33,6 +34,7 @@ const MyEnrollment = () => {
     }[packageType] || 0;
     
     const endDate = new Date(startDate);
+    
     endDate.setDate(endDate.getDate() + packageDays);
     return endDate;
   }, []);
@@ -53,18 +55,20 @@ const MyEnrollment = () => {
     if (!enrollmentData || enrollmentData.status === 'pending' || enrollmentData.status === 'rejected') {
       return enrollmentData;
     }
-  
+  console.log("enrollmentData",enrollmentData)
     const endDate = calculateEndDate(enrollmentData);
+    
     if (!endDate) return enrollmentData;
   
     // Get current date without time
     const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0);
+    
   
     // Get end date without time
     const normalizedEndDate = new Date(endDate);
-    normalizedEndDate.setHours(0, 0, 0, 0);
+    
   
+    
     // Compare the normalized dates
     const newStatus = currentDate > normalizedEndDate ? 'completed' : 'active';
     console.log('Date comparison:', {
@@ -73,19 +77,15 @@ const MyEnrollment = () => {
       isCompleted: currentDate > normalizedEndDate,
       newStatus
     });
+
     
     if (newStatus !== enrollmentData.status) {
       try {
         const enrollmentRef = doc(db, 'enrollments', enrollmentData.id);
+        
         await updateDoc(enrollmentRef, { status: newStatus });
-        console.log('Updated enrollment status:', { 
-          id: enrollmentData.id, 
-          oldStatus: enrollmentData.status, 
-          newStatus 
-        });
         return { ...enrollmentData, status: newStatus };
       } catch (error) {
-        console.error('Error updating enrollment status:', error);
         return enrollmentData;
       }
     }
@@ -168,7 +168,7 @@ const MyEnrollment = () => {
     const rejectedEnrollments = enrollments.filter(e => e.status === 'rejected');
 
     return (
-      <div className="space-y-6">
+      <div className="mb-4">
         {activeEnrollments.length > 0 && (
           <div>
             {activeEnrollments.map(enrollment => (
@@ -183,7 +183,7 @@ const MyEnrollment = () => {
         )}
 
         {pendingEnrollments.length > 0 && (
-          <div>
+          <div className="mb-4">
             {pendingEnrollments.map(enrollment => (
               <MyEnrollmentCard
                 key={enrollment.id}
@@ -196,7 +196,7 @@ const MyEnrollment = () => {
         )}
 
         {completedEnrollments.length > 0 && (
-          <div>
+          <div  className="mb-4">
             {completedEnrollments.map(enrollment => (
               <MyEnrollmentCard
                 key={enrollment.id}
@@ -209,7 +209,7 @@ const MyEnrollment = () => {
         )}
 
         {rejectedEnrollments.length > 0 && (
-          <div>
+          <div className="mb-4">
             {rejectedEnrollments.map(enrollment => (
               <MyEnrollmentCard
                 key={enrollment.id}

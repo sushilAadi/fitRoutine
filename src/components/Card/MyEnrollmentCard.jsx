@@ -16,7 +16,7 @@ const MyEnrollmentCard = ({ enrollment, calculateEndDate, formatDateTime }) => {
   };
 
   return (
-    <div className="max-w-sm p-4 bg-white shadow-lg rounded-xl">
+    <div className="max-w-sm p-4 mb-2 bg-white shadow-lg rounded-xl">
       {/* Header with instructor */}
       <div className="flex items-center mb-2">
         <div className="mr-2 text-sm text-gray-600">Instructor</div>
