@@ -148,7 +148,7 @@ export const qualificationOptions = [
     label: "Certified Personal Trainer",
   },
   { value: "Nutritionist", label: "Nutritionist" },
-  { value: "Fitness Coach", label: "Fitness Coach" },
+  { value: "Fitness Instructor", label: "Fitness Instructor" },
 ];
 export const specializationOptions = [
   { value: "Weight Training", label: "Weight Training" },

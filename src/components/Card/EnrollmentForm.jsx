@@ -130,6 +130,8 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
     }
     return true;
   };
+  console.log("mentor",mentor);
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -158,6 +160,9 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
           mentorIdCl: mentor.userIdCl,
           mentorName: mentor.name,
           mentorEmail: mentor.email,
+          mentorMobile: mentor.mobile,
+          mentorwhatsapp: mentor.whatsapp,
+          mentorProfileImage: mentor.profileImage,
           clientIdCl: userDetailData?.userIdCl,
           clientName: formData.fullName,
           clientEmail: formData.email,
@@ -222,7 +227,7 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
 
   return (
     <div>
-      <h1 className="mb-6 text-xl font-semibold">Gym Mentor Enrollment</h1>
+      <h1 className="mb-6 text-xl font-semibold">Gym Instructor Enrollment</h1>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="mt-4">

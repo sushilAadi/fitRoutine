@@ -69,7 +69,7 @@ const ProgramDetails = ({ enrollment }) => (
 
 const MentorDetails = ({ enrollment }) => (
   <div className="p-4 bg-gray-700 rounded-lg">
-    <h3 className="mb-3 text-lg font-semibold text-white">Mentor Information</h3>
+    <h3 className="mb-3 text-lg font-semibold text-white">Instructor Information</h3>
     <div className="space-y-2 text-gray-300">
       <p>Name: {enrollment.mentorName}</p>
       <p>Email: {enrollment.mentorEmail}</p>

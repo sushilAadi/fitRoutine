@@ -376,7 +376,7 @@ const MentorRegistration = () => {
     <SecureComponent>
       <div className="flex flex-col h-screen text-white bg-tprimary">
         <div className="top-0 p-3 sticky-top" onClick={handleOpenClose}>
-          <p className="text-xl" >Join as Mentor</p>
+          <p className="text-xl" >Join as Instructor</p>
         </div>
         <div className="flex-1 p-3 overflow-auto">
           <form onSubmit={handleSubmit}>
@@ -875,7 +875,7 @@ const MentorRegistration = () => {
             </div>
             <br />
             <ButtonCs title="Submit" type="submit" className="w-full">
-              Register as Mentor
+              Register as Instructor
             </ButtonCs>
           </form>
         </div>

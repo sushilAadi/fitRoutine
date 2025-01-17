@@ -1,8 +1,8 @@
 import { cn } from '@/lib/utils';
 
-function BlurryBlob({ className, firstBlobColor, secondBlobColor }) {
+function BlurryBlob({ className, firstBlobColor, secondBlobColor,parentStyle="z-[-9]" }) {
   return (
-    <div className="absolute items-center justify-center min-h-52 min-w-52 z-[-9]">
+    <div className={`absolute items-center justify-center min-h-52 min-w-52 ${parentStyle}`}>
       <div className="relative w-full max-w-lg">
         <div
           className={cn(

@@ -14,6 +14,7 @@ const TimeUnit = ({ value, label }) => (
 const CountdownTimer = ({ endDate }) => {
   const [timeLeft, setTimeLeft] = useState(null);
 
+
   useEffect(() => {
     const calculateTimeLeft = () => {
       const difference = new Date(endDate) - new Date();
@@ -36,7 +37,7 @@ const CountdownTimer = ({ endDate }) => {
     }
   }, [endDate]);
 
-  if (!timeLeft) return <p className="text-red-400">Program Expired</p>;
+  if (!timeLeft) return "";
 
   return (
     <div className="flex flex-wrap items-center gap-4">

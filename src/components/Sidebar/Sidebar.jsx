@@ -97,7 +97,7 @@ const Sidebar = ({}) => {
             <i className="fa-duotone fa-light fa-user-vneck-hair h-5 w-5 !mr-2 drop-shadow-lg"></i>
             </ListItemPrefix>
             <Link href="/mentors" className="no-underline text-inherit" onClick={handleOpenClose}>
-              Coach
+            Instructor
             </Link>
           </ListItem>
           <ListItem>
@@ -113,7 +113,7 @@ const Sidebar = ({}) => {
             <i className="fa-duotone fa-light fa-user-vneck-hair h-5 w-5 !mr-2 drop-shadow-lg"></i>
             </ListItemPrefix>
             <Link href="/join" className="no-underline text-inherit" onClick={handleOpenClose}>
-              Join as Coach
+              Join as Instructor
             </Link>
           </ListItem>
           {(userRole === "admin" || userRole === "coach") &&

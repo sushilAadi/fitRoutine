@@ -33,7 +33,7 @@ const Coaches = () => {
         const filteredMentors = mentorsList.filter(mentor => mentor.status !== "pending");
   
         const formattedMentors = filteredMentors.map(mentor => ({
-          category: mentor.qualifications[0]?.label || "Fitness Coach",
+          category: mentor.qualifications[0]?.label || "Fitness Instructor",
           title: mentor.name,
           src: mentor.profileImage,
           content: <MentorContent mentor={mentor} />,
@@ -63,7 +63,7 @@ const Coaches = () => {
           <div className="flex justify-between">
             <div className="mt-[-8px]">
               <p className="text-3xl">Choose</p>
-              <p className="text-3xl">your <i>Coach</i></p>
+              <p className="text-3xl">your <i>Instructor</i></p>
             </div>
             <i 
               className="cursor-pointer text-white fa-duotone fa-solid fa-bars text-[20px] hambergerMenu" 
