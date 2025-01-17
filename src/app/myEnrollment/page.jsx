@@ -170,7 +170,7 @@ const MyEnrollment = () => {
     return (
       <div className="mb-4">
         {activeEnrollments.length > 0 && (
-          <div>
+          <div className="flex flex-wrap gap-4">
             {activeEnrollments.map(enrollment => (
               <MyEnrollmentCard
                 key={enrollment.id}
@@ -183,7 +183,7 @@ const MyEnrollment = () => {
         )}
 
         {pendingEnrollments.length > 0 && (
-          <div className="mb-4">
+          <div className="flex flex-wrap gap-4">
             {pendingEnrollments.map(enrollment => (
               <MyEnrollmentCard
                 key={enrollment.id}
@@ -196,7 +196,7 @@ const MyEnrollment = () => {
         )}
 
         {completedEnrollments.length > 0 && (
-          <div  className="mb-4">
+          <div  className="flex flex-wrap gap-4">
             {completedEnrollments.map(enrollment => (
               <MyEnrollmentCard
                 key={enrollment.id}
@@ -209,7 +209,7 @@ const MyEnrollment = () => {
         )}
 
         {rejectedEnrollments.length > 0 && (
-          <div className="mb-4">
+          <div className="flex flex-wrap w-full gap-4">
             {rejectedEnrollments.map(enrollment => (
               <MyEnrollmentCard
                 key={enrollment.id}

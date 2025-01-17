@@ -7,16 +7,16 @@ const MyEnrollmentCard = ({ enrollment, calculateEndDate, formatDateTime }) => {
   console.log("enrollment", enrollment);
   const getStatusColor = (status) => {
     const colors = {
-      pending: "bg-yellow-600",
-      active: "bg-green-600",
-      completed: "bg-blue-600",
-      rejected: "bg-red-600",
+      pending: "text-yellow-600",
+      active: "text-green-600",
+      completed: "text-blue-600",
+      rejected: "text-red-600",
     };
     return colors[status] || "bg-gray-800";
   };
 
   return (
-    <div className="max-w-sm p-4 mb-2 bg-white shadow-lg rounded-xl">
+    <div className="p-4 mb-2 bg-white shadow-lg flex-grow-1 rounded-xl">
       {/* Header with instructor */}
       <div className="flex items-center mb-2">
         <div className="mr-2 text-sm text-gray-600">Instructor</div>
@@ -33,16 +33,17 @@ const MyEnrollmentCard = ({ enrollment, calculateEndDate, formatDateTime }) => {
           <h2 className="mb-1 text-xl font-bold">{enrollment.mentorName}</h2>
           <p className="text-sm text-gray-500">{enrollment.mentorEmail}</p>
         </div>
+        {enrollment.status === "rejected" && 
         <div className="text-right">
           <span
-            className={`px-4 py-2 text-sm font-medium text-white rounded-full ${getStatusColor(
+            className={`py-2 text-sm font-bold rounded-full ${getStatusColor(
               enrollment.status
             )}`}
           >
             {enrollment.status?.charAt(0).toUpperCase() +
               enrollment.status?.slice(1)}
           </span>
-        </div>
+        </div>}
       </div>
 
       {/* Date and lessons info */}
@@ -84,7 +85,7 @@ const MyEnrollmentCard = ({ enrollment, calculateEndDate, formatDateTime }) => {
       </div>}
 
       {enrollment.status !== "rejected" &&
-      <div className="flex items-center pt-4 mt-4 border-t border-gray-100">
+      <div className="flex items-center justify-between pt-4 mt-4 border-t border-gray-100">
         <a
           href={`https://wa.me/${enrollment.mentorwhatsapp}`}
           target="_blank"
@@ -96,6 +97,14 @@ const MyEnrollmentCard = ({ enrollment, calculateEndDate, formatDateTime }) => {
             {enrollment.mentorwhatsapp}
           </span>
         </a>
+        <span
+            className={`py-2 text-sm font-bold rounded-full ${getStatusColor(
+              enrollment.status
+            )}`}
+          >
+            {enrollment.status?.charAt(0).toUpperCase() +
+              enrollment.status?.slice(1)}
+          </span>
         {/* <div className="flex items-center ml-auto">
           <span className="text-yellow-400">★</span>
           <span className="ml-1 text-sm font-medium">4.9</span>
