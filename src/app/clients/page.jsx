@@ -57,11 +57,11 @@ console.log("clients",clients)
           {loading ? (
             <div className="text-center text-white">Loading clients...</div>
           ) : clients.length > 0 ? (
-            <div className="">
+            <div className="flex flex-wrap gap-2">
               {clients.map(client => (
-                <>
+                
                 <ClientCardNew key={client.id} client={client} />
-                </>
+              
               ))}
             </div>
           ) : (

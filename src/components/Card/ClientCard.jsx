@@ -135,10 +135,9 @@ const ClientCard = ({client}) => {
     }
   };
 
-  console.log("client",client)
 
   return (
-    <div className="p-6 mx-auto mb-4 overflow-hidden bg-white shadow-lg rounded-xl">
+    <div className="p-6 mb-4 overflow-hidden bg-white shadow-lg rounded-xl max-w-[500px]">
       {/* Background gradient */}
       <div className="h-32 mb-4 -mx-6 -mt-6 bg-gradient-to-r from-orange-400 via-pink-500 to-blue-500"></div>
       
@@ -190,30 +189,28 @@ const ClientCard = ({client}) => {
           </span>
         ))}
       </div>
-      <div className="flex gap-2 mb-2 overflow-auto flex-nowrap">
+      <div className="flex items-center gap-2 mb-2 overflow-auto flex-nowrap">
         <span className='font-semibold'>Timeslot :</span> 
           <span className="px-2 py-1 text-sm text-center text-white bg-black rounded-full min-w-max line-clamp-1">
             {client?.package?.availability?.timeSlot}
           </span>
+          {client?.acceptedAt && <p className=""><span  className='font-semibold'>Enrolled:</span> {new Date(client?.acceptedAt).toLocaleDateString()}</p>}
       </div>
       {client?.acceptedAt && (
-              <>
-                <p className="mt-2 "><span  className='font-semibold'>Enrolled:</span> {new Date(client?.acceptedAt).toLocaleDateString()}</p>
                 <p className='mb-2'><span  className='font-semibold'>End Date:</span>  {formatEndDate(client)}</p>
-              </>
             )}
       
       {/* Action cards */}
       <div className="flex flex-wrap gap-2">
   <div className="p-2 bg-gray-50 rounded-xl flex-1 min-w-[200px]">
-      <h5 className="font-medium">Activity Level</h5>
+      <p className="font-medium">Activity Level</p>
     <p className="mt-2 text-sm text-gray-600">
       {client?.clientDetails?.activityLevel?.subtitle}
     </p>
   </div>
   <div className="p-2 bg-black text-white rounded-xl flex-1 min-w-[200px]">
     
-      <h5 className="font-medium">Goal</h5>
+      <p className="font-medium">Goal</p>
     
     <p className="mt-2 text-sm ">
       {client?.package?.biography}
