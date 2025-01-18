@@ -7,6 +7,7 @@ import SecureComponent from '@/components/SecureComponent/[[...SecureComponent]]
 import { Card } from 'react-bootstrap';
 import { db } from '@/firebase/firebaseConfig';
 import ClientCard from '@/Feature/Clients/ClientCard';
+import ClientCardNew from '@/components/Card/ClientCard';
 
 
 
@@ -43,22 +44,24 @@ const Clients = () => {
   }, [userDetailData]);
 
   
-
+console.log("clients",clients)
   return (
     <SecureComponent>
-      <div className="flex flex-col h-screen overflow-hidden bg-tprimary">
-        <div className="top-0 p-6 text-white bg-tprimary sticky-top z-1">
-          <h1 className="text-3xl font-bold" onClick={handleOpenClose}>My Clients</h1>
-          <p className="mt-2 text-gray-300">Manage and track your client progress</p>
+    <div className="flex flex-col h-screen overflow-hidden">
+        <div className="top-0 p-3 text-white bg-tprimary sticky-top">
+        <h1 className="text-3xl font-bold" onClick={handleOpenClose}>My Clients</h1>
+        <p className="mt-2 text-gray-300">Manage and track your client progress</p>
         </div>
+        <div className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">
         
-        <div className="flex-1 p-6 overflow-auto">
           {loading ? (
             <div className="text-center text-white">Loading clients...</div>
           ) : clients.length > 0 ? (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="">
               {clients.map(client => (
-                <ClientCard key={client.id} client={client} />
+                <>
+                <ClientCardNew key={client.id} client={client} />
+                </>
               ))}
             </div>
           ) : (
@@ -68,7 +71,9 @@ const Clients = () => {
             </div>
           )}
         </div>
+
       </div>
+      
     </SecureComponent>
   );
 };

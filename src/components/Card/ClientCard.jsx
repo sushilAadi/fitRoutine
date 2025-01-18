@@ -1,0 +1,228 @@
+'use client';
+import _ from 'lodash';
+import Image from 'next/image';
+import React, { useEffect, useState } from 'react';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/firebase/firebaseConfig';
+import toast from 'react-hot-toast';
+
+const ClientCard = ({client}) => {
+  const [enrollmentStatus, setEnrollmentStatus] = useState(client?.status);
+
+  
+
+  const calculateAge = (birthDate) => {
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  const calculateEndDate = (enrollment) => {
+    if (!enrollment.acceptedAt || !enrollment.package) return null;
+
+    const startDate = new Date(enrollment.acceptedAt);
+    const packageType = enrollment.package.type;
+    
+    if (packageType === 'hourly') {
+      const minutes = parseInt(enrollment.package.rate) || 0;
+      return new Date(startDate.getTime() + minutes * 60000);
+    } else {
+      const packageDays = {
+        monthly: 30,
+        quarterly: 90,
+        halfYearly: 180,
+        yearly: 365
+      }[packageType] || 0;
+      
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + packageDays);
+      return endDate;
+    }
+  };
+
+  const checkEnrollmentStatus = async () => {
+    if (client?.status === 'pending' || client?.status === 'rejected') {
+      return client?.status;
+    }
+
+    if (!client?.acceptedAt) {
+      return 'pending';
+    }
+
+    const currentDate = new Date();
+    const endDate = calculateEndDate(client);
+
+    if (!endDate) return client?.status;
+
+    const newStatus = currentDate > endDate ? 'completed' : 'active';
+
+    // Update status in Firestore if it has changed
+    if (newStatus !== client?.status) {
+      try {
+        const enrollmentRef = doc(db, 'enrollments', client.id);
+        await updateDoc(enrollmentRef, { status: newStatus });
+        setEnrollmentStatus(newStatus);
+      } catch (error) {
+        console.error('Error updating enrollment status:', error);
+      }
+    }
+
+    return newStatus;
+  };
+
+  useEffect(() => {
+    checkEnrollmentStatus();
+  }, [client]);
+
+  const handleEnrollmentAction = async (action) => {
+    try {
+      const enrollmentRef = doc(db, 'enrollments', client.id);
+      const status = action === 'accept' ? 'active' : 'rejected';
+      const updateData = {
+        status,
+        ...(status === 'active' && { acceptedAt: new Date().toISOString() }),
+        ...(status === "rejected" && { rejectedBy: "mentor" }),
+      };
+      
+      await updateDoc(enrollmentRef, updateData);
+      setEnrollmentStatus(status);
+      toast.success(`Successfully ${action}ed enrollment`);
+    } catch (error) {
+      console.error('Error updating enrollment:', error);
+      toast.error(`Failed to ${action} enrollment`);
+    }
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-600';
+      case 'active':
+        return 'bg-green-600';
+      case 'completed':
+        return 'bg-blue-600';
+      case 'rejected':
+        return 'bg-red-600';
+      default:
+        return 'bg-gray-600';
+    }
+  };
+
+  const formatEndDate = (client) => {
+    const endDate = calculateEndDate(client);
+    if (!endDate) return 'N/A';
+
+    if (client.package.type === 'hourly') {
+      return endDate.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true
+      });
+    } else {
+      return endDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+  };
+
+  console.log("client",client)
+
+  return (
+    <div className="p-6 mx-auto mb-4 overflow-hidden bg-white shadow-lg rounded-xl">
+      {/* Background gradient */}
+      <div className="h-32 mb-4 -mx-6 -mt-6 bg-gradient-to-r from-orange-400 via-pink-500 to-blue-500"></div>
+      
+      {/* Profile section */}
+      <div className="flex items-start justify-between">
+        <div className="flex gap-4">
+          {/* Profile image */}
+          <div className="w-16 h-16 -mt-12 overflow-hidden border-4 border-white rounded-full">
+            <Image
+              width={56}
+              height={56} 
+              src={client?.package?.profileImage} 
+              alt="Profile" 
+              className="object-cover w-full h-full"
+            />
+          </div>
+          
+          {/* Name and location */}
+          <div>
+            <h1 className="text-xl font-semibold">{_.capitalize(client?.package?.fullName)} ({client?.clientDetails?.gender} - {calculateAge(client?.clientDetails?.birthDate)} years)</h1>
+            <p className="text-sm text-black"><span className='font-semibold'>Weight:</span> {client?.clientDetails?.weight} <span className='font-semibold'>Height:</span> {client?.clientDetails?.height}</p>
+            <p className="text-sm text-gray-600">{client?.package?.phoneNumber}</p>
+            <div className={`px-2 py-1 text-sm text-center text-white rounded-full w-100 ${getStatusColor(enrollmentStatus)}`}>
+          {enrollmentStatus?.charAt(0).toUpperCase() + enrollmentStatus?.slice(1)}
+        </div>
+          </div>
+        </div>
+        
+       
+      </div>
+      
+      {/* Action buttons */}
+      {enrollmentStatus === 'pending' && 
+      <div className="flex gap-3 mt-4">
+        <button onClick={() => handleEnrollmentAction('accept')} className="px-4 py-2 text-sm font-medium text-white rounded-full bg-success">
+          Accept
+        </button>
+        <button onClick={() => handleEnrollmentAction('reject')} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-full">
+          Reject
+        </button>
+      </div>}
+      
+      {/* Skills */}
+      <div className="flex gap-2 mt-4 mb-2 overflow-auto flex-nowrap">
+        <span className='font-semibold'>Availability </span> :{client?.package?.availability?.days?.map((skill) => (
+          <span key={skill} className="px-2 py-1 text-sm text-center text-gray-600 rounded-full min-w-max bg-gray-50 line-clamp-1">
+
+            {skill}
+          </span>
+        ))}
+      </div>
+      <div className="flex gap-2 mb-2 overflow-auto flex-nowrap">
+        <span className='font-semibold'>Timeslot :</span> 
+          <span className="px-2 py-1 text-sm text-center text-white bg-black rounded-full min-w-max line-clamp-1">
+            {client?.package?.availability?.timeSlot}
+          </span>
+      </div>
+      {client?.acceptedAt && (
+              <>
+                <p className="mt-2 "><span  className='font-semibold'>Enrolled:</span> {new Date(client?.acceptedAt).toLocaleDateString()}</p>
+                <p className='mb-2'><span  className='font-semibold'>End Date:</span>  {formatEndDate(client)}</p>
+              </>
+            )}
+      
+      {/* Action cards */}
+      <div className="flex flex-wrap gap-2">
+  <div className="p-2 bg-gray-50 rounded-xl flex-1 min-w-[200px]">
+      <h5 className="font-medium">Activity Level</h5>
+    <p className="mt-2 text-sm text-gray-600">
+      {client?.clientDetails?.activityLevel?.subtitle}
+    </p>
+  </div>
+  <div className="p-2 bg-black text-white rounded-xl flex-1 min-w-[200px]">
+    
+      <h5 className="font-medium">Goal</h5>
+    
+    <p className="mt-2 text-sm ">
+      {client?.package?.biography}
+    </p>
+  </div>
+</div>
+
+    </div>
+  );
+};
+
+export default ClientCard;

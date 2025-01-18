@@ -12,7 +12,7 @@ import toast from "react-hot-toast";
 
 const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
   const router = useRouter();
-  const { user, userDetailData } = useContext(GlobalContext);
+  const { user, userDetailData,latestWeight } = useContext(GlobalContext);
   const [loading, setLoading] = useState(false);
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [hour, setHour] = useState("");
@@ -153,7 +153,7 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
 
       // Modify the rate calculation based on whether it's hourly or not
       const selectedRate = formData.rateType === "hourly" 
-        ? hour+1
+        ? Number(hour) + 1 
         : rateOptions.find((opt) => opt.id === formData.rateType)?.rate;
 
         const enrollmentData = {
@@ -172,7 +172,7 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
                   gender: userDetailData.userGender,
                   birthDate: userDetailData.userBirthDate,
                   height: userDetailData.userHeight,
-                  weight: userDetailData.userWeight,
+                  weight: latestWeight?.userWeights,
                   goals: userDetailData.helpYou,
                   activityLevel: userDetailData.activityLevel,
                 }
