@@ -6,7 +6,6 @@ import ExerciseDeatil from "./ExerciseDeatil";
 import { useRouter } from "next/navigation";
 import { calculateProgress, handleDate } from "@/utils";
 import Image from "next/image";
-import { supabase } from "@/createClient";
 import { GlobalContext } from "@/context/GloablContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore"; 
 import { db } from "@/firebase/firebaseConfig";
@@ -275,7 +274,7 @@ const PlanDetail = ({ params }) => {
   };
   const calculateDailyTotal = (weekIndex, dayIndex) => {
     const exercises =
-      workoutData?.workoutPlan[weekIndex][dayIndex]?.exercises || [];
+      workoutData?.workoutPlan?.[weekIndex]?.[dayIndex]?.exercises || [];
     let dailyTotal = 0;
 
     exercises.forEach((exercise, index) => {
@@ -314,7 +313,7 @@ const PlanDetail = ({ params }) => {
 
   useEffect(() => {
     if (workoutData) {
-      workoutData.workoutPlan[selectedWeek][selectedDay].exercises.forEach(
+      workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises?.forEach(
         (exercise, exerciseIndex) => {
           addExerciseDetails(selectedWeek, selectedDay, exerciseIndex, true);
         }
@@ -412,7 +411,7 @@ const PlanDetail = ({ params }) => {
       if (set.isCompleted) return true;
 
       const exercise =
-        workoutData?.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
+        workoutData?.workoutPlan?.[weekIndex]?.[dayIndex]?.exercises?.[exerciseIndex];
       const isBodyWeightOrBand =
         exercise?.equipment === "body weight" || exercise?.equipment === "band";
 
@@ -430,8 +429,8 @@ const PlanDetail = ({ params }) => {
   };
   const isAllExercisesInDayCompleted = () => {
     const exercises =
-      workoutData?.workoutPlan[selectedWeek][selectedDay].exercises || [];
-    if (exercises.length === 0) {
+      workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises || [];
+    if (exercises?.length === 0) {
       return false;
     }
 
@@ -439,7 +438,7 @@ const PlanDetail = ({ params }) => {
       const key = `${selectedWeek}-${selectedDay}-${exerciseIndex}`;
       return (
         workoutData?.exerciseHistory[key] &&
-        workoutData.exerciseHistory[key].length > 0 &&
+        workoutData?.exerciseHistory[key].length > 0 &&
         exerciseDetails[key]?.every((set) => set.isCompleted)
       );
     });
@@ -449,7 +448,7 @@ const PlanDetail = ({ params }) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
     return (
       workoutData?.exerciseHistory[key] &&
-      workoutData.exerciseHistory[key].length > 0
+      workoutData?.exerciseHistory[key].length > 0
     );
   };
 
@@ -772,7 +771,7 @@ const PlanDetail = ({ params }) => {
 
   useEffect(() => {
     if (workoutData && selectedWeek !== null && selectedDay !== null) {
-      workoutData.workoutPlan[selectedWeek][selectedDay].exercises.forEach(
+      workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises?.forEach(
         (_, exerciseIndex) => {
           checkSetWarnings(selectedWeek, selectedDay, exerciseIndex);
         }
@@ -789,10 +788,10 @@ const PlanDetail = ({ params }) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
     const details = exerciseDetails[key];
     const exercise =
-      workoutData.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
+      workoutData?.workoutPlan?.[weekIndex]?.[dayIndex]?.exercises?.[exerciseIndex];
 
     const isBodyWeightOrBand =
-      exercise.equipment === "body weight" || exercise.equipment === "band";
+      exercise?.equipment === "body weight" || exercise?.equipment === "band";
     const isValidSet =
       details?.[detailIndex]?.reps &&
       (isBodyWeightOrBand || details?.[detailIndex]?.weight);
@@ -801,7 +800,7 @@ const PlanDetail = ({ params }) => {
       const currentDate = new Date();
 
       const updatedWorkoutData = { ...workoutData };
-      let updatedHistory = updatedWorkoutData.exerciseHistory || {};
+      let updatedHistory = updatedWorkoutData?.exerciseHistory || {};
       if (!updatedHistory[key]) {
         updatedHistory[key] = [];
       }
@@ -949,20 +948,31 @@ const PlanDetail = ({ params }) => {
     }
   };
 
-  const finishPlan = async () => {
-    try {
-      await supabase
-        .from("workoutPlan")
-        .update({ workoutPlanDB: { ...workoutData } })
-        .eq("id", workoutData.id);
-      localStorage.removeItem(`lastPosition_${workoutData.name}`);
-      localStorage.removeItem(`restTime_${workoutData.name}`);
-      router.push("/createPlanPage");
-    } catch (error) {
-      console.error("Error finishing plan:", error);
-      setError("Failed to finish workout plan.");
-    }
-  };
+const finishPlan = async () => {
+  try {
+    const workoutDataUpdate = {
+      ...workoutData,
+      workoutPlan: typeof workoutData.workoutPlan === 'string' 
+        ? workoutData.workoutPlan 
+        : JSON.stringify(workoutData.workoutPlan),
+      exerciseHistory: typeof workoutData.exerciseHistory === 'string'
+        ? workoutData.exerciseHistory
+        : JSON.stringify(workoutData.exerciseHistory)
+    };
+
+    const workoutPlanRef = doc(db, "workoutPlans", workoutData.id);
+    await updateDoc(workoutPlanRef, {
+      workoutPlanDB: workoutDataUpdate,
+    });
+
+    localStorage.removeItem(`lastPosition_${workoutData.name}`);
+    localStorage.removeItem(`restTime_${workoutData.name}`);
+    router.push("/createPlanPage");
+  } catch (error) {
+    console.error("Error finishing plan:", error);
+    setError("Failed to finish workout plan.");
+  }
+};
   const startSetTimer = (weekIndex, dayIndex, exerciseIndex, setIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}-${setIndex}`;
 
@@ -1035,23 +1045,40 @@ const PlanDetail = ({ params }) => {
 
   useEffect(() => {
     const fetchImages = async () => {
-      const exercises = workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises;
-      const urls = {};
-      for (const exercise of exercises) {
-        if (exercise?.id) {
-          try {
-            const image = await getImage(exercise.id);
-            urls[exercise.id] = image;
-          } catch (error) {
-            console.error(`Error fetching image for exercise ID ${exercise.id}:`, error);
+      try {
+        const exercises = workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises;
+  
+        // Check if exercises is an array before iterating
+        if (!Array.isArray(exercises)) {
+          console.error("Exercises is not a valid array:", exercises);
+          return;
+        }
+  
+        const urls = {};
+        for (const exercise of exercises) {
+          if (exercise?.id) {
+            try {
+              const image = await getImage(exercise.id);
+              urls[exercise.id] = image;
+            } catch (error) {
+              console.error(`Error fetching image for exercise ID ${exercise.id}:`, error);
+            }
+          } else {
+            console.warn("Exercise does not have a valid ID:", exercise);
           }
         }
+  
+        setImageUrls(urls);
+      } catch (error) {
+        console.error("Error in fetchImages function:", error);
       }
-      setImageUrls(urls);
     };
   
-    workoutData && fetchImages();
+    if (workoutData) {
+      fetchImages();
+    }
   }, [workoutData, selectedWeek, selectedDay]);
+  
 
  
   if (loading) {
@@ -1082,7 +1109,7 @@ const PlanDetail = ({ params }) => {
         <div className="top-0 p-3 pb-1 bg-black sticky-top">
           <div className="flex items-center justify-between my-2">
             <h1 className="mb-6 text-2xl font-bold text-white">
-              {workoutData.name}
+              {workoutData?.name}
             </h1>
             <button
               onClick={toggleLockPreviousTabs}
@@ -1151,8 +1178,9 @@ const PlanDetail = ({ params }) => {
               {warningMessage}
             </div>
           )}
+          
           <div className="space-y-4">
-            {workoutData.workoutPlan[selectedWeek][selectedDay].exercises.map(
+            {workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises?.map(
               (exercise, exerciseIndex) => {
                 const isEnabled = isExerciseEnabled(
                   selectedWeek,
