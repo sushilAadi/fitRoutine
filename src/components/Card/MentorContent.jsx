@@ -130,7 +130,7 @@ const MentorContent = ({ mentor }) => {
     return currentDate <= endDate;
   };
 
-  console.log("pendingEnrollment",pendingEnrollment)
+  
 
   const handleEnrollmentAction = async (action) => {
     try {

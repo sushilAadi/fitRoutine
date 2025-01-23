@@ -1162,7 +1162,7 @@ const PlanDetail = ({ params }) => {
                 const key = `${selectedWeek}-${selectedDay}-${exerciseIndex}`;
                 const warning = setWarnings[key];
                 const imageUrl = imageUrls[exercise?.id] || "";
-                console.log("imageUrl",imageUrl)
+                
                 return (
                   <div key={exerciseIndex}>
                     <div className={`p-3 my-3 bg-gray-800 rounded-xl`}>
