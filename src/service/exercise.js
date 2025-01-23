@@ -30,9 +30,9 @@ export const getExercises = async () => {
     handleApiError(error);
   }
 };
-export const getExercisesGif = async () => {
+export const getExercisesGif = async (id="0001") => {
   try {
-    const response = await exerciseApi.get('/exercises/exercise/0001');
+    const response = await exerciseApi.get(`/exercises/exercise/${id}`);
     return response.data.gifUrl;
   } catch (error) {
     handleApiError(error);

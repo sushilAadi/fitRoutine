@@ -10,6 +10,7 @@ import { supabase } from "@/createClient";
 import { GlobalContext } from "@/context/GloablContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore"; 
 import { db } from "@/firebase/firebaseConfig";
+import { getExercisesGif } from "@/service/exercise";
 
 const TabButton = ({ active, onClick, children, disabled }) => (
   <button
@@ -1024,6 +1025,35 @@ const PlanDetail = ({ params }) => {
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
+
+  const [imageUrls, setImageUrls] = useState({});
+
+  const getImage = async (id) => {
+    const response = await getExercisesGif(id);
+    return response;
+  };
+
+  useEffect(() => {
+    const fetchImages = async () => {
+      const exercises = workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises;
+      const urls = {};
+      for (const exercise of exercises) {
+        if (exercise?.id) {
+          try {
+            const image = await getImage(exercise.id);
+            urls[exercise.id] = image;
+          } catch (error) {
+            console.error(`Error fetching image for exercise ID ${exercise.id}:`, error);
+          }
+        }
+      }
+      setImageUrls(urls);
+    };
+  
+    workoutData && fetchImages();
+  }, [workoutData, selectedWeek, selectedDay]);
+
+ 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen text-white">
@@ -1131,6 +1161,8 @@ const PlanDetail = ({ params }) => {
                 );
                 const key = `${selectedWeek}-${selectedDay}-${exerciseIndex}`;
                 const warning = setWarnings[key];
+                const imageUrl = imageUrls[exercise?.id] || "";
+                console.log("imageUrl",imageUrl)
                 return (
                   <div key={exerciseIndex}>
                     <div className={`p-3 my-3 bg-gray-800 rounded-xl`}>
@@ -1139,11 +1171,11 @@ const PlanDetail = ({ params }) => {
                       >
                         <div className="min-w-[50px] min-h-[50px] max-h-[50px] max-w-[50px] overflow-hidden">
                           <Image
-                            src={exercise.gifUrl}
+                            src={imageUrl}
                             alt={exercise.name}
                             width={50}
                             height={50}
-                            className="object-cover rounded-full max-w-[50px] max-h-50px]"
+                            className="object-cover rounded-full max-w-[50px] max-h-50px] cursor-pointer"
                             onClick={() => {
                               setSelectedExercise(exercise);
                               handleOpenClose();
