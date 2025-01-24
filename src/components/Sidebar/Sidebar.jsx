@@ -18,7 +18,7 @@ import { UserButton } from "@clerk/nextjs";
 import { GlobalContext } from "@/context/GloablContext";
 
 const Sidebar = ({}) => {
-  const {handleOpenClose,fullName,user} = useContext(GlobalContext)
+  const {handleOpenClose,fullName,user,plansRefetch} = useContext(GlobalContext)
   
 
   const userRole = user?.publicMetadata?.role
@@ -63,7 +63,7 @@ const Sidebar = ({}) => {
             <ListItemPrefix>
             <i className="fa-duotone fa-thin fa-floppy-disk h-5 w-5 !mr-2 drop-shadow-lg"></i>
             </ListItemPrefix>
-            <Link href="/SavedPlan" className="no-underline text-inherit" onClick={handleOpenClose}>
+            <Link href="/SavedPlan" className="no-underline text-inherit" onClick={()=>{handleOpenClose();plansRefetch()}}>
               Saved Plan
             </Link>
           </ListItem>

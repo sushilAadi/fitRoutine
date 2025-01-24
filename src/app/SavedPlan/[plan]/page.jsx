@@ -29,7 +29,7 @@ const TabButton = ({ active, onClick, children, disabled }) => (
 
 const PlanDetail = ({ params }) => {
   const USER_WEIGHT_KG = 60;
-  const { userId } = useContext(GlobalContext);
+  const { userId,plansRefetch } = useContext(GlobalContext);
 
   const router = useRouter();
   const initializedRef = useRef(false);
@@ -60,7 +60,7 @@ const PlanDetail = ({ params }) => {
   const selectedPlanId = decodeURIComponent(params?.plan);
 
   const fetchWorkoutPlan = async () => {
-    setLoading(true);
+    // setLoading(true);
     setError(null);
   
     try {
@@ -119,6 +119,7 @@ const PlanDetail = ({ params }) => {
         setError("Failed to parse workout plan.");
         return;
       }
+      console.log("parsedData",parsedData)
   
       const progress = calculateProgress(parsedData);
       parsedData.progress = progress;
@@ -211,6 +212,9 @@ const PlanDetail = ({ params }) => {
       setLoading(false);
     }
   };
+  
+
+  
 
   const checkSetWarnings = (weekIndex, dayIndex, exerciseIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
@@ -1043,6 +1047,8 @@ const finishPlan = async () => {
     return response;
   };
 
+  
+
   useEffect(() => {
     const fetchImages = async () => {
       try {
@@ -1375,6 +1381,7 @@ const finishPlan = async () => {
                                             );
                                             setToggleCheck(false);
                                             setEditToggle(true);
+                                            fetchWorkoutPlan()
                                           }}
                                           disabled={!isSetEnabled}
                                         />
@@ -1562,6 +1569,7 @@ const finishPlan = async () => {
                           lockPreviousTabs && moveToNextDay();
 
                           router.push("/SavedPlan");
+                          plansRefetch();
                         }}
                         className="float-right px-6 py-2 mt-4 mb-2 text-white bg-black rounded-lg"
                       >
