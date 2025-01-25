@@ -119,12 +119,11 @@ const PlanDetail = ({ params }) => {
         setError("Failed to parse workout plan.");
         return;
       }
-      console.log("parsedData",parsedData)
+      
   
       const progress = calculateProgress(parsedData);
       parsedData.progress = progress;
   
-      console.log("parsedData",parsedData)
       setWorkoutData(parsedData);
   
       // Rest of your initialization code...
