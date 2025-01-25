@@ -56,10 +56,11 @@ const ExerciseCard = ({ onSelectExercise, handleClose, formData, currentWeekInde
   const { data: exercisesData = [] } = useQuery({
     queryKey: ["exercise"],
     queryFn: getExercises,
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+    cacheTime: 20 * 60 * 1000,
   });
 
-  // Memoized filter and sort operations
   const filterArray = useMemo(() => 
     ["All", ..._.sortBy(_.uniq(exercisesData.map(i => i?.target)))],
     [exercisesData]

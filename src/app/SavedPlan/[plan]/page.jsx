@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef, useContext } from "react";
+import React, { useState, useEffect, useRef, useContext, useCallback } from "react";
 import _ from "lodash";
 import OffCanvasComp from "@/components/OffCanvas/OffCanvasComp";
 import ExerciseDeatil from "./ExerciseDeatil";
@@ -1041,49 +1041,69 @@ const finishPlan = async () => {
   };
 
   const [imageUrls, setImageUrls] = useState({});
+  const [brokenImages, setBrokenImages] = useState({});
+  const processedIds = useRef(new Set());
 
   const getImage = async (id) => {
-    const response = await getExercisesGif(id);
-    return response;
+    try {
+      const response = await getExercisesGif(id);
+      return response;
+    } catch (error) {
+      console.error(`Error fetching image for ID ${id}:`, error);
+      throw error;
+    }
+  };
+
+  const fetchImages = async () => {
+    try {
+      const exercises =
+        workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises;
+
+      if (!Array.isArray(exercises)) {
+        console.error("Exercises is not a valid array:", exercises);
+        return;
+      }
+
+      const urls = { ...imageUrls };
+
+      for (const exercise of exercises) {
+        if (
+          exercise?.id &&
+          !processedIds.current.has(exercise.id) &&
+          !brokenImages[exercise.id]
+        ) {
+          try {
+            const image = await getImage(exercise.id);
+            urls[exercise.id] = image;
+            processedIds.current.add(exercise.id); // Mark as processed
+          } catch (error) {
+            console.error(
+              `Error fetching image for exercise ID ${exercise.id}:`,
+              error
+            );
+          }
+        }
+      }
+
+      setImageUrls(urls); // Batch update the state
+    } catch (error) {
+      console.error("Error in fetchImages function:", error);
+    }
   };
 
   
 
   useEffect(() => {
-    const fetchImages = async () => {
-      try {
-        const exercises = workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises;
-  
-        // Check if exercises is an array before iterating
-        if (!Array.isArray(exercises)) {
-          console.error("Exercises is not a valid array:", exercises);
-          return;
-        }
-  
-        const urls = {};
-        for (const exercise of exercises) {
-          if (exercise?.id) {
-            try {
-              const image = await getImage(exercise.id);
-              urls[exercise.id] = image;
-            } catch (error) {
-              console.error(`Error fetching image for exercise ID ${exercise.id}:`, error);
-            }
-          } else {
-            console.warn("Exercise does not have a valid ID:", exercise);
-          }
-        }
-  
-        setImageUrls(urls);
-      } catch (error) {
-        console.error("Error in fetchImages function:", error);
-      }
-    };
-  
     if (workoutData) {
       fetchImages();
     }
   }, [workoutData, selectedWeek, selectedDay]);
+
+  // Handle broken images
+  const handleImageError = (exerciseId) => {
+    setBrokenImages((prev) => ({ ...prev, [exerciseId]: true }));
+  };
+
   
 
  
@@ -1204,17 +1224,19 @@ const finishPlan = async () => {
                         className={`flex p-2 "bg-gray-900 gap-x-4 rounded-xl`}
                       >
                         <div className="min-w-[50px] min-h-[50px] max-h-[50px] max-w-[50px] overflow-hidden">
+                        {imageUrl && 
                           <Image
                             src={imageUrl}
                             alt={exercise.name}
                             width={50}
                             height={50}
                             className="object-cover rounded-full max-w-[50px] max-h-50px] cursor-pointer"
-                            onClick={() => {
-                              setSelectedExercise(exercise);
-                              handleOpenClose();
-                            }}
-                          />
+                            onError={() => handleImageError(exercise.id)}
+                    onClick={() => {
+                      setSelectedExercise(exercise);
+                      handleOpenClose();
+                    }}
+                          />}
                         </div>
                         <div className="text-conatiner w-100">
                           <p

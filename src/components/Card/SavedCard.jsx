@@ -105,8 +105,8 @@ const SavedCard = ({
 
       <button
         onClick={onClickSecondary}
-        disabled={plan.status === "active" && !isCompleted}
-        className={`w-full py-2 text-center ${
+        // disabled={plan.status === "active" && !isCompleted}
+        className={`w-full py-2 text-center text-red-500 hover:text-red-900 ${
           plan.status === "active" && !isCompleted
             ? "text-gray-400 cursor-not-allowed"
             : "text-red-500 hover:text-red-900"
