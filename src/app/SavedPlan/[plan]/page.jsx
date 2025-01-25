@@ -124,7 +124,7 @@ const PlanDetail = ({ params }) => {
       const progress = calculateProgress(parsedData);
       parsedData.progress = progress;
   
-      
+      console.log("parsedData",parsedData)
       setWorkoutData(parsedData);
   
       // Rest of your initialization code...
@@ -360,6 +360,7 @@ const PlanDetail = ({ params }) => {
   };
 
   const stopTimer = () => {
+    fetchWorkoutPlan()
     if (!isTimerRunning || !activeExerciseSet) return;
 
     const { week, day, exercise, set } = activeExerciseSet;
@@ -1381,7 +1382,7 @@ const finishPlan = async () => {
                                             );
                                             setToggleCheck(false);
                                             setEditToggle(true);
-                                            fetchWorkoutPlan()
+                                            // fetchWorkoutPlan()
                                           }}
                                           disabled={!isSetEnabled}
                                         />
@@ -1570,6 +1571,7 @@ const finishPlan = async () => {
 
                           router.push("/SavedPlan");
                           plansRefetch();
+                          fetchWorkoutPlan()
                         }}
                         className="float-right px-6 py-2 mt-4 mb-2 text-white bg-black rounded-lg"
                       >
