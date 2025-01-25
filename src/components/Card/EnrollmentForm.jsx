@@ -368,9 +368,9 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
 
         {/* Biography */}
         <TextBlk
-          title="About You *"
+          title="Your Lifestyle & Fitness Goals *"
           name="biography"
-          placeholder="Enter about yourself"
+          placeholder="Describe your routine and goals"
           value={formData.biography}
           onChange={handleInputChange}
           required
