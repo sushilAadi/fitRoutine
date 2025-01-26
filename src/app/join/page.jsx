@@ -778,7 +778,7 @@ const MentorRegistration = () => {
             </Row>
             <br />
 
-            <br />
+         
 
             <Row>
               <Col xs={6}>
@@ -837,6 +837,30 @@ const MentorRegistration = () => {
                   placeholder="Enter yearly rate"
                   type="number"
                   value={formData.yearly_rate}
+                  onChange={handleInputChange}
+                  required
+                />
+              </Col>
+              <Col xs={12} md={4}>
+                <br />
+                <InputBlk
+                  title="Instagram Profile URL"
+                  name="instagram"
+                  placeholder="Enter Your Instagram Profile URL (e.g., https://instagram.com/username)"
+                  type="text"
+                  value={formData.instagram}
+                  onChange={handleInputChange}
+                  required
+                />
+              </Col>
+              <Col xs={12} md={4}>
+                <br />
+                <InputBlk
+                  title="Facebook Profile URL"
+                  name="facebook"
+                  placeholder="Enter Your Facebook Profile URL (e.g., https://facebook.com/username)"
+                  type="text"
+                  value={formData.facebook}
                   onChange={handleInputChange}
                   required
                 />
