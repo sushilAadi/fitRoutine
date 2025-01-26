@@ -1,15 +1,40 @@
 'use client';
 import _ from 'lodash';
 import Image from 'next/image';
-import React, { useEffect, useState } from 'react';
-import { doc, updateDoc } from 'firebase/firestore';
+import React, { useContext, useEffect, useState } from 'react';
+import { addDoc, collection, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase/firebaseConfig';
 import toast from 'react-hot-toast';
+import { Select, Option } from "@material-tailwind/react";
+import { GlobalContext } from '@/context/GloablContext';
 
 const ClientCard = ({client}) => {
+  const {plans,userDetailData} = useContext(GlobalContext);
   const [enrollmentStatus, setEnrollmentStatus] = useState(client?.status);
+  const [selectedWorkoutPlan, setSelectedWorkoutPlan] = useState(null);
+  const assignablePlans = plans?.filter(plan => !plan?.workoutPlanDB?.progress);
 
   
+
+  const handleWorkoutPlanAssignment = async () => {
+    if (!selectedWorkoutPlan) {
+      toast.error('Please select a workout plan');
+      return;
+    }
+    
+    selectedWorkoutPlan.userIdCl = client?.clientIdCl
+    selectedWorkoutPlan.mentorName = userDetailData?.userName
+    selectedWorkoutPlan.mentorEmail = userDetailData?.userEmail
+    selectedWorkoutPlan.mentorId = userDetailData?.userIdCl
+    try {
+      await addDoc(collection(db, 'workoutPlans'), selectedWorkoutPlan);
+
+      toast.success('Workout plan assigned successfully');
+    } catch (error) {
+      console.error('Error assigning workout plan:', error);
+      toast.error('Failed to assign workout plan');
+    }
+  };
 
   const calculateAge = (birthDate) => {
     const birth = new Date(birthDate);
@@ -88,10 +113,12 @@ const ClientCard = ({client}) => {
         ...(status === 'active' && { acceptedAt: new Date().toISOString() }),
         ...(status === "rejected" && { rejectedBy: "mentor" }),
       };
-      
-      await updateDoc(enrollmentRef, updateData);
-      setEnrollmentStatus(status);
-      toast.success(`Successfully ${action}ed enrollment`);
+      if(selectedWorkoutPlan){
+        await updateDoc(enrollmentRef, updateData);
+        setEnrollmentStatus(status);
+        toast.success(`Successfully ${action}ed enrollment`);
+        handleWorkoutPlanAssignment()
+      }
     } catch (error) {
       console.error('Error updating enrollment:', error);
       toast.error(`Failed to ${action} enrollment`);
@@ -139,7 +166,7 @@ const ClientCard = ({client}) => {
   return (
     <div className="p-6 mb-4 overflow-hidden bg-white shadow-lg rounded-xl max-w-[500px]">
       {/* Background gradient */}
-      <div className="h-32 mb-4 -mx-6 -mt-6 bg-gradient-to-r from-orange-400 via-pink-500 to-blue-500"></div>
+      <div className="h-32 mb-4 -mx-6 -mt-6 bg-gradient-to-r from-[#000000]  to-[#434343]"></div>
       
       {/* Profile section */}
       <div className="flex items-start justify-between">
@@ -168,14 +195,33 @@ const ClientCard = ({client}) => {
         
        
       </div>
+      {enrollmentStatus === 'pending' && 
+      <div className="mt-3 space-y-3">
+        <Select 
+          label="Assign Workout Plan" 
+          onChange={(value) => {
+            const plan = assignablePlans.find(p => p.id === value);
+            setSelectedWorkoutPlan(plan);
+          }}
+        >
+          {assignablePlans?.map((plan) => (
+            <Option key={plan.id} value={plan.id}>
+              {plan.planName.replace('workoutPlan_', '')}
+            </Option>
+          ))}
+        </Select>
+        
+      </div>
+      }
       
       {/* Action buttons */}
       {enrollmentStatus === 'pending' && 
       <div className="flex gap-3 mt-4">
-        <button onClick={() => handleEnrollmentAction('accept')} className="px-4 py-2 text-sm font-medium text-white rounded-full bg-success">
+      {selectedWorkoutPlan && 
+        <button disabled={!selectedWorkoutPlan} onClick={() => handleEnrollmentAction('accept')} className="w-full px-4 py-2 text-sm font-medium text-white rounded-full bg-success">
           Accept
-        </button>
-        <button onClick={() => handleEnrollmentAction('reject')} className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-full">
+        </button>}
+        <button onClick={() => handleEnrollmentAction('reject')} className="w-full px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-full">
           Reject
         </button>
       </div>}

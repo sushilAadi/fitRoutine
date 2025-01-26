@@ -130,7 +130,7 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
     }
     return true;
   };
-  console.log("mentor",mentor);
+  
 
 
   const handleSubmit = async (e) => {

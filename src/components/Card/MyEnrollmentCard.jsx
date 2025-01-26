@@ -4,7 +4,7 @@ import { Avatar } from "@material-tailwind/react";
 import CountdownTimer from "../CountdownTimer";
 
 const MyEnrollmentCard = ({ enrollment, calculateEndDate, formatDateTime }) => {
-  console.log("enrollment", enrollment);
+  
   const getStatusColor = (status) => {
     const colors = {
       pending: "text-yellow-600",

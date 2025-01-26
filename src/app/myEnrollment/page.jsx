@@ -15,7 +15,7 @@ const MyEnrollment = () => {
   const { userDetailData, handleOpenClose } = useContext(GlobalContext);
 
   const calculateEndDate = useCallback((enrollment) => {
-    console.log("ddd cal")
+    
     if (!enrollment?.acceptedAt || !enrollment?.package) return null;
 
     const startDate = new Date(enrollment.acceptedAt);
@@ -55,7 +55,7 @@ const MyEnrollment = () => {
     if (!enrollmentData || enrollmentData.status === 'pending' || enrollmentData.status === 'rejected') {
       return enrollmentData;
     }
-  console.log("enrollmentData",enrollmentData)
+  
     const endDate = calculateEndDate(enrollmentData);
     
     if (!endDate) return enrollmentData;
@@ -71,12 +71,7 @@ const MyEnrollment = () => {
     
     // Compare the normalized dates
     const newStatus = currentDate > normalizedEndDate ? 'completed' : 'active';
-    console.log('Date comparison:', {
-      currentDate: currentDate.toISOString(),
-      endDate: normalizedEndDate.toISOString(),
-      isCompleted: currentDate > normalizedEndDate,
-      newStatus
-    });
+    
 
     
     if (newStatus !== enrollmentData.status) {

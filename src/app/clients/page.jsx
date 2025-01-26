@@ -44,7 +44,7 @@ const Clients = () => {
   }, [userDetailData]);
 
   
-console.log("clients",clients)
+
   return (
     <SecureComponent>
     <div className="flex flex-col h-screen overflow-hidden">
