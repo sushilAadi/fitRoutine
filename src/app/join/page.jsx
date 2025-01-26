@@ -850,7 +850,7 @@ const MentorRegistration = () => {
                   type="text"
                   value={formData.instagram}
                   onChange={handleInputChange}
-                  required
+                  // required
                 />
               </Col>
               <Col xs={12} md={4}>
@@ -862,7 +862,7 @@ const MentorRegistration = () => {
                   type="text"
                   value={formData.facebook}
                   onChange={handleInputChange}
-                  required
+                  // required
                 />
               </Col>
             </Row>
