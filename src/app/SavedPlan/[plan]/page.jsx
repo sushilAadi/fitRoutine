@@ -1560,7 +1560,7 @@ const finishPlan = async () => {
                           <div className="flex items-center justify-center gap-x-4">
                             <button
                               onClick={stopTimer}
-                              className="px-3 py-2 mt-3 mb-0 text-sm font-semibold text-white bg-red-500 rounded-full w-100"
+                              className="px-3 py-2 mt-3 text-sm font-semibold text-white bg-red-500 rounded-full w-100"
                               disabled={!EditToggle}
                             >
                               <i className="mr-3 fa-solid fa-circle-stop"></i>
