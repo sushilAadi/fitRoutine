@@ -1372,7 +1372,7 @@ const finishPlan = async () => {
                                         <>
                                           {
                                             <i
-                                              className="text-red-500 cursor-pointer fa-solid fa-play"
+                                              className="p-2 px-3 text-red-500   cursor-pointer fa-solid fa-play text-[20px] bg-[#61616154] rounded-lg"
                                               disabled={!isSetEnabled}
                                               onClick={() => {
                                                 startSetTimer(
@@ -1393,7 +1393,7 @@ const finishPlan = async () => {
                                     <>
                                       {isSetEnabled && toggleCheck && (
                                         <i
-                                          className={`text-white cursor-pointer fa-solid fa-check`}
+                                          className={`text-white cursor-pointer  p-2 px-3 fa-solid fa-check text-[20px] bg-[#61616154] rounded-lg`}
                                           onClick={() => {
                                             saveExerciseSet(
                                               selectedWeek,
@@ -1410,9 +1410,8 @@ const finishPlan = async () => {
                                       )}
                                     </>
                                   ) : (
-                                    <button
-                                      className={`text-white cursor-pointer`}
-                                      onClick={() => {
+                                    
+                                      <i className="p-2 px-3 text-white  cursor-pointer fa-solid fa-pencil text-[20px] bg-[#61616154] rounded-lg" onClick={() => {
                                         editExerciseSet(
                                           selectedWeek,
                                           selectedDay,
@@ -1423,10 +1422,7 @@ const finishPlan = async () => {
                                         setToggleCheck(true);
                                         setEditToggle(false);
                                         // setEditValue("edit");
-                                      }}
-                                    >
-                                      ✎
-                                    </button>
+                                      }} />
                                   )}
 
                                   {workoutData?.setUpdate && (
@@ -1434,7 +1430,7 @@ const finishPlan = async () => {
                                       {!detail?.isCompleted &&
                                         editValue !== "edit" && (
                                           <i
-                                            className="text-red-500 cursor-pointer fa-solid fa-circle-xmark"
+                                            className="p-2 px-3 text-red-500 cursor-pointer fa-solid fa-circle-xmark text-[20px] bg-[#61616154] rounded-lg"
                                             onClick={async () => {
                                               await removeExerciseDetail(
                                                 selectedWeek,
@@ -1564,7 +1560,7 @@ const finishPlan = async () => {
                           <div className="flex items-center justify-center gap-x-4">
                             <button
                               onClick={stopTimer}
-                              className="px-3 py-2 mt-3 text-sm font-semibold text-white bg-red-500 rounded-full"
+                              className="px-3 py-2 mt-3 mb-0 text-sm font-semibold text-white bg-red-500 rounded-full w-100"
                               disabled={!EditToggle}
                             >
                               <i className="mr-3 fa-solid fa-circle-stop"></i>
