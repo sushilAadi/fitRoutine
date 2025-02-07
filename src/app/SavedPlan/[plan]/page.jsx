@@ -10,6 +10,7 @@ import { GlobalContext } from "@/context/GloablContext";
 import { doc, getDoc, updateDoc } from "firebase/firestore"; 
 import { db } from "@/firebase/firebaseConfig";
 import { getExercisesGif } from "@/service/exercise";
+import toast from "react-hot-toast";
 
 const TabButton = ({ active, onClick, children, disabled }) => (
   <button
@@ -491,20 +492,21 @@ const PlanDetail = ({ params }) => {
     return isWeekCompleted(weekIndex - 1);
   };
 
-  const moveToNextDay = () => {
+  const moveToNextDay = (skip) => {
     const currentDayExercises =
       workoutData.workoutPlan[currentWeek][currentDay].exercises;
-    const hasInvalidSets = currentDayExercises.some(
-      (_, index) => !areAllSetsValid(currentWeek, currentDay, index)
-    );
-
-    if (hasInvalidSets) {
-      setWarningMessage(
-        "Please complete or remove all empty sets before proceeding."
-      );
-      return;
-    }
-
+      if(!skip){
+        const hasInvalidSets = currentDayExercises.some(
+          (_, index) => !areAllSetsValid(currentWeek, currentDay, index)
+        );
+    
+        if (hasInvalidSets) {
+          setWarningMessage(
+            "Please complete or remove all empty sets before proceeding."
+          );
+          return;
+        }
+      }
     setWarningMessage("");
     let nextWeek = currentWeek;
     let nextDay = currentDay;
@@ -1104,6 +1106,27 @@ const finishPlan = async () => {
     setBrokenImages((prev) => ({ ...prev, [exerciseId]: true }));
   };
 
+  const skipSet = ()=>{
+    toast((t) => (
+      <div className="">
+        Are you sure you want to skip this set for the day?
+        <div className="flex justify-between mt-2">
+        <button className="px-2 py-1 w-[50%] text-white border-none bg-red-500" onClick={() => {toast.dismiss(t.id);moveToNextDay(true)}}>
+          Yes, Skip
+        </button>
+        <button className="px-2 py-1 w-[50%] text-white border-none bg-tprimary" onClick={() => {toast.dismiss(t.id)}}>
+          Cancel
+        </button>
+        </div>
+        
+      </div>
+    ),{
+      duration:999999999,
+      autoClose: false,
+      hideProgressBar: true,
+    });
+  }
+
   
 
  
@@ -1137,14 +1160,15 @@ const finishPlan = async () => {
             <h1 className="mb-6 text-2xl font-bold text-white">
               {workoutData?.name}
             </h1>
-            <button
+            {/* <button
               onClick={toggleLockPreviousTabs}
               className={` whitespace-nowrap  ${
                 lockPreviousTabs ? "text-red-500 " : "text-gray-200 "
               }`}
             >
               {lockPreviousTabs ? "Unlock  Tabs" : "Lock  Tabs"}
-            </button>
+            </button> */}
+            <p onClick={()=>skipSet()} className="text-red-500 cursor-pointer ">Skip Week {currentWeek + 1}, Day {currentDay + 1}</p>
           </div>
 
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
@@ -1156,11 +1180,12 @@ const finishPlan = async () => {
               {formatVolume(calculateDailyTotal(selectedWeek, selectedDay))}
             </span>
           </div>
+          
           {/* {!lockPreviousTabs && (
             <>
               <div className="mb-4">
                 <div className="flex">
-                  {workoutData.weekNames.map((weekName, index) => (
+                  {workoutData?.weekNames?.map((weekName, index) => (
                     <TabButton
                       key={index}
                       active={selectedWeek === index}
