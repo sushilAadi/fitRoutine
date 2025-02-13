@@ -1,7 +1,8 @@
-// components/WorkoutForm.js
 "use client";
 import React, { useState } from "react";
 import { generateWorkoutPlan } from "@/utils/aiService";
+import ReactMarkdown from 'react-markdown'; // Import ReactMarkdown
+import remarkGfm from 'remark-gfm'; // Import remarkGfm
 
 const WorkoutForm = ({ onPlanGenerated }) => {
   const [fitnessLevel, setFitnessLevel] = useState("beginner");
@@ -16,15 +17,27 @@ const WorkoutForm = ({ onPlanGenerated }) => {
   const [goalError, setGoalError] = useState(null);
   const [daysPerWeekError, setDaysPerWeekError] = useState(null);
   const [timePerWorkoutError, setTimePerWorkoutError] = useState(null);
+  const [generatedPlan, setGeneratedPlan] = useState(null); // Store the generated plan
 
   // State to track if the user input is fitness-related
   const [isFitnessRelated, setIsFitnessRelated] = useState(true);
 
   // Function to check if the input is fitness-related
   const checkFitnessRelated = (text) => {
-    const fitnessKeywords = ["fitness", "workout", "exercise", "gym", "diet", "muscle", "cardio", "strength"];
+    const fitnessKeywords = [
+      "fitness",
+      "workout",
+      "exercise",
+      "gym",
+      "diet",
+      "muscle",
+      "cardio",
+      "strength",
+    ];
     const lowerCaseText = text.toLowerCase();
-    const isRelated = fitnessKeywords.some(keyword => lowerCaseText.includes(keyword));
+    const isRelated = fitnessKeywords.some((keyword) =>
+      lowerCaseText.includes(keyword)
+    );
     setIsFitnessRelated(isRelated);
   };
 
@@ -44,14 +57,14 @@ const WorkoutForm = ({ onPlanGenerated }) => {
       setDaysPerWeekError("Days per week must be between 1 and 7.");
       isValid = false;
     } else {
-        setDaysPerWeekError(null);
+      setDaysPerWeekError(null);
     }
 
     if (timePerWorkout < 10 || timePerWorkout > 120) {
       setTimePerWorkoutError("Time per workout must be between 10 and 120 minutes.");
       isValid = false;
     } else {
-        setTimePerWorkoutError(null);
+      setTimePerWorkoutError(null);
     }
 
     if (!isValid) {
@@ -59,7 +72,9 @@ const WorkoutForm = ({ onPlanGenerated }) => {
     }
 
     // Check if the input is fitness-related
-    const userInput = `Fitness level: ${fitnessLevel}, Goal: ${goal}, Days per week: ${daysPerWeek}, Time per workout: ${timePerWorkout} minutes, Equipment: ${equipment || "None"}, Preferences: ${preferences || "None"}`;
+    const userInput = `Fitness level: ${fitnessLevel}, Goal: ${goal}, Days per week: ${daysPerWeek}, Time per workout: ${timePerWorkout} minutes, Equipment: ${
+      equipment || "None"
+    }, Preferences: ${preferences || "None"}`;
     checkFitnessRelated(userInput);
 
     setIsLoading(true);
@@ -67,6 +82,7 @@ const WorkoutForm = ({ onPlanGenerated }) => {
 
     try {
       const plan = await generateWorkoutPlan(userInput, isFitnessRelated);
+      setGeneratedPlan(plan); // Store the generated plan
       onPlanGenerated(plan);
     } catch (err) {
       console.error("Error in handleSubmit:", err);
@@ -77,10 +93,8 @@ const WorkoutForm = ({ onPlanGenerated }) => {
   };
 
   return (
-    <div className="max-w-md p-6 mx-auto bg-white rounded-md shadow-md">
-      <h2 className="mb-4 text-2xl font-semibold">
-        Generate Your Workout Plan
-      </h2>
+    <div className="max-w-3xl p-6 mx-auto bg-white rounded-md shadow-md">
+      <h2 className="mb-4 text-2xl font-semibold">Generate Your Workout Plan</h2>
       <form onSubmit={handleSubmit}>
         {/* Fitness Level */}
         <div className="mb-4">
@@ -140,9 +154,7 @@ const WorkoutForm = ({ onPlanGenerated }) => {
             onChange={(e) => setDaysPerWeek(parseInt(e.target.value))}
           />
           {daysPerWeekError && (
-            <p className="text-xs italic text-red-500">
-              {daysPerWeekError}
-            </p>
+            <p className="text-xs italic text-red-500">{daysPerWeekError}</p>
           )}
         </div>
 
@@ -211,6 +223,14 @@ const WorkoutForm = ({ onPlanGenerated }) => {
 
         {error && <p className="mt-4 text-red-500">{error}</p>}
       </form>
+
+      {/* Display the generated plan */}
+      {generatedPlan && (
+        <div className="mt-8">
+          <h3 className="mb-2 text-xl font-semibold">Generated Plan:</h3>
+          <ReactMarkdown children={generatedPlan} remarkPlugins={[remarkGfm]} />
+        </div>
+      )}
     </div>
   );
 };

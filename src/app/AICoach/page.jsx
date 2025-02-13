@@ -19,12 +19,7 @@ const AICoach = () => {
         <div className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">
         <WorkoutForm onPlanGenerated={handlePlanGenerated} />
 
-      {workoutPlan && (
-        <div className="w-full max-w-2xl p-4 mt-8 border rounded-md shadow-md">
-          <h2 className="mb-4 text-xl font-semibold">Generated Workout Plan</h2>
-          <pre className="whitespace-pre-wrap">{workoutPlan}</pre>
-        </div>
-      )}
+      
         </div>
       </div>
     </SecureComponent>

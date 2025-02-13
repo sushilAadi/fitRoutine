@@ -1,7 +1,6 @@
-// utils/aiService.js
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY; 
+const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
 
 console.log("apiKey", apiKey);
 
@@ -15,8 +14,10 @@ async function generateWorkoutPlan(userInput, isFitnessRelated) {
       prompt = `The user input is not related to fitness or workout. Tell the user that they must provide fitness-related information (e.g., fitness level, goals, preferences) to generate a plan. Do not generate plan`;
     } else {
       prompt = `Generate a workout plan and diet plan based on the following information: ${userInput}.
-Workout plan should be a table with columns: Day, Exercise, Sets, Reps.
-Diet plan should be a table with columns: Meal, Food, Quantity. as per Indian diet.`;
+
+Workout plan should be a table with columns: Day, Exercise, Sets, Reps. Return the table in markdown format.
+
+Diet plan should be a table with columns: Meal, Food, Quantity. as per Indian diet. Return the table in markdown format.`;
     }
 
     console.log("prompt", prompt);
@@ -28,20 +29,11 @@ Diet plan should be a table with columns: Meal, Food, Quantity. as per Indian di
     return text;
   } catch (error) {
     console.error("Error generating workout plan:", error);
-    throw new Error("Failed to generate workout plan.  Please check your API key and input.");
+    throw new Error(
+      "Failed to generate workout plan.  Please check your API key and input."
+    );
   }
 }
 
-async function listAvailableModels() {
-    try {
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const models = await genAI.listModels();
-      console.log("Available Models:", models);
-    } catch (error) {
-      console.error("Error listing models:", error);
-    }
-  }
-
-  listAvailableModels();
 
 export { generateWorkoutPlan };
