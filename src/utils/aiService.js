@@ -25,12 +25,13 @@ Workout Plan Summary:
 - Days per Week: [number]
 - Duration: [time] minutes per session
 
-Then, provide the workout plan in this exact JSON format:
+Then, provide the workout plan in this exact JSON format and mention which muscle it will target in days:
 
 {
   "workoutPlan": [
     {
       "Day": 1,
+      "targetMuscle": "targetMuscle",
       "Workout": [
         {
           "Exercise": "Exercise Name (ID: exerciseId)",
