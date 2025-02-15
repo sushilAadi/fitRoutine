@@ -24,8 +24,8 @@ const WorkoutForm = ({ onPlanGenerated }) => {
   const [goalError, setGoalError] = useState(null);
   const [generatedPlan, setGeneratedPlan] = useState(null);
   const [generatedExercises, setGeneratedExercises] = useState([]);
+  const [diet,setDiet] = useState([])
 
-  console.log("generatedExercises",generatedExercises)
 
   const { data: exercisesData = [] } = useQuery({
     queryKey: ["exercise"],
@@ -53,76 +53,15 @@ const WorkoutForm = ({ onPlanGenerated }) => {
       const { userName, userGender, userHeight, userWeight, helpYou, activityLevel } = userDetailData;
   
       if (userName && userGender && userHeight && userWeight && helpYou && activityLevel) {
-        const defaultPreferences = `I am ${userName}, a ${userAgeCal}-year-old, ${userGender.toLowerCase()} with a height of ${userHeight} cm and weight of ${userWeight} kg. My goal is ${helpYou}, and I have an activity level of "${activityLevel.subtitle}".`;
+        const defaultPreferences = `I am ${userName}, a ${userAgeCal}-year-old, ${userGender.toLowerCase()} with a height of ${userHeight} cm and weight of ${userWeight} kg. My goal is ${helpYou}, and I have an activity level of "${activityLevel.subtitle}". I go to the gym regularly and have access to all necessary equipment. My training focuses on both strength and endurance to achieve my fitness goals.`;
         setPreferences(defaultPreferences);
       }
     }
   }, [userDetailData]);
 
-  const extractExercisesFromPlan = (planText) => {
-    try {
-        const parsedPlan = JSON.parse(planText);
-        if (!parsedPlan || !parsedPlan.workoutPlan) {
-            console.error("No valid workout plan found in response");
-            return [];
-        }
+ 
 
-        const exercises = [];
-        parsedPlan.workoutPlan.forEach(day => {
-            if (!day.Workout || !Array.isArray(day.Workout)) {
-                console.warn(`Day ${day.Day} has no valid workout data`);
-                return;
-            }
 
-            day.Workout.forEach(exercise => {
-                if (!exercise || !exercise.Exercise) {
-                    return;
-                }
-
-                if (exercise.Exercise.toLowerCase().includes('rest')) {
-                    return;
-                }
-
-                const idMatch = exercise.Exercise.match(/\(ID:\s*(\d+)\)/);
-                const exerciseId = idMatch ? idMatch[1] : null;
-                const exerciseName = exercise.Exercise.replace(/\(ID:\s*\d+\)/, '').trim();
-
-                if (exerciseId) {
-                    const exerciseDetails = exerciseList.find(ex => ex.id.toString() === exerciseId.toString());
-
-                    if (exerciseDetails) {
-                        exercises.push({
-                            ...exerciseDetails,
-                            name: exerciseName,
-                            day: `Day ${day.Day}`,
-                            sets: exercise.Sets?.toString() || "0",
-                            reps: exercise.Reps?.toString() || "0"
-                        });
-                    } else {
-                        console.warn(`Exercise ID ${exerciseId} not found in exerciseList`);
-                    }
-                } else {
-                    console.warn(`Exercise ID missing for: ${exercise.Exercise}`);
-                }
-            });
-        });
-
-        exercises.sort((a, b) => {
-            const dayA = parseInt(a.day.match(/\d+/)?.[0] || "0");
-            const dayB = parseInt(b.day.match(/\d+/)?.[0] || "0");
-            return dayA - dayB;
-        });
-
-        return exercises;
-    } catch (error) {
-        console.error("Error extracting exercises:", error);
-        console.error("Error details:", error.message);
-        console.error("Input text:", planText);
-        return [];
-    }
-};
-
-  const [diet,setDiet] = useState([])
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -169,7 +108,15 @@ const WorkoutForm = ({ onPlanGenerated }) => {
     }
   };
 
-  console.log("generatedExercises",{generatedExercises,diet})
+  console.log("generatedExercises",generatedExercises)
+
+  const formatMarkdown = (data) => {
+    // Remove the JSON section
+    let cleanedData = data.replace(/```json[\s\S]*?```/g, "");
+  
+    // Ensure no extra blank spaces
+    return cleanedData.trim();
+  };
 
   return (
     <div>
@@ -249,21 +196,7 @@ const WorkoutForm = ({ onPlanGenerated }) => {
       {generatedPlan && (
         <div className="mt-8 text-white">
           <h3 className="mb-2 text-xl font-semibold">Generated Plan:</h3>
-          <ReactMarkdown children={generatedPlan} remarkPlugins={[remarkGfm]} />
-          
-          <h3 className="mt-6 mb-2 text-xl font-semibold">Workout Exercises:</h3>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {generatedExercises.map((exercise, index) => (
-              <div key={index} className="p-4 rounded-lg bg-[#2a2a2a]">
-        <h4 className="mb-2 text-lg font-semibold">{exercise.name}</h4>
-        <p>Day: {exercise.day}</p>
-        <p>Target: {exercise.target}</p>
-        <p>Body Part: {exercise.bodyPart}</p>
-        <p>Sets: {exercise.sets}</p>
-        <p>Reps: {exercise.reps}</p>
-      </div>
-            ))}
-          </div>
+          <ReactMarkdown children={formatMarkdown(generatedPlan)} remarkPlugins={[remarkGfm]} />
         </div>
       )}
     </div>
