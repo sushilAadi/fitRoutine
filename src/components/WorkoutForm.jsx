@@ -1,50 +1,68 @@
 "use client";
-import React, { useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { generateWorkoutPlan } from "@/utils/aiService";
-import ReactMarkdown from 'react-markdown'; // Import ReactMarkdown
-import remarkGfm from 'remark-gfm'; // Import remarkGfm
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import InputBlk from "./InputCs/InputBlk";
+import { GlobalContext } from "@/context/GloablContext";
+import TextBlk from "./InputCs/TextArea";
+import { calculateAge } from "@/utils";
+import { useQuery } from "@tanstack/react-query";
+import { getExercises } from "@/service/exercise";
+
+
 
 const WorkoutForm = ({ onPlanGenerated }) => {
+  const {userDetailData} = useContext(GlobalContext);
   const [fitnessLevel, setFitnessLevel] = useState("beginner");
   const [goal, setGoal] = useState("");
-  const [daysPerWeek, setDaysPerWeek] = useState(3);
-  const [timePerWorkout, setTimePerWorkout] = useState(30);
+  const [daysPerWeek, setDaysPerWeek] = useState(4);
+  const [timePerWorkout, setTimePerWorkout] = useState(120);
   const [equipment, setEquipment] = useState("");
   const [preferences, setPreferences] = useState("");
-
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [goalError, setGoalError] = useState(null);
-  const [daysPerWeekError, setDaysPerWeekError] = useState(null);
-  const [timePerWorkoutError, setTimePerWorkoutError] = useState(null);
-  const [generatedPlan, setGeneratedPlan] = useState(null); // Store the generated plan
+  const [generatedPlan, setGeneratedPlan] = useState(null);
 
-  // State to track if the user input is fitness-related
-  const [isFitnessRelated, setIsFitnessRelated] = useState(true);
+  const { data: exercisesData = [] } = useQuery({
+    queryKey: ["exercise"],
+    queryFn: getExercises,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    cacheTime: 20 * 60 * 1000,
+  });
 
-  // Function to check if the input is fitness-related
-  const checkFitnessRelated = (text) => {
-    const fitnessKeywords = [
-      "fitness",
-      "workout",
-      "exercise",
-      "gym",
-      "diet",
-      "muscle",
-      "cardio",
-      "strength",
-    ];
-    const lowerCaseText = text.toLowerCase();
-    const isRelated = fitnessKeywords.some((keyword) =>
-      lowerCaseText.includes(keyword)
-    );
-    setIsFitnessRelated(isRelated);
-  };
+  console.log("exercisesData",exercisesData?.slice(0,2))
+
+  const {
+    userName,
+    userBirthDate,
+    userGender,
+    userHeight,
+    helpYou,
+    activityLevel,
+    userEmail,
+  } = userDetailData || undefined;
+
+  const userAgeCal = calculateAge(userBirthDate);
+  
+ 
+  console.log("userDetailData", userDetailData,userAgeCal);
+  useEffect(() => {
+    if (userDetailData) {
+      const { userName, userGender, userHeight, userWeight, helpYou, activityLevel } = userDetailData;
+  
+      // Ensure all values are available before setting preferences
+      if (userName && userGender && userHeight && userWeight && helpYou && activityLevel) {
+        const defaultPreferences = `I am ${userName}, a ${userAgeCal}-year-old, ${userGender.toLowerCase()} with a height of ${userHeight} cm and weight of ${userWeight} kg. My goal is ${helpYou}, and I have an activity level of "${activityLevel.subtitle}".`;
+        setPreferences(defaultPreferences);
+      }
+    }
+  }, [userDetailData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Basic Validation
     let isValid = true;
     if (goal.length < 3) {
       setGoalError("Goal must be at least 3 characters.");
@@ -52,40 +70,17 @@ const WorkoutForm = ({ onPlanGenerated }) => {
     } else {
       setGoalError(null);
     }
-
-    if (daysPerWeek < 1 || daysPerWeek > 7) {
-      setDaysPerWeekError("Days per week must be between 1 and 7.");
-      isValid = false;
-    } else {
-      setDaysPerWeekError(null);
-    }
-
-    if (timePerWorkout < 10 || timePerWorkout > 120) {
-      setTimePerWorkoutError("Time per workout must be between 10 and 120 minutes.");
-      isValid = false;
-    } else {
-      setTimePerWorkoutError(null);
-    }
-
-    if (!isValid) {
-      return;
-    }
-
-    // Check if the input is fitness-related
-    const userInput = `Fitness level: ${fitnessLevel}, Goal: ${goal}, Days per week: ${daysPerWeek}, Time per workout: ${timePerWorkout} minutes, Equipment: ${
-      equipment || "None"
-    }, Preferences: ${preferences || "None"}`;
-    checkFitnessRelated(userInput);
+    if (!isValid) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const plan = await generateWorkoutPlan(userInput, isFitnessRelated);
-      setGeneratedPlan(plan); // Store the generated plan
+      const userInput = `Fitness level: ${fitnessLevel}, Goal: ${goal}, Days per week: ${daysPerWeek}, Time per workout: ${timePerWorkout} minutes, Equipment: ${equipment || "None"}, Preferences: ${preferences || "None"}`;
+      const plan = await generateWorkoutPlan(userInput,true);
+      setGeneratedPlan(plan);
       onPlanGenerated(plan);
     } catch (err) {
-      console.error("Error in handleSubmit:", err);
       setError(err.message || "An unexpected error occurred.");
     } finally {
       setIsLoading(false);
@@ -93,129 +88,77 @@ const WorkoutForm = ({ onPlanGenerated }) => {
   };
 
   return (
-    <div className="max-w-3xl p-6 mx-auto bg-white rounded-md shadow-md">
-      <h2 className="mb-4 text-2xl font-semibold">Generate Your Workout Plan</h2>
+    <div >
+      
       <form onSubmit={handleSubmit}>
-        {/* Fitness Level */}
-        <div className="mb-4">
-          <label
-            htmlFor="fitnessLevel"
-            className="block mb-2 text-sm font-bold text-gray-700"
-          >
-            Fitness Level
-          </label>
-          <select
-            id="fitnessLevel"
-            className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
-            value={fitnessLevel}
-            onChange={(e) => setFitnessLevel(e.target.value)}
-          >
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
-          </select>
-        </div>
-
-        {/* Goal */}
-        <div className="mb-4">
-          <label
-            htmlFor="goal"
-            className="block mb-2 text-sm font-bold text-gray-700"
-          >
-            Goal
-          </label>
-          <input
-            type="text"
-            id="goal"
-            className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
+        {/* Fitness Level & Goal - Two Columns */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block mb-2 text-sm font-bold text-gray-700">Fitness Level</label>
+            <select
+              className="w-full px-3 py-2 text-white rounded shadow focus:outline-none bg-[#2a2a2a]"
+              value={fitnessLevel}
+              onChange={(e) => setFitnessLevel(e.target.value)}
+            >
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select>
+          </div>
+          <InputBlk
+            title="Goal"
+            name="goal"
+            placeholder="Enter Your Goal"
             value={goal}
-            onChange={(e) => {
-              setGoal(e.target.value);
-            }}
+            onChange={(e) => setGoal(e.target.value)}
+            required
           />
-          {goalError && (
-            <p className="text-xs italic text-red-500">{goalError}</p>
-          )}
         </div>
 
-        {/* Days Per Week */}
-        <div className="mb-4">
-          <label
-            htmlFor="daysPerWeek"
-            className="block mb-2 text-sm font-bold text-gray-700"
-          >
-            Days Per Week
-          </label>
-          <input
+        {/* Days Per Week & Time Per Workout - Two Columns */}
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <InputBlk
+            title="Days Per Week"
+            name="daysPerWeek"
             type="number"
-            id="daysPerWeek"
-            className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
+            placeholder="Enter Days"
             value={daysPerWeek}
             onChange={(e) => setDaysPerWeek(parseInt(e.target.value))}
+            required
           />
-          {daysPerWeekError && (
-            <p className="text-xs italic text-red-500">{daysPerWeekError}</p>
-          )}
-        </div>
-
-        {/* Time Per Workout */}
-        <div className="mb-4">
-          <label
-            htmlFor="timePerWorkout"
-            className="block mb-2 text-sm font-bold text-gray-700"
-          >
-            Time Per Workout (minutes)
-          </label>
-          <input
+          <InputBlk
+            title="Time Per Workout (minutes)"
+            name="timePerWorkout"
             type="number"
-            id="timePerWorkout"
-            className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
+            placeholder="Enter Time"
             value={timePerWorkout}
             onChange={(e) => setTimePerWorkout(parseInt(e.target.value))}
-          />
-          {timePerWorkoutError && (
-            <p className="text-xs italic text-red-500">
-              {timePerWorkoutError}
-            </p>
-          )}
-        </div>
-
-        {/* Equipment */}
-        <div className="mb-4">
-          <label
-            htmlFor="equipment"
-            className="block mb-2 text-sm font-bold text-gray-700"
-          >
-            Equipment (optional)
-          </label>
-          <input
-            type="text"
-            id="equipment"
-            className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
-            value={equipment}
-            onChange={(e) => setEquipment(e.target.value)}
+            required
           />
         </div>
 
-        {/* Preferences */}
-        <div className="mb-4">
-          <label
-            htmlFor="preferences"
-            className="block mb-2 text-sm font-bold text-gray-700"
-          >
-            Preferences (optional)
-          </label>
-          <textarea
-            id="preferences"
-            className="w-full px-3 py-2 leading-tight text-gray-700 border rounded shadow appearance-none focus:outline-none focus:shadow-outline"
-            value={preferences}
-            onChange={(e) => setPreferences(e.target.value)}
-          />
-        </div>
+        {/* Equipment - Full Width */}
+        <InputBlk
+          title="Equipment (optional)"
+          name="equipment"
+          placeholder="Enter Equipment"
+          value={equipment}
+          onChange={(e) => setEquipment(e.target.value)}
+        />
+<br/>
+        {/* Preferences - Full Width */}
+        <TextBlk
+          title="Preferences"
+          name="preferences"
+          placeholder="Enter Preferences"
+          value={preferences}
+          onChange={(e) => setPreferences(e.target.value)}
+          required={true}
+        />
 
         <button
           type="submit"
-          className="px-4 py-2 font-bold text-white bg-blue-500 rounded hover:bg-blue-700 focus:outline-none focus:shadow-outline"
+          className="w-full px-4 py-2 mt-4 font-bold text-white bg-red-500 rounded hover:bg-red-700 focus:outline-none"
           disabled={isLoading}
         >
           {isLoading ? "Generating..." : "Generate Plan"}
@@ -224,9 +167,8 @@ const WorkoutForm = ({ onPlanGenerated }) => {
         {error && <p className="mt-4 text-red-500">{error}</p>}
       </form>
 
-      {/* Display the generated plan */}
       {generatedPlan && (
-        <div className="mt-8">
+        <div className="mt-8 text-white">
           <h3 className="mb-2 text-xl font-semibold">Generated Plan:</h3>
           <ReactMarkdown children={generatedPlan} remarkPlugins={[remarkGfm]} />
         </div>
