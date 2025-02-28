@@ -15,7 +15,7 @@ const TextBlk = ({title,name, placeholder,onChange,value,inputClass,type="text",
                 value={value}
                 required={required}
                 disabled={disabled}
-                
+                cols={10}
               />
             </div>
   )

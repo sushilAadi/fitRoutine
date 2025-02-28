@@ -9,6 +9,22 @@ import TextBlk from "./InputCs/TextArea";
 import { calculateAge } from "@/utils";
 import { useQuery } from "@tanstack/react-query";
 import { getExercises } from "@/service/exercise";
+import ExerciseAiCard from "@/Feature/AiCoach/ExerciseAiCard";
+import MealPlanCard from "@/Feature/AiCoach/MealPlan";
+
+const colorMap = {
+  1: 'bg-blue-50',
+  2: 'bg-green-50',
+  3: 'bg-orange-50',
+  4: 'bg-purple-50',
+};
+
+const dotColorMap = {
+  1: 'bg-blue-500',
+  2: 'bg-green-500',
+  3: 'bg-orange-500',
+  4: 'bg-purple-500',
+};
 
 
 const WorkoutForm = ({ onPlanGenerated }) => {
@@ -108,7 +124,50 @@ const WorkoutForm = ({ onPlanGenerated }) => {
     }
   };
 
-  console.log("generatedExercises",generatedExercises)
+  console.log("generatedExercises",{generatedExercises,exercisesData:exercisesData?.slice(0,2)})
+
+
+  function extractId(exerciseName) {
+    const match = exerciseName.match(/$$ID: (\d+)$$/);
+    return match ? match[1] : null;
+  }
+  
+  // Function to find exercise data by ID
+  function findExerciseData(id, exercisesData) {
+    return exercisesData.find(exercise => exercise.id === id);
+  }
+  
+  // Update generatedExercises with full exercise data
+  const updatedWorkoutPlan = generatedExercises?.map(day => {
+    const updatedWorkout = day.Workout.map(exercise => {
+      const id = extractId(exercise.Exercise);
+      const fullExerciseData = findExerciseData(id, exercisesData);
+      
+      if (fullExerciseData) {
+        return {
+          Exercise: exercise.Exercise,
+          Sets: exercise.Sets,
+          Reps: exercise.Reps,
+          bodyPart: fullExerciseData.bodyPart,
+          equipment: fullExerciseData.equipment,
+          gifUrl: fullExerciseData.gifUrl,
+          id: fullExerciseData.id,
+          name: fullExerciseData.name,
+          target: fullExerciseData.target,
+          secondaryMuscles: fullExerciseData.secondaryMuscles,
+          instructions: fullExerciseData.instructions
+        };
+      }
+      return exercise;
+    });
+  
+    return {
+      ...day,
+      Workout: updatedWorkout
+    };
+  });
+  
+  console.log({updatedWorkoutPlan,diet},"updatedWorkoutPlan");
 
   const formatMarkdown = (data) => {
     // Remove the JSON section
@@ -180,6 +239,7 @@ const WorkoutForm = ({ onPlanGenerated }) => {
           value={preferences}
           onChange={(e) => setPreferences(e.target.value)}
           required={true}
+          inputClass="h-[240px]"
         />
 
         <button
@@ -196,7 +256,18 @@ const WorkoutForm = ({ onPlanGenerated }) => {
       {generatedPlan && (
         <div className="mt-8 text-white">
           <h3 className="mb-2 text-xl font-semibold">Generated Plan:</h3>
-          <ReactMarkdown children={formatMarkdown(generatedPlan)} remarkPlugins={[remarkGfm]} />
+          {updatedWorkoutPlan?.map((day) => (
+          <ExerciseAiCard 
+            key={day.Day}
+            day={day.Day}
+            targetMuscle={day.targetMuscle}
+            workout={day.Workout}
+            color={colorMap[day.Day] || 'bg-gray-50'}
+            dotColor={dotColorMap[day.Day] || 'bg-gray-500'}
+          />
+        ))}
+        <MealPlanCard mealData={diet}/>
+          {/* <ReactMarkdown children={formatMarkdown(generatedPlan)} remarkPlugins={[remarkGfm]} /> */}
         </div>
       )}
     </div>
