@@ -37,7 +37,7 @@ export default function MealPlanCard({mealData}) {
         className=""
       >
         <div className="overflow-hidden backdrop-blur-lg ">
-          <div className="relative flex flex-col items-center gap-4 p-6 text-center md:flex-row">
+          <div className="relative flex flex-col gap-4 md:flex-row">
             <div>
               <h3 className="text-2xl font-bold text-white">Daily Meal Plan</h3>
               <p className="mt-1 text-gray-300">

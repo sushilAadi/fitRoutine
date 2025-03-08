@@ -34,14 +34,14 @@ function ExerciseAiCard({ day, targetMuscle, workout, color, dotColor }) {
     <Accordion
       open={open === 1}
       icon={<Icon id={1} open={open} />}
-      className={` ${color}  overflow-hidden `}
+      className={` ${color}  overflow-hidden mb-1`}
     >
       <AccordionHeader
         onClick={() => handleOpen(1)}
         className="flex items-center justify-between w-full p-2 transition-colors border-b-0"
       >
         <div className="flex items-center">
-          <div className={`w-4 h-4 rounded-full ${dotColor} mr-3`}></div>
+          {/* <div className={`w-4 h-4 rounded-full ${dotColor} mr-3`}></div> */}
           <div>
             <div className="font-medium text-black">{targetMuscle}</div>
             <div className="text-sm text-gray-800 text-start">Day {day}</div>
