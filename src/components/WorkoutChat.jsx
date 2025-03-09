@@ -8,6 +8,7 @@ import { getExercises } from "@/service/exercise";
 import ExerciseAiCard from "@/Feature/AiCoach/ExerciseAiCard";
 import MealPlanCard from "@/Feature/AiCoach/MealPlan";
 import { motion, AnimatePresence } from "framer-motion";
+import PaymentComponent from "@/components/PaymentComponent";
 
 const colorMap = {
   1: 'bg-blue-50',
@@ -39,6 +40,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   const [generatedExercises, setGeneratedExercises] = useState([]);
   const [diet, setDiet] = useState([]);
   const [showCopyButton, setShowCopyButton] = useState(false);
+  const [isPaymentSuccessful, setIsPaymentSuccessful] = useState(false);
   const chatContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
@@ -418,15 +420,19 @@ const WorkoutChat = ({ onPlanGenerated }) => {
               disabled={!userInput.trim() || isLoading}
               className="p-2 text-white transition duration-200 bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
+              <i class="fa-sharp fa-solid text-white fa-paper-plane-top"></i>
             </button>
           </div>
         </div>
       );
     }
   };
+
+  const handlePaymentSuccess = () => {
+    setIsPaymentSuccessful(true);
+  };
+
+  
 
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
@@ -437,9 +443,9 @@ const WorkoutChat = ({ onPlanGenerated }) => {
           className="flex-1 space-y-2 overflow-y-auto no-scrollbar" 
         >
           <AnimatePresence>
-            {messages.map((message) => (
+            {messages.map((message,index) => (
               <motion.div 
-                key={message.id}
+                key={message.id+`_${Date.now()+index}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
@@ -472,18 +478,28 @@ const WorkoutChat = ({ onPlanGenerated }) => {
               transition={{ duration: 0.5 }}
               className="mt-2 space-y-3"
             >
-              {updatedWorkoutPlan.map((day) => (
-                <ExerciseAiCard 
-                  key={day.Day}
-                  day={day.Day}
-                  targetMuscle={day.targetMuscle}
-                  workout={day.Workout}
-                  color={colorMap[day.Day] || 'bg-gray-50'}
-                  dotColor={dotColorMap[day.Day] || 'bg-gray-500'}
+              {isPaymentSuccessful ? (
+                <>
+                  {updatedWorkoutPlan.map((day) => (
+                    <ExerciseAiCard 
+                      key={day.Day}
+                      day={day.Day}
+                      targetMuscle={day.targetMuscle}
+                      workout={day.Workout}
+                      color={colorMap[day.Day] || 'bg-gray-50'}
+                      dotColor={dotColorMap[day.Day] || 'bg-gray-500'}
+                    />
+                  ))}
+                  {diet && diet.length > 0 && (
+                    <MealPlanCard mealData={diet} />
+                  )}
+                </>
+              ) : (
+                <PaymentComponent 
+                  onSuccess={handlePaymentSuccess} 
+                  transactionId="AIWORKOUT123313"
+                  amount={20} 
                 />
-              ))}
-              {diet && diet.length > 0 && (
-                <MealPlanCard mealData={diet} />
               )}
             </motion.div>
           )}
