@@ -11,6 +11,7 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import { getExercisesGif } from "@/service/exercise";
 import toast from "react-hot-toast";
+import ExerciseCanvas from "./ExerciseCanvas";
 
 const TabButton = ({ active, onClick, children, disabled }) => (
   <button
@@ -30,7 +31,7 @@ const TabButton = ({ active, onClick, children, disabled }) => (
 
 const PlanDetail = ({ params }) => {
   const USER_WEIGHT_KG = 60;
-  const { userId,plansRefetch } = useContext(GlobalContext);
+  const { userId, plansRefetch } = useContext(GlobalContext);
 
   const router = useRouter();
   const initializedRef = useRef(false);
@@ -60,8 +61,33 @@ const PlanDetail = ({ params }) => {
   const handleOpenClose = () => setShow(!show);
   const selectedPlanId = decodeURIComponent(params?.plan);
 
+  // Store timer state in localStorage to persist across refreshes
+  useEffect(() => {
+    // Load timer state from localStorage on component mount
+    const savedTimerState = localStorage.getItem(`timerState_${selectedPlanId}`);
+    if (savedTimerState) {
+      const timerState = JSON.parse(savedTimerState);
+      setIsTimerRunning(timerState.isRunning);
+      setElapsedTime(timerState.elapsedTime);
+      setActiveExerciseSet(timerState.activeExerciseSet);
+    }
+  }, [selectedPlanId]);
+
+  // Save timer state to localStorage whenever it changes
+  useEffect(() => {
+    if (activeExerciseSet) {
+      localStorage.setItem(`timerState_${selectedPlanId}`, JSON.stringify({
+        isRunning: isTimerRunning,
+        elapsedTime: elapsedTime,
+        activeExerciseSet: activeExerciseSet
+      }));
+    } else if (!isTimerRunning) {
+      // Clear timer state when timer is stopped
+      localStorage.removeItem(`timerState_${selectedPlanId}`);
+    }
+  }, [isTimerRunning, elapsedTime, activeExerciseSet, selectedPlanId]);
+
   const fetchWorkoutPlan = async () => {
-    // setLoading(true);
     setError(null);
   
     try {
@@ -69,8 +95,6 @@ const PlanDetail = ({ params }) => {
         setError("Loading...");
         return;
       }
-  
-      
   
       const planRef = doc(db, "workoutPlans", selectedPlanId);
       const planDoc = await getDoc(planRef);
@@ -82,7 +106,6 @@ const PlanDetail = ({ params }) => {
   
       const data = planDoc.data();
       
-  
       if (!data || !data.workoutPlanDB) {
         setError("Workout plan not found.");
         return;
@@ -121,7 +144,6 @@ const PlanDetail = ({ params }) => {
         return;
       }
       
-  
       const progress = calculateProgress(parsedData);
       parsedData.progress = progress;
   
@@ -213,9 +235,6 @@ const PlanDetail = ({ params }) => {
     }
   };
   
-
-  
-
   const checkSetWarnings = (weekIndex, dayIndex, exerciseIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
     const exercise =
@@ -276,6 +295,7 @@ const PlanDetail = ({ params }) => {
     });
     return total;
   };
+  
   const calculateDailyTotal = (weekIndex, dayIndex) => {
     const exercises =
       workoutData?.workoutPlan?.[weekIndex]?.[dayIndex]?.exercises || [];
@@ -337,16 +357,28 @@ const PlanDetail = ({ params }) => {
     }
   }, [currentWeek, currentDay, workoutData]);
 
+  // Modified timer effect to handle page refreshes
   useEffect(() => {
     let timer;
     if (isTimerRunning) {
       timer = setInterval(() => {
-        setElapsedTime((prevTime) => prevTime + 1);
+        setElapsedTime((prevTime) => {
+          const newTime = prevTime + 1;
+          // Update localStorage with current elapsed time
+          if (activeExerciseSet) {
+            const timerState = JSON.parse(localStorage.getItem(`timerState_${selectedPlanId}`) || '{}');
+            localStorage.setItem(`timerState_${selectedPlanId}`, JSON.stringify({
+              ...timerState,
+              elapsedTime: newTime
+            }));
+          }
+          return newTime;
+        });
       }, 1000);
     }
 
     return () => clearInterval(timer);
-  }, [isTimerRunning]);
+  }, [isTimerRunning, selectedPlanId, activeExerciseSet]);
 
   const startTimer = (weekIndex, dayIndex, exerciseIndex, setIndex) => {
     setElapsedTime(0);
@@ -360,7 +392,6 @@ const PlanDetail = ({ params }) => {
   };
 
   const stopTimer = () => {
-    fetchWorkoutPlan()
     if (!isTimerRunning || !activeExerciseSet) return;
 
     const { week, day, exercise, set } = activeExerciseSet;
@@ -399,6 +430,12 @@ const PlanDetail = ({ params }) => {
     setActiveExerciseSet(null);
     setWarningMessage("");
     setEditToggle(true);
+    
+    // Clear timer state from localStorage
+    localStorage.removeItem(`timerState_${selectedPlanId}`);
+    
+    // Refresh data after stopping timer
+    fetchWorkoutPlan();
   };
 
   const playTimerEndSound = () => {
@@ -432,6 +469,7 @@ const PlanDetail = ({ params }) => {
       );
     });
   };
+  
   const isAllExercisesInDayCompleted = () => {
     const exercises =
       workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises || [];
@@ -676,6 +714,7 @@ const PlanDetail = ({ params }) => {
     setExerciseDetails(updatedExerciseDetails);
     setWarningMessage("");
   };
+  
   const updateWorkoutData = async (updatedWorkoutData) => {
     // Create a deep copy to avoid modifying the original data
     const workoutDataUpdate = {
@@ -687,8 +726,6 @@ const PlanDetail = ({ params }) => {
         ? updatedWorkoutData.exerciseHistory
         : JSON.stringify(updatedWorkoutData.exerciseHistory)
     };
-  
-    
   
     try {
       const workoutPlanRef = doc(db, "workoutPlans", updatedWorkoutData.id);
@@ -865,6 +902,7 @@ const PlanDetail = ({ params }) => {
       Object.values(timerIntervals.current).forEach(clearInterval);
     };
   }, []);
+  
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
 
@@ -920,6 +958,7 @@ const PlanDetail = ({ params }) => {
     }
     return null;
   };
+  
   const isEntirePlanCompleted = () => {
     if (!workoutData) return false;
 
@@ -954,31 +993,33 @@ const PlanDetail = ({ params }) => {
     }
   };
 
-const finishPlan = async () => {
-  try {
-    const workoutDataUpdate = {
-      ...workoutData,
-      workoutPlan: typeof workoutData.workoutPlan === 'string' 
-        ? workoutData.workoutPlan 
-        : JSON.stringify(workoutData.workoutPlan),
-      exerciseHistory: typeof workoutData.exerciseHistory === 'string'
-        ? workoutData.exerciseHistory
-        : JSON.stringify(workoutData.exerciseHistory)
-    };
+  const finishPlan = async () => {
+    try {
+      const workoutDataUpdate = {
+        ...workoutData,
+        workoutPlan: typeof workoutData.workoutPlan === 'string' 
+          ? workoutData.workoutPlan 
+          : JSON.stringify(workoutData.workoutPlan),
+        exerciseHistory: typeof workoutData.exerciseHistory === 'string'
+          ? workoutData.exerciseHistory
+          : JSON.stringify(workoutData.exerciseHistory)
+      };
 
-    const workoutPlanRef = doc(db, "workoutPlans", workoutData.id);
-    await updateDoc(workoutPlanRef, {
-      workoutPlanDB: workoutDataUpdate,
-    });
+      const workoutPlanRef = doc(db, "workoutPlans", workoutData.id);
+      await updateDoc(workoutPlanRef, {
+        workoutPlanDB: workoutDataUpdate,
+      });
 
-    localStorage.removeItem(`lastPosition_${workoutData.name}`);
-    localStorage.removeItem(`restTime_${workoutData.name}`);
-    router.push("/createPlanPage");
-  } catch (error) {
-    console.error("Error finishing plan:", error);
-    setError("Failed to finish workout plan.");
-  }
-};
+      localStorage.removeItem(`lastPosition_${workoutData.name}`);
+      localStorage.removeItem(`restTime_${workoutData.name}`);
+      localStorage.removeItem(`timerState_${selectedPlanId}`);
+      router.push("/createPlanPage");
+    } catch (error) {
+      console.error("Error finishing plan:", error);
+      setError("Failed to finish workout plan.");
+    }
+  };
+  
   const startSetTimer = (weekIndex, dayIndex, exerciseIndex, setIndex) => {
     const key = `${weekIndex}-${dayIndex}-${exerciseIndex}-${setIndex}`;
 
@@ -1093,8 +1134,6 @@ const finishPlan = async () => {
     }
   };
 
-  
-
   useEffect(() => {
     if (workoutData) {
       fetchImages();
@@ -1106,7 +1145,7 @@ const finishPlan = async () => {
     setBrokenImages((prev) => ({ ...prev, [exerciseId]: true }));
   };
 
-  const skipSet = ()=>{
+  const skipSet = () => {
     toast((t) => (
       <div className="">
         Are you sure you want to skip this set for the day?
@@ -1127,9 +1166,6 @@ const finishPlan = async () => {
     });
   }
 
-  
-
- 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen text-white">
@@ -1160,14 +1196,6 @@ const finishPlan = async () => {
             <h1 className="mb-6 text-2xl font-bold text-white">
               {workoutData?.name}
             </h1>
-            {/* <button
-              onClick={toggleLockPreviousTabs}
-              className={` whitespace-nowrap  ${
-                lockPreviousTabs ? "text-red-500 " : "text-gray-200 "
-              }`}
-            >
-              {lockPreviousTabs ? "Unlock  Tabs" : "Lock  Tabs"}
-            </button> */}
             <p onClick={()=>skipSet()} className="text-red-500 cursor-pointer ">Skip Week {currentWeek + 1}, Day {currentDay + 1}</p>
           </div>
 
@@ -1180,47 +1208,6 @@ const finishPlan = async () => {
               {formatVolume(calculateDailyTotal(selectedWeek, selectedDay))}
             </span>
           </div>
-          
-          {/* {!lockPreviousTabs && (
-            <>
-              <div className="mb-4">
-                <div className="flex">
-                  {workoutData?.weekNames?.map((weekName, index) => (
-                    <TabButton
-                      key={index}
-                      active={selectedWeek === index}
-                      onClick={() => {
-                        setSelectedWeek(index);
-                        setSelectedDay(
-                          lockPreviousTabs && index === currentWeek
-                            ? currentDay
-                            : 0
-                        );
-                      }}
-                      disabled={!isWeekAccessible(index)}
-                    >
-                      {weekName}
-                    </TabButton>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <div className="flex">
-                  {workoutData.dayNames.map((dayName, index) => (
-                    <TabButton
-                      key={index}
-                      active={selectedDay === index}
-                      onClick={() => setSelectedDay(index)}
-                      disabled={!isDayAccessible(selectedWeek, index)}
-                    >
-                      {dayName}
-                    </TabButton>
-                  ))}
-                </div>
-              </div>
-            </>
-          )} */}
         </div>
 
         <div className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">
@@ -1251,7 +1238,7 @@ const finishPlan = async () => {
                         <div className="min-w-[50px] min-h-[50px] max-h-[50px] max-w-[50px] overflow-hidden">
                         {imageUrl && 
                           <Image
-                            src={imageUrl}
+                            src={imageUrl || "/placeholder.svg"}
                             alt={exercise.name}
                             width={50}
                             height={50}
@@ -1287,19 +1274,6 @@ const finishPlan = async () => {
                                   (i) => i?.isConfigured
                                 )?.sets ?? 0}
                               </p>
-                              {/* <p className="text-sm font-semibold text-white">
-                              {" "}
-                              TV : {formatVolume(
-                            calculateExerciseTotal(
-                              selectedWeek,
-                              selectedDay,
-                              exerciseIndex
-                            ),
-                            exercise.equipment
-                          )}
-                          {exercise.equipment === "body weight" &&
-                            ` (based on ${USER_WEIGHT_KG}kg body weight)`}
-                            </p> */}
                             </div>
                             {
                               <i
@@ -1428,7 +1402,6 @@ const finishPlan = async () => {
                                             );
                                             setToggleCheck(false);
                                             setEditToggle(true);
-                                            // fetchWorkoutPlan()
                                           }}
                                           disabled={!isSetEnabled}
                                         />
@@ -1446,7 +1419,6 @@ const finishPlan = async () => {
 
                                         setToggleCheck(true);
                                         setEditToggle(false);
-                                        // setEditValue("edit");
                                       }} />
                                   )}
 
@@ -1469,7 +1441,6 @@ const finishPlan = async () => {
                                                 exerciseIndex,
                                                 detailIndex
                                               );
-                                              // setToggleCheck(false);
                                             }}
                                           />
                                         )}
@@ -1589,7 +1560,7 @@ const finishPlan = async () => {
                               disabled={!EditToggle}
                             >
                               <i className="mr-3 fa-solid fa-circle-stop"></i>
-                              Stop  ({formatTime(elapsedTime)})
+                              Stop  ({formatTime(elapsedTime)})
                             </button>
                           </div>
                         )}
@@ -1613,7 +1584,7 @@ const finishPlan = async () => {
 
                           router.push("/SavedPlan");
                           plansRefetch();
-                          fetchWorkoutPlan()
+                          fetchWorkoutPlan();
                         }}
                         className="float-right px-6 py-2 mt-4 mb-2 text-white bg-black rounded-lg"
                       >
@@ -1641,18 +1612,7 @@ const finishPlan = async () => {
             </>
           )}
 
-          <OffCanvasComp
-            placement="end"
-            name="savePlan"
-            showProps={show}
-            handleClose={handleOpenClose}
-            customStyle="pl-4 py-4"
-          >
-            <ExerciseDeatil
-              handleClose={handleOpenClose}
-              data={selectedExercise}
-            />
-          </OffCanvasComp>
+          <ExerciseCanvas show={show} handleOpenClose={handleOpenClose} selectedExercise={selectedExercise}/>
         </div>
       </div>
     </>
