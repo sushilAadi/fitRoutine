@@ -336,6 +336,15 @@ backdrop-filter: blur( 7.5px );
   animation: glow 2s infinite ease-in-out;
 }
 
+.glass-lite{
+  background: rgba( 255, 255, 255, 0.60 );
+box-shadow: 0 0px 8px 0 rgba(215, 217, 236, 0.37);
+backdrop-filter: blur( 1.5px );
+-webkit-backdrop-filter: blur( 1.5px );
+border-radius: 5px;
+border: 1px solid rgba( 255, 255, 255, 0.18 );
+}
+
 
 
 

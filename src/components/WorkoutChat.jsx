@@ -311,7 +311,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
       return (
         <button 
           onClick={handleStartChat}
-          className="w-full px-4 py-2 font-semibold text-white transition duration-200 bg-red-500 rounded-lg hover:bg-red-600"
+          className="w-full px-4 py-2 font-semibold text-white transition duration-200 rounded-lg outline-none bg-tprimary "
         >
           Let's Start
         </button>
@@ -321,19 +321,19 @@ const WorkoutChat = ({ onPlanGenerated }) => {
         <div className="flex flex-wrap gap-2">
           <button 
             onClick={() => handleOptionSelect("beginner", "fitnessLevel")}
-            className="px-3 py-2 font-medium text-white transition duration-200 bg-red-500 rounded-lg hover:bg-red-600"
+            className="px-3 py-2 font-medium text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600"
           >
             Beginner
           </button>
           <button 
             onClick={() => handleOptionSelect("intermediate", "fitnessLevel")}
-            className="px-3 py-2 font-medium text-white transition duration-200 bg-red-500 rounded-lg hover:bg-red-600"
+            className="px-3 py-2 font-medium text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600"
           >
             Intermediate
           </button>
           <button 
             onClick={() => handleOptionSelect("advanced", "fitnessLevel")}
-            className="px-3 py-2 font-medium text-white transition duration-200 bg-red-500 rounded-lg hover:bg-red-600"
+            className="px-3 py-2 font-medium text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600"
           >
             Advanced
           </button>
@@ -346,7 +346,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
             <button 
               key={day}
               onClick={() => handleOptionSelect(day.toString(), "daysPerWeek")}
-              className="flex items-center justify-center w-10 h-10 font-medium text-white transition duration-200 bg-red-500 rounded-lg hover:bg-red-600"
+              className="flex items-center justify-center w-10 h-10 font-medium transition duration-200 rounded-lg text-tprimary glass-lite hover:bg-red-600"
             >
               {day}
             </button>
@@ -372,18 +372,16 @@ const WorkoutChat = ({ onPlanGenerated }) => {
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
               placeholder="Share your preferences, health conditions, or any specific details..."
-              className="flex-1 w-full px-3 py-2 text-white bg-gray-800 rounded-lg resize-none min-h-[240px] focus:outline-none focus:ring-1 focus:ring-red-500"
+              className="flex-1 w-full px-3 py-2 bg-white border rounded-lg outline-none text-tprimary resize-none min-h-[240px] "
               disabled={isLoading}
             />
             <button
               onClick={handleSendMessage}
               disabled={!userInput.trim() || isLoading}
-              className="p-2 text-white transition duration-200 bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
+              <i class="fa-sharp fa-solid text-white fa-paper-plane-top mr-2"></i>
                 Send
               </span>
             </button>
@@ -412,13 +410,13 @@ const WorkoutChat = ({ onPlanGenerated }) => {
               placeholder="Type your message..."
               min={currentStep === "timePerWorkout" ? "10" : undefined}
               max={currentStep === "timePerWorkout" ? "180" : undefined}
-              className="flex-1 px-3 py-2 text-white bg-gray-800 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-500"
+              className="flex-1 px-3 py-2 bg-white border rounded-lg outline-none text-tprimary "
               disabled={isLoading || currentStep === "complete"}
             />
             <button
               onClick={handleSendMessage}
               disabled={!userInput.trim() || isLoading}
-              className="p-2 text-white transition duration-200 bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <i class="fa-sharp fa-solid text-white fa-paper-plane-top"></i>
             </button>
@@ -442,22 +440,22 @@ const WorkoutChat = ({ onPlanGenerated }) => {
           ref={chatContainerRef} 
           className="flex-1 space-y-2 overflow-y-auto no-scrollbar" 
         >
-          <AnimatePresence>
+          <div>
             {messages.map((message,index) => (
               <motion.div 
                 key={message.id+`_${Date.now()+index}`}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                // initial={{ opacity: 0, y: 20 }}
+                // animate={{ opacity: 1, y: 0 }}
+                // transition={{ duration: 0.3 }}
+                className={`flex mb-2 ${message.type === 'user' ? 'justify-end' : 'justify-start '}`}
               >
                 <div 
                   className={`max-w-[85%] rounded-lg p-2 text-sm ${
                     message.type === 'user' 
                       ? 'bg-red-500 text-white' 
                       : message.isCaption 
-                        ? 'bg-gray-700 text-white' 
-                        : 'bg-gray-800 text-white'
+                        ? ' glass-lite text-tprimary' 
+                        : ' glass-lite text-tprimary'
                   } ${message.isSuggestion ? 'cursor-pointer' : ''}`}
                   onClick={() => message.isSuggestion && handleCopySuggestion()}
                 >
@@ -468,7 +466,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
                 </div>
               </motion.div>
             ))}
-          </AnimatePresence>
+          </div>
           
           {/* Show generated workout plan after completion */}
           {currentStep === "complete" && updatedWorkoutPlan && (
