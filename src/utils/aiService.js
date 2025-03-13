@@ -34,7 +34,8 @@ Then, provide the workout plan in this exact JSON format and mention which muscl
       "targetMuscle": "targetMuscle",
       "Workout": [
         {
-          "Exercise": "Exercise Name (ID: exerciseId)",
+          "id": "exerciseId"
+          "Exercise": "Exercise Name",
           "Sets": 3,
           "Reps": "8-12"
         }

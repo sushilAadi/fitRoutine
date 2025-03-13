@@ -430,7 +430,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     setIsPaymentSuccessful(true);
   };
 
-  
+  console.log("updatedWorkoutPlan",updatedWorkoutPlan)
 
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">

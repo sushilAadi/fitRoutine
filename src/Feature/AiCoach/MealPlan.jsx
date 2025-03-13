@@ -110,7 +110,7 @@ export default function MealPlanCard({mealData}) {
               </div>
               
               {/* Macro percentages legend */}
-              <div className="flex flex-col p-4 mt-4 rounded-lg bg-gray-50">
+              <div className="flex flex-col p-4 mt-4 rounded-lg">
                 <div className="grid grid-cols-3 gap-4">
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full" style={{backgroundColor: COLORS[0]}}></div>
@@ -131,7 +131,7 @@ export default function MealPlanCard({mealData}) {
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full" style={{backgroundColor: COLORS[2]}}></div>
                     <div>
-                      <div className="text-sm font-medium">Carbohydrates</div>
+                      <div className="text-sm font-medium">Carbs</div>
                       <div className="text-lg font-bold">{carbPercentage}%</div>
                     </div>
                   </div>
@@ -141,9 +141,9 @@ export default function MealPlanCard({mealData}) {
             </div>
           </div>
 
-          <div className="p-6 bg-gray-50">
-            <h4 className="mb-4 text-xl font-bold text-gray-800">Meals</h4>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="p-2 bg-gray-50 rounded-xl ">
+            <h4 className="mb-2 text-xl font-bold text-gray-800 ">Meals</h4>
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
               {mealData.map((meal, index) => (
                 <motion.div
                   key={meal.meal}
@@ -153,7 +153,7 @@ export default function MealPlanCard({mealData}) {
                   onClick={() => setSelectedMeal(selectedMeal === meal.meal ? null : meal.meal)}
                 >
                   <div
-                    className={`rounded-xl p-4 h-full transition-all duration-300 ${
+                    className={`rounded-xl p-2 h-full transition-all duration-300 ${
                       selectedMeal === meal.meal
                         ? "bg-gradient-to-r from-blue-50 to-green-50 border border-green-200"
                         : "bg-white shadow-sm hover:shadow border border-gray-100"
