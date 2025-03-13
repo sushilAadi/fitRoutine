@@ -472,7 +472,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   const fullyUpdatedWorkoutPlan = updateWorkoutPlanWithFullDetails(updatedWorkoutPlan, exercisesData);
 
 // Example of how the updated data would look (for the first few exercises)
-console.log("updatedWorkoutPlan",fullyUpdatedWorkoutPlan, null, 2);
+console.log("updatedWorkoutPlan",fullyUpdatedWorkoutPlan);
 
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
