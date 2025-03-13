@@ -55,6 +55,8 @@ const WorkoutChat = ({ onPlanGenerated }) => {
 
   const exerciseList = exercisesData?.map(i => ({ id: i?.id, name: i?.name, target: i?.target, bodyPart: i?.bodyPart }));
 
+
+
   const {
     userName,
     userBirthDate,
@@ -430,7 +432,47 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     setIsPaymentSuccessful(true);
   };
 
-  console.log("updatedWorkoutPlan",updatedWorkoutPlan)
+ 
+
+  function updateWorkoutPlanWithFullDetails(workoutPlan, exercisesData) {
+    // Create a map of exercises by ID for quick lookup
+    const exercisesById = {};
+    exercisesData.forEach(exercise => {
+      exercisesById[exercise.id] = exercise;
+    });
+  
+    // Deep clone the workout plan to avoid modifying the original
+    const enrichedWorkoutPlan = JSON.parse(JSON.stringify(workoutPlan));
+  
+    // Update each exercise in the workout plan with full details
+    enrichedWorkoutPlan.forEach(day => {
+      if (day.Workout && Array.isArray(day.Workout)) {
+        day.Workout = day.Workout.map(exercise => {
+          const fullExerciseDetails = exercisesById[exercise.id];
+          
+          if (fullExerciseDetails) {
+            // Return exercise with all details from exercisesData plus the workout-specific details
+            return {
+              ...fullExerciseDetails,
+              Sets: exercise.Sets,
+              Reps: exercise.Reps
+            };
+          } else {
+            // If exercise ID not found in exercisesData, return original exercise
+            console.warn(`Exercise with ID ${exercise.id} not found in exercisesData`);
+            return exercise;
+          }
+        });
+      }
+    });
+  
+    return enrichedWorkoutPlan;
+  }
+
+  const fullyUpdatedWorkoutPlan = updateWorkoutPlanWithFullDetails(updatedWorkoutPlan, exercisesData);
+
+// Example of how the updated data would look (for the first few exercises)
+console.log("updatedWorkoutPlan",fullyUpdatedWorkoutPlan, null, 2);
 
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
@@ -478,7 +520,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
             >
               {isPaymentSuccessful ? (
                 <>
-                  {updatedWorkoutPlan.map((day) => (
+                  {fullyUpdatedWorkoutPlan?.map((day) => (
                     <ExerciseAiCard 
                       key={day.Day}
                       day={day.Day}

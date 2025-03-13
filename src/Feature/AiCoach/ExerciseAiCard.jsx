@@ -48,17 +48,20 @@ function ExerciseAiCard({ day, targetMuscle, workout, color, dotColor }) {
           </div>
         </div>
       </AccordionHeader>
-      <AccordionBody className="px-4 pt-0 pb-4">
+      <AccordionBody className="pt-0 pb-4 ">
         <div className="">
           {workout.map((exercise, index) => (
-            <div key={index} className="p-3 ">
-              <div className="font-medium text-black">{exercise.Exercise}</div>
-              <div className="flex items-center justify-between mt-1 text-sm text-gray-600">
+            <div key={index} className="flex gap-2 p-3 ">
+            <img src={exercise.gifUrl} className="w-[50px] h-[50px] rounded-full"  />
+              <div className="w-full font-medium text-black ">{exercise.name}
+              <div className="flex items-center justify-between w-full mt-1 text-sm text-gray-600">
                 <span>
                   {exercise.Sets} sets × {exercise.Reps}
                 </span>
                 <Dumbbell size={16} className="text-gray-400" />
               </div>
+              </div>
+              
             </div>
           ))}
         </div>
