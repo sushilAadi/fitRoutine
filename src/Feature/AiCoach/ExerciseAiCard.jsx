@@ -34,7 +34,7 @@ function ExerciseAiCard({ day, targetMuscle, workout, color, dotColor }) {
     <Accordion
       open={open === 1}
       icon={<Icon id={1} open={open} />}
-      className={` ${color}  overflow-hidden mb-1`}
+      className={` ${color}  overflow-hidden mb-1 rounded-xl`}
     >
       <AccordionHeader
         onClick={() => handleOpen(1)}

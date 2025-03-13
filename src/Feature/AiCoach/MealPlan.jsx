@@ -43,16 +43,16 @@ export default function MealPlanCard({mealData}) {
   ];
 
   return (
-    <div className="">
+    <div className="rounded-xl">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="max-w-4xl mx-auto"
+        className=""
       >
         <div className="overflow-hidden ">
-          <div className="relative flex flex-col gap-4 bg-white md:flex-row">
-            <div>
+          <div className="relative flex flex-col gap-4 bg-white md:flex-row rounded-xl">
+            <div className="px-4 pt-4">
               <h3 className="text-2xl font-bold text-gray-800">Daily Meal Plan</h3>
               <p className="mt-1 text-gray-600">
                 {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
