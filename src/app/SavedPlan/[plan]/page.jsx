@@ -12,6 +12,7 @@ import { db } from "@/firebase/firebaseConfig";
 import { getExercisesGif } from "@/service/exercise";
 import toast from "react-hot-toast";
 import ExerciseCanvas from "./ExerciseCanvas";
+import CaloriesBurnt from "./CaloriesBurnt";
 
 const TabButton = ({ active, onClick, children, disabled }) => (
   <button
@@ -30,8 +31,9 @@ const TabButton = ({ active, onClick, children, disabled }) => (
 );
 
 const PlanDetail = ({ params }) => {
-  const USER_WEIGHT_KG = 60;
-  const { userId, plansRefetch } = useContext(GlobalContext);
+  const { userId, plansRefetch,latestWeight,handleOpenClose:menuOpenClose } = useContext(GlobalContext);
+  console.log("latestWeight",{latestWeight,userId})
+  const USER_WEIGHT_KG = latestWeight?.userWeights;
 
   const router = useRouter();
   const initializedRef = useRef(false);
@@ -436,11 +438,6 @@ const PlanDetail = ({ params }) => {
     
     // Refresh data after stopping timer
     fetchWorkoutPlan();
-  };
-
-  const playTimerEndSound = () => {
-    const audio = new Audio("/path-to-your-sound-file.mp3"); // Replace with your sound file
-    audio.play();
   };
 
   const areAllSetsValid = (weekIndex, dayIndex, exerciseIndex) => {
@@ -1193,11 +1190,20 @@ const PlanDetail = ({ params }) => {
       <div className="flex flex-col h-screen overflow-hidden bg-tprimary">
         <div className="top-0 p-3 pb-1 bg-black sticky-top">
           <div className="flex items-center justify-between my-2">
-            <h1 className="mb-6 text-2xl font-bold text-white">
+            <h1 onClick={menuOpenClose} className="mb-6 text-2xl font-bold text-white">
               {workoutData?.name}
             </h1>
             <p onClick={()=>skipSet()} className="text-red-500 cursor-pointer ">Skip Week {currentWeek + 1}, Day {currentDay + 1}</p>
           </div>
+
+          <CaloriesBurnt
+            exerciseDetails={exerciseDetails}
+            workoutData={workoutData}
+            selectedWeek={selectedWeek}
+            selectedDay={selectedDay}
+            userWeight={latestWeight?.userWeights}
+            selectedPlanId={selectedPlanId}
+          />
 
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <span className="text-sm font-semibold text-white">

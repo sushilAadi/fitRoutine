@@ -7,9 +7,7 @@ const SavedCard = ({
   isDisabled,
   isCompleted,
 }) => {
- 
-
-  const  progress  = plan?.progress;
+  const progress = plan?.progress;
   const date = plan?.date ? new Date(plan.date) : null;
 
   const formattedDate =
@@ -59,9 +57,13 @@ const SavedCard = ({
         <p className="text-sm text-gray-500">{formattedDate}</p>
         <h2 className="text-xl font-semibold">{plan?.name}</h2>
         <h2 className="text-xl font-semibold">{`${plan?.weeks} weeks, ${plan?.daysPerWeek} days/week`}</h2>
+        {/* Display calories burnt */}
+        <span className="text-sm font-semibold text-black">
+  Calories Burnt: <span className="text-lg text-red-500">{plan.caloriesBurnt ?? 0} kcal</span>
+</span>
       </div>
 
-      <p className="mb-2">{`${progress??0}% complete`}</p>
+      <p className="mb-2">{`${progress ?? 0}% complete`}</p>
 
       <div className="flex gap-1 mb-6">
         {segments.map((isComplete, index) => (
@@ -105,7 +107,6 @@ const SavedCard = ({
 
       <button
         onClick={onClickSecondary}
-        // disabled={plan.status === "active" && !isCompleted}
         className={`w-full py-2 text-center text-red-500 hover:text-red-900 ${
           plan.status === "active" && !isCompleted
             ? "text-gray-400 cursor-not-allowed"

@@ -33,45 +33,73 @@ const CustomPlanPage = () => {
   const router = useRouter();
   const [savedPlans, setSavedPlans] = useState([]);
 
-  // Update useEffect to process plans from the context
+  const fetchCaloriesBurnt = async (planId) => {
+    const db = getFirestore();
+    const currentDate = new Date().toISOString().split('T')[0]; // Get current date in YYYY-MM-DD format
+    const docRef = doc(db, "caloriesBurnt", `${userId}_${planId}_${currentDate}`);
+
+    try {
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return docSnap.data().totalCalories; // Return the total calories burnt
+      } else {
+        return 0; // Return 0 if no data exists
+      }
+    } catch (error) {
+      console.error("Error fetching calories burnt: ", error);
+      return 0;
+    }
+  };
+
+
   useEffect(() => {
     if (isFetchingPlans) {
       return; // Wait for the plans to be fetched
     }
 
     if (plans && plans.length > 0) {
-      const processedPlans = plans.map((item) => {
-        const plan = item?.workoutPlanDB;
+      const processPlans = async () => {
+        const processedPlans = await Promise.all(
+          plans.map(async (item) => {
+            const plan = item?.workoutPlanDB;
+            const progress = plan?.progress;
+            const status =
+              progress === 100 ? "completed" : progress > 0 ? "active" : "inactive";
 
-        const progress = plan?.progress;
-        const status =
-          progress === 100 ? "completed" : progress > 0 ? "active" : "inactive";
-        return {
-          ...plan,
-          status,
-          progress,
-          id: item.id,
-          planName: item.planName,
-        };
-      });
+            // Fetch calories burnt for this plan
+            const caloriesBurnt = await fetchCaloriesBurnt(item.id);
 
-      // Custom sorting logic based on the conditions
-      processedPlans.sort((a, b) => {
-        if (a.status === "active" && b.status !== "active") return -1; // Active plans come first
-        if (a.status !== "active" && b.status === "active") return 1;
+            return {
+              ...plan,
+              status,
+              progress,
+              id: item.id,
+              planName: item.planName,
+              caloriesBurnt, // Add calories burnt to the plan object
+            };
+          })
+        );
 
-        if (a.status === "completed" && b.status !== "completed") return 1; // Completed plans come last
-        if (a.status !== "completed" && b.status === "completed") return -1;
+        // Custom sorting logic based on the conditions
+        processedPlans.sort((a, b) => {
+          if (a.status === "active" && b.status !== "active") return -1; // Active plans come first
+          if (a.status !== "active" && b.status === "active") return 1;
 
-        // For plans with undefined/null status, move them to the top
-        if (!a.status && b.status) return -1;
-        if (a.status && !b.status) return 1;
+          if (a.status === "completed" && b.status !== "completed") return 1; // Completed plans come last
+          if (a.status !== "completed" && b.status === "completed") return -1;
 
-        // Fallback to order by progress (inactive -> active -> completed)
-        return b.progress - a.progress;
-      });
+          // For plans with undefined/null status, move them to the top
+          if (!a.status && b.status) return -1;
+          if (a.status && !b.status) return 1;
 
-      setSavedPlans(processedPlans);
+          // Fallback to order by progress (inactive -> active -> completed)
+          return b.progress - a.progress;
+        });
+
+        setSavedPlans(processedPlans);
+      };
+
+      processPlans();
     }
   }, [plans, isFetchingPlans]);
 
@@ -215,7 +243,7 @@ const CustomPlanPage = () => {
           )} */}
 
           <div className="flex flex-wrap justify-between p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar h-100">
-            {savedPlans.length > 0 ? (
+          {savedPlans.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {savedPlans.map((plan, index) => (
                   <div key={index} className="flex flex-col">
