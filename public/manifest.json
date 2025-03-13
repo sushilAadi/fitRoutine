@@ -1,6 +1,6 @@
 {
-    "name": "FIT-APP",
-    "short_name": "FIT-PWA",
+    "name": "NEEED-FIT",
+    "short_name": "NEEED-FIT",
     "description": "A Next.js Progressive Web App",
     "start_url": "/",
     "background_color": "#ffffff",
