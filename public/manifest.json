@@ -1,7 +1,7 @@
 {
     "name": "NEEED-FIT",
     "short_name": "NEEED-FIT",
-    "description": "A Next.js Progressive Web App",
+    "description": "Fitness Application",
     "start_url": "/",
     "background_color": "#ffffff",
     "theme_color": "#000000",
@@ -57,6 +57,23 @@
             "sizes": "512x512",
             "type": "image/png"
           }
-    ]
+    ],
+    "id": "NeeedFitSushil",
+  "lang": "en",
+  "orientation": "natural",
+  "display_override": [
+    "fullscreen",
+    "standalone",
+    "minimal-ui",
+    "window-controls-overlay"
+  ],
+  "categories": [
+    "education",
+    "fitness",
+    "food",
+    "medical",
+    "productivity",
+    "sports"
+  ]
   }
   
