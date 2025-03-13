@@ -11,7 +11,7 @@ const generateWorkoutPlan = async (userInput, exerciseList, isFitnessRelated) =>
     if (!isFitnessRelated) {
       prompt = `The user input is not related to fitness or workout. Tell the user that they must provide fitness-related information (e.g., fitness level, goals, preferences) to generate a plan. Do not generate plan`;
     } else {
-      prompt = `Generate a workout plan and diet plan based on the following information: ${userInput}.
+      prompt = `Generate a workout and diet plan based on the following information, and specify how many weeks each exercise routine should be followed to achieve the goal (e.g., 2 months, 4 months, etc.) : ${userInput}.
       
 Here is the list of available exercises:
 ${JSON.stringify(exerciseList)}
@@ -28,6 +28,7 @@ Workout Plan Summary:
 Then, provide the workout plan in this exact JSON format and mention which muscle it will target in days:
 
 {
+  "Totalweeks": [number],
   "workoutPlan": [
     {
       "Day": 1,

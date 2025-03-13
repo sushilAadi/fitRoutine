@@ -44,6 +44,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   const chatContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
+  const [totalWeeks,setTotalWeeks] = useState(0)
 
   const { data: exercisesData = [] } = useQuery({
     queryKey: ["exercise"],
@@ -217,6 +218,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
           
           const plan = await generateWorkoutPlan(userInputData, exerciseList, true);
           const plans = extractPlansFromResponse(plan);
+          setTotalWeeks(plans?.Totalweeks)
           
           if (plans) {
             setGeneratedPlan(plan);
@@ -306,7 +308,35 @@ const WorkoutChat = ({ onPlanGenerated }) => {
         return "text";
     }
   };
-
+  const handleReset = () => {
+    // Reset all state variables
+    setMessages([
+      {
+        type: "ai",
+        content: "Welcome to FitnessAI! I'm here to help you create personalized workout and diet plans tailored to your needs.",
+        isCaption: true,
+        id: Date.now()
+      }
+    ]);
+    setUserInput("");
+    setCurrentStep("welcome");
+    setFitnessLevel("");
+    setGoal("");
+    setDaysPerWeek("");
+    setTimePerWorkout("");
+    setEquipment("");
+    // Don't reset preferences entirely, as we want to keep the user profile data
+    setGeneratedPlan(null);
+    setGeneratedExercises([]);
+    setDiet([]);
+    setShowCopyButton(false);
+    setIsLoading(false);
+    
+    // Reset the completed state if necessary
+    setIsPaymentSuccessful(false);
+    updateWorkoutPlanWithFullDetails()
+    setTotalWeeks(0)
+  };
   // Render appropriate input controls based on current step
   const renderInputArea = () => {
     if (currentStep === "welcome") {
@@ -383,10 +413,11 @@ const WorkoutChat = ({ onPlanGenerated }) => {
               className="p-2 text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="flex items-center justify-center">
-              <i class="fa-sharp fa-solid text-white fa-paper-plane-top mr-2"></i>
+              <i className="mr-2 text-white fa-sharp fa-solid fa-paper-plane-top"></i>
                 Send
               </span>
             </button>
+            <button onClick={handleReset}>Reset</button>
           </div>
         </div>
       );
@@ -420,7 +451,13 @@ const WorkoutChat = ({ onPlanGenerated }) => {
               disabled={!userInput.trim() || isLoading}
               className="p-2 text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <i class="fa-sharp fa-solid text-white fa-paper-plane-top"></i>
+              <i className="text-white fa-sharp fa-solid fa-paper-plane-top"></i>
+            </button>
+            <button
+              onClick={handleReset}
+              className="p-2 text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <i className="text-white fa-duotone fa-solid fa-arrows-rotate"></i>
             </button>
           </div>
         </div>
@@ -435,10 +472,17 @@ const WorkoutChat = ({ onPlanGenerated }) => {
  
 
   function updateWorkoutPlanWithFullDetails(workoutPlan, exercisesData) {
+    // Validate inputs
+    if (!Array.isArray(workoutPlan) || !Array.isArray(exercisesData) || workoutPlan.length === 0 || exercisesData.length === 0) {
+      return null;
+    }
+  
     // Create a map of exercises by ID for quick lookup
     const exercisesById = {};
     exercisesData.forEach(exercise => {
-      exercisesById[exercise.id] = exercise;
+      if (exercise.id) {
+        exercisesById[exercise.id] = exercise;
+      }
     });
   
     // Deep clone the workout plan to avoid modifying the original
@@ -448,8 +492,13 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     enrichedWorkoutPlan.forEach(day => {
       if (day.Workout && Array.isArray(day.Workout)) {
         day.Workout = day.Workout.map(exercise => {
+          if (!exercise.id) {
+            console.warn("Skipping exercise with missing ID:", exercise);
+            return exercise;
+          }
+  
           const fullExerciseDetails = exercisesById[exercise.id];
-          
+  
           if (fullExerciseDetails) {
             // Return exercise with all details from exercisesData plus the workout-specific details
             return {
@@ -468,11 +517,12 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   
     return enrichedWorkoutPlan;
   }
+  
 
   const fullyUpdatedWorkoutPlan = updateWorkoutPlanWithFullDetails(updatedWorkoutPlan, exercisesData);
 
 // Example of how the updated data would look (for the first few exercises)
-console.log("updatedWorkoutPlan",fullyUpdatedWorkoutPlan);
+
 
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
