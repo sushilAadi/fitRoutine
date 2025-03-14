@@ -1,11 +1,11 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { geminiModel } from "@/firebase/firebaseConfig";
 
-const apiKey = process.env.NEXT_PUBLIC_GOOGLE_API_KEY;
+
 
 const generateWorkoutPlan = async (userInput, exerciseList, isFitnessRelated) => {
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // const genAI = new GoogleGenerativeAI(apiKey);
+    // const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     let prompt;
     if (!isFitnessRelated) {
@@ -82,7 +82,7 @@ Diet Plan:
 | Breakfast | Oats | 100g | 13g | 67g | 7g |`;
     }
 
-    const result = await model.generateContent(prompt);
+    const result = await geminiModel.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
     

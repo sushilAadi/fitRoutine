@@ -9,6 +9,9 @@ import ExerciseAiCard from "@/Feature/AiCoach/ExerciseAiCard";
 import MealPlanCard from "@/Feature/AiCoach/MealPlan";
 import { motion, AnimatePresence } from "framer-motion";
 import PaymentComponent from "@/components/PaymentComponent";
+import { addDoc, collection } from "@firebase/firestore";
+import { db } from "@/firebase/firebaseConfig";
+import toast from "react-hot-toast";
 
 const colorMap = {
   1: 'bg-blue-50',
@@ -528,59 +531,83 @@ const WorkoutChat = ({ onPlanGenerated }) => {
 
   const fullyUpdatedWorkoutPlan = updateWorkoutPlanWithFullDetails(updatedWorkoutPlan, exercisesData);
 
-  const saveWorkoutPlanToDatabase=async({
-    userId,
-    planName,
-    totalWeeks,
-    daysPerWeek,
-    workoutPlan,
-    exerciseHistory = [],
-    weekNames = [],
-    dayNames = [],
-    isChecked = false
-  }) =>{
-    // Format the data according to the required structure
-    const planToSave = {
-      name: planName,
-      weeks: JSON.stringify(totalWeeks),
-      daysPerWeek: JSON.stringify(daysPerWeek),
-      workoutPlan: JSON.stringify(workoutPlan),
-      exerciseHistory: JSON.stringify(exerciseHistory),
-      weekNames: JSON.stringify(weekNames),
-      dayNames: JSON.stringify(dayNames),
-      date: new Date().toISOString(),
-      setUpdate: isChecked,
+
+
+  console.log("fullyUpdatedWorkoutPlan",{fullyUpdatedWorkoutPlan,generatedPlan})
+  function transformWorkoutPlan(originalPlan) {
+    const planName = `workoutPlan_AiGenerated_${goal}`;
+    const daysPerWeek = originalPlan.length;
+    const currentDate = new Date().toISOString();
+    
+    // Create the workoutPlan array with nested structure
+    const workoutPlan = [];
+    
+    // Create first week (we'll have a single week in the array for now)
+    const firstWeek = [];
+    
+    // Add each day to the first week
+    originalPlan.forEach(day => {
+        const transformedDay = {
+            day: day.Day,
+            exercises: day.Workout.map(exercise => {
+                return {
+                    bodyPart: exercise.bodyPart,
+                    equipment: exercise.equipment,
+                    gifUrl: exercise.gifUrl,
+                    id: exercise.id,
+                    name: exercise.name,
+                    target: exercise.target,
+                    secondaryMuscles: exercise.secondaryMuscles,
+                    instructions: exercise.instructions,
+                    weeklySetConfig: [
+                        { sets: exercise.Sets, isConfigured: true },
+                        { sets: 0, isConfigured: false }
+                    ]
+                };
+            })
+        };
+        firstWeek.push(transformedDay);
+    });
+    
+    // Add the first week to the workoutPlan array
+    workoutPlan.push(firstWeek);
+    
+    // Create week names and day names
+    const weekNames = Array.from({ length: totalWeeks }, (_, i) => `Week ${i + 1}`);
+    const dayNames = originalPlan.map(day => day.targetMuscle);
+    
+    // Create the final structure
+    const transformedWorkoutPlan = {
+        userIdCl: userId,
+        planName: planName,
+        workoutPlanDB: {
+            name: goal,
+            weeks: totalWeeks,
+            daysPerWeek: daysPerWeek,
+            workoutPlan: JSON.stringify(workoutPlan),
+            exerciseHistory: {},
+            weekNames: JSON.stringify(weekNames),
+            dayNames: JSON.stringify(dayNames),
+            date: currentDate,
+            setUpdate: false
+        }
     };
     
-    console.log("create", {
-      userIdCl: userId,
-      planName: `workoutPlan_${planName}`,
-      workoutPlanDB: planToSave,
-    });
-    
-    // Add a new document with a generated ID
-    const planDocRef = await addDoc(collection(db, 'workoutPlans'), {
-      userIdCl: userId,
-      planName: `workoutPlan_${planName}`,
-      workoutPlanDB: planToSave,
-    });
-    
-    return planDocRef;
-  }
+    return transformedWorkoutPlan;
+}
 
-  console.log("fullyUpdatedWorkoutPlan",fullyUpdatedWorkoutPlan,totalWeeks)
 
-  // const saveData ={
-  //   planName:"ai pLan",
-  //   userIdCl:userId,
-  //   weeks: totalWeeks,
-  // daysPerWeek: 5,
-  // workoutPlan: fullyUpdatedWorkoutPlan,
-  // exerciseHistory: [],
-  // weekNames: ["Week 1", "Week 2", "Week 3", "Week 4"],
-  // dayNames: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-  // isChecked: true
-  // }
+
+const savePlan =async()=>{
+  const transformedPlan = transformWorkoutPlan(fullyUpdatedWorkoutPlan);
+
+  const planDocRef = await addDoc(collection(db, 'workoutPlans'), transformedPlan);
+  toast.success('Plan Saved Successfully');
+  console.log("planDocRef",planDocRef)
+
+}
+
+
 
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
@@ -652,6 +679,15 @@ const WorkoutChat = ({ onPlanGenerated }) => {
               {diet && diet.length > 0 && (
                 <MealPlanCard mealData={diet} />
               )}
+              <button
+              onClick={savePlan}
+              className="p-2 text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed w-100"
+            >
+              <span className="flex items-center justify-center">
+              <i className="mr-2 text-white fa-duotone fa-solid fa-floppy-disk-circle-arrow-right"></i>
+                Save Plan
+              </span>
+            </button>
             </motion.div>
           )}
           
@@ -674,8 +710,9 @@ const WorkoutChat = ({ onPlanGenerated }) => {
       {/* Fixed input area at bottom */}
       <div className="mt-auto inputContainer">
         {renderInputArea()}
-        {/* <button onClick={()=>saveWorkoutPlanToDatabase(saveData)}>Save</button> */}
+        
       </div>
+      
     </div>
   );
 };

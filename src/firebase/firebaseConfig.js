@@ -1,5 +1,6 @@
 // firebase/firebaseConfig.js
 import { initializeApp } from "firebase/app";
+import { getVertexAI, getGenerativeModel } from "firebase/vertexai";
 import { getAnalytics, isSupported } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore"; // Import Firestore
 
@@ -15,6 +16,9 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+const vertexAI = getVertexAI(app);
+export const geminiModel = getGenerativeModel(vertexAI, { model: "gemini-2.0-flash" });
+
 
 let analytics = null;
 

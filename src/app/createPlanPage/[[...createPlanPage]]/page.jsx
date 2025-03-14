@@ -19,7 +19,6 @@ import toast from "react-hot-toast";
 import { useUser } from '@clerk/clerk-react';
 import { addDoc, collection, doc,setDoc} from 'firebase/firestore';
 import { db } from "@/firebase/firebaseConfig";
-import { v4 as uuidv4 } from 'uuid';
 
 
 const createPlanPage = () => {
@@ -231,11 +230,6 @@ const createPlanPage = () => {
         date: new Date().toISOString(), // Store date in ISO string format
         setUpdate: isChecked,
       };
-      console.log("create",{
-        userIdCl: id,
-        planName: `workoutPlan_${planName}`,
-        workoutPlanDB: planToSave,
-      })
   
       // Add a new document with a generated ID
       const planDocRef = await addDoc(collection(db, 'workoutPlans'), {
