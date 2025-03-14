@@ -41,10 +41,12 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   const [diet, setDiet] = useState([]);
   const [showCopyButton, setShowCopyButton] = useState(false);
   const [isPaymentSuccessful, setIsPaymentSuccessful] = useState(false);
+  const [isReadyForPayment, setIsReadyForPayment] = useState(false);
+  const [userInputData, setUserInputData] = useState("");
   const chatContainerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
-  const [totalWeeks,setTotalWeeks] = useState(0)
+  const [totalWeeks, setTotalWeeks] = useState(0);
 
   const { data: exercisesData = [] } = useQuery({
     queryKey: ["exercise"],
@@ -55,8 +57,6 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   });
 
   const exerciseList = exercisesData?.map(i => ({ id: i?.id, name: i?.name, target: i?.target, bodyPart: i?.bodyPart }));
-
-
 
   const {
     userName,
@@ -155,6 +155,34 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     setShowCopyButton(false);
   };
 
+  const generatePlan = async () => {
+    try {
+      setIsLoading(true);
+      
+      const plan = await generateWorkoutPlan(userInputData, exerciseList, true);
+      const plans = extractPlansFromResponse(plan);
+      setTotalWeeks(plans?.Totalweeks);
+      
+      if (plans) {
+        setGeneratedPlan(plan);
+        setGeneratedExercises(plans?.workoutPlan);
+        setDiet(plans?.dietPlan);
+        onPlanGenerated(plan);
+        
+        addMessage("Your workout and diet plan is ready!", "ai");
+        setCurrentStep("complete");
+      } else {
+        addMessage("Sorry, I couldn't generate a plan. Please try again.", "ai");
+        setCurrentStep("welcome");
+      }
+    } catch (err) {
+      addMessage(`Error: ${err.message || "An unexpected error occurred"}`, "ai");
+      setCurrentStep("welcome");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!userInput.trim()) return;
     
@@ -199,45 +227,21 @@ const WorkoutChat = ({ onPlanGenerated }) => {
         // Use either user input or default preferences
         const finalPreferences = userInput === "yes" ? preferences : userInput;
         setPreferences(finalPreferences);
-        setCurrentStep("generating");
+        setCurrentStep("payment");
         
-        addMessage("Thanks! Generating your personalized workout and diet plan...", "ai");
+        // Store the user input data for later use after payment
+        const inputData = `
+          Fitness level: ${fitnessLevel}
+          Goal: ${goal}
+          Days per week: ${daysPerWeek}
+          Time per workout: ${timePerWorkout} minutes
+          Equipment: ${equipment || "None"}
+          Preferences: ${finalPreferences || "None"}
+        `;
+        setUserInputData(inputData);
         
-        // Generate the workout plan
-        try {
-          setIsLoading(true);
-          
-          const userInputData = `
-            Fitness level: ${fitnessLevel}
-            Goal: ${goal}
-            Days per week: ${daysPerWeek}
-            Time per workout: ${timePerWorkout} minutes
-            Equipment: ${equipment || "None"}
-            Preferences: ${finalPreferences || "None"}
-          `;
-          
-          const plan = await generateWorkoutPlan(userInputData, exerciseList, true);
-          const plans = extractPlansFromResponse(plan);
-          setTotalWeeks(plans?.Totalweeks)
-          
-          if (plans) {
-            setGeneratedPlan(plan);
-            setGeneratedExercises(plans?.workoutPlan);
-            setDiet(plans?.dietPlan);
-            onPlanGenerated(plan);
-            
-            addMessage("Your workout and diet plan is ready!", "ai");
-            setCurrentStep("complete");
-          } else {
-            addMessage("Sorry, I couldn't generate a plan. Please try again.", "ai");
-            setCurrentStep("welcome");
-          }
-        } catch (err) {
-          addMessage(`Error: ${err.message || "An unexpected error occurred"}`, "ai");
-          setCurrentStep("welcome");
-        } finally {
-          setIsLoading(false);
-        }
+        addMessage("Thanks! Your information has been collected. Please complete payment to generate your personalized workout and diet plan.", "ai");
+        setIsReadyForPayment(true);
         break;
         
       default:
@@ -308,6 +312,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
         return "text";
     }
   };
+  
   const handleReset = () => {
     // Reset all state variables
     setMessages([
@@ -325,18 +330,20 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     setDaysPerWeek("");
     setTimePerWorkout("");
     setEquipment("");
+    setUserInputData("");
     // Don't reset preferences entirely, as we want to keep the user profile data
     setGeneratedPlan(null);
     setGeneratedExercises([]);
     setDiet([]);
     setShowCopyButton(false);
     setIsLoading(false);
+    setIsReadyForPayment(false);
     
     // Reset the completed state if necessary
     setIsPaymentSuccessful(false);
-    updateWorkoutPlanWithFullDetails()
-    setTotalWeeks(0)
+    setTotalWeeks(0);
   };
+  
   // Render appropriate input controls based on current step
   const renderInputArea = () => {
     if (currentStep === "welcome") {
@@ -444,11 +451,11 @@ const WorkoutChat = ({ onPlanGenerated }) => {
               min={currentStep === "timePerWorkout" ? "10" : undefined}
               max={currentStep === "timePerWorkout" ? "180" : undefined}
               className="flex-1 px-3 py-2 bg-white border rounded-lg outline-none text-tprimary "
-              disabled={isLoading || currentStep === "complete"}
+              disabled={isLoading || currentStep === "complete" || currentStep === "payment"}
             />
             <button
               onClick={handleSendMessage}
-              disabled={!userInput.trim() || isLoading}
+              disabled={!userInput.trim() || isLoading || currentStep === "payment"}
               className="p-2 text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <i className="text-white fa-sharp fa-solid fa-paper-plane-top"></i>
@@ -467,9 +474,10 @@ const WorkoutChat = ({ onPlanGenerated }) => {
 
   const handlePaymentSuccess = () => {
     setIsPaymentSuccessful(true);
+    // Generate the workout plan only after payment is successful
+    addMessage("Payment successful! Generating your personalized workout and diet plan...", "ai");
+    generatePlan();
   };
-
- 
 
   function updateWorkoutPlanWithFullDetails(workoutPlan, exercisesData) {
     // Validate inputs
@@ -517,12 +525,10 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   
     return enrichedWorkoutPlan;
   }
-  
 
   const fullyUpdatedWorkoutPlan = updateWorkoutPlanWithFullDetails(updatedWorkoutPlan, exercisesData);
 
-// Example of how the updated data would look (for the first few exercises)
-
+  console.log("fullyUpdatedWorkoutPlan",fullyUpdatedWorkoutPlan,totalWeeks)
 
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
@@ -536,9 +542,6 @@ const WorkoutChat = ({ onPlanGenerated }) => {
             {messages.map((message,index) => (
               <motion.div 
                 key={message.id+`_${Date.now()+index}`}
-                // initial={{ opacity: 0, y: 20 }}
-                // animate={{ opacity: 1, y: 0 }}
-                // transition={{ duration: 0.3 }}
                 className={`flex mb-2 ${message.type === 'user' ? 'justify-end' : 'justify-start '}`}
               >
                 <div 
@@ -560,36 +563,42 @@ const WorkoutChat = ({ onPlanGenerated }) => {
             ))}
           </div>
           
-          {/* Show generated workout plan after completion */}
-          {currentStep === "complete" && updatedWorkoutPlan && (
+          {/* Show payment form or generated workout plan based on status */}
+          {currentStep === "payment" && isReadyForPayment && !isPaymentSuccessful && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="mt-2"
+            >
+              <PaymentComponent 
+                onSuccess={handlePaymentSuccess} 
+                transactionId="AIWORKOUT123313"
+                amount={20} 
+              />
+            </motion.div>
+          )}
+          
+          {/* Show generated workout plan after payment and plan generation */}
+          {currentStep === "complete" && isPaymentSuccessful && updatedWorkoutPlan && (
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
               className="mt-2 space-y-3"
             >
-              {isPaymentSuccessful ? (
-                <>
-                  {fullyUpdatedWorkoutPlan?.map((day) => (
-                    <ExerciseAiCard 
-                      key={day.Day}
-                      day={day.Day}
-                      targetMuscle={day.targetMuscle}
-                      workout={day.Workout}
-                      color={colorMap[day.Day] || 'bg-gray-50'}
-                      dotColor={dotColorMap[day.Day] || 'bg-gray-500'}
-                    />
-                  ))}
-                  {diet && diet.length > 0 && (
-                    <MealPlanCard mealData={diet} />
-                  )}
-                </>
-              ) : (
-                <PaymentComponent 
-                  onSuccess={handlePaymentSuccess} 
-                  transactionId="AIWORKOUT123313"
-                  amount={20} 
+              {fullyUpdatedWorkoutPlan?.map((day) => (
+                <ExerciseAiCard 
+                  key={day.Day}
+                  day={day.Day}
+                  targetMuscle={day.targetMuscle}
+                  workout={day.Workout}
+                  color={colorMap[day.Day] || 'bg-gray-50'}
+                  dotColor={dotColorMap[day.Day] || 'bg-gray-500'}
                 />
+              ))}
+              {diet && diet.length > 0 && (
+                <MealPlanCard mealData={diet} />
               )}
             </motion.div>
           )}
