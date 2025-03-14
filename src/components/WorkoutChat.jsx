@@ -13,6 +13,7 @@ import { addDoc, collection, doc, setDoc, getDoc } from "@firebase/firestore"; /
 import { db } from "@/firebase/firebaseConfig";
 import toast from "react-hot-toast";
 import { debounce } from 'lodash';
+import jsonToSpreadsheet from "@/utils/excel";
 
 const colorMap = {
   1: 'bg-blue-50',
@@ -643,6 +644,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     return transformedWorkoutPlan;
   }
 
+  console.log("fullyUpdatedWorkoutPlan",fullyUpdatedWorkoutPlan,totalWeeks)
   const savePlan = async () => {
     const transformedPlan = transformWorkoutPlan(fullyUpdatedWorkoutPlan);
 
@@ -658,6 +660,11 @@ const WorkoutChat = ({ onPlanGenerated }) => {
       console.error("Error saving plan:", error);
       toast.error('Failed to save plan. Please try again.');
     }
+  };
+
+  const handleExport = () => {
+    console.log("totalWeeks",totalWeeks)
+    jsonToSpreadsheet(fullyUpdatedWorkoutPlan,goal,totalWeeks);
   };
 
   // Handle page refresh/re-entry after payment
@@ -762,6 +769,8 @@ const WorkoutChat = ({ onPlanGenerated }) => {
               {diet && diet.length > 0 && (
                 <MealPlanCard mealData={diet} />
               )}
+
+              <button onClick={handleExport} className="text-green-500 w-100"><i className="mr-2 fa-duotone fa-solid fa-download"></i>Export Workout Plan to Excel</button>
               <button
                 type="button"
                 onClick={!saved ? savePlan : undefined} // Prevent execution when saved = true
@@ -776,6 +785,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
                   {saved ? "Saved" : "Save Plan"}
                 </span>
               </button>
+              
             </motion.div>
           )}
 
