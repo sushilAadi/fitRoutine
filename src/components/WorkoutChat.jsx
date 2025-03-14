@@ -9,9 +9,10 @@ import ExerciseAiCard from "@/Feature/AiCoach/ExerciseAiCard";
 import MealPlanCard from "@/Feature/AiCoach/MealPlan";
 import { motion, AnimatePresence } from "framer-motion";
 import PaymentComponent from "@/components/PaymentComponent";
-import { addDoc, collection } from "@firebase/firestore";
+import { addDoc, collection, doc, setDoc, getDoc } from "@firebase/firestore"; // Import necessary Firestore functions
 import { db } from "@/firebase/firebaseConfig";
 import toast from "react-hot-toast";
+import { debounce } from 'lodash';
 
 const colorMap = {
   1: 'bg-blue-50',
@@ -28,7 +29,7 @@ const dotColorMap = {
 };
 
 const WorkoutChat = ({ onPlanGenerated }) => {
-  const { userDetailData,userId } = useContext(GlobalContext);
+  const { userDetailData, userId } = useContext(GlobalContext);
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState("");
   const [currentStep, setCurrentStep] = useState("welcome");
@@ -50,7 +51,9 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const [totalWeeks, setTotalWeeks] = useState(0);
-  const [saved,setSaved] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [isPlanGenerationFailed, setIsPlanGenerationFailed] = useState(false); // New state for tracking plan generation failure
+  const [hasPaymentBeenAttempted, setHasPaymentBeenAttempted] = useState(false);
 
   const { data: exercisesData = [] } = useQuery({
     queryKey: ["exercise"],
@@ -76,15 +79,18 @@ const WorkoutChat = ({ onPlanGenerated }) => {
 
   // Initialize chat with welcome message
   useEffect(() => {
-    setMessages([
-      {
-        type: "ai",
-        content: "Welcome to FitnessAI! I'm here to help you create personalized workout and diet plans tailored to your needs.",
-        isCaption: true,
-        id: Date.now()
+      // Conditionally add the welcome message
+      if (!hasPaymentBeenAttempted) {
+        setMessages([
+          {
+            type: "ai",
+            content: "Welcome to FitnessAI! I'm here to help you create personalized workout and diet plans tailored to your needs.",
+            isCaption: true,
+            id: Date.now()
+          }
+        ]);
       }
-    ]);
-  }, []);
+    }, [hasPaymentBeenAttempted]);
 
   // Improved scroll to bottom on new messages
   useEffect(() => {
@@ -97,7 +103,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   useEffect(() => {
     if (userDetailData) {
       const { userName, userGender, userHeight, userWeight, helpYou, activityLevel } = userDetailData;
-  
+
       if (userName && userGender && userHeight && userWeight && helpYou && activityLevel) {
         const defaultPreferences = `I am ${userName}, a ${userAgeCal}-year-old, ${userGender.toLowerCase()} with a height of ${userHeight} cm and weight of ${userWeight} kg. My goal is ${helpYou}, and I have an activity level of "${activityLevel.subtitle}". I go to the gym regularly and have access to all necessary equipment. My training focuses on both strength and endurance to achieve my fitness goals.`;
         setPreferences(defaultPreferences);
@@ -115,7 +121,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   const addMessage = (content, type = "user", isCaption = false, isSuggestion = false) => {
     const newMessage = { type, content, isCaption, id: Date.now(), isSuggestion };
     setMessages(prev => [...prev, newMessage]);
-    
+
     // Show copy button if this is a suggestion message
     if (isSuggestion) {
       setShowCopyButton(true);
@@ -130,8 +136,8 @@ const WorkoutChat = ({ onPlanGenerated }) => {
 
   const handleOptionSelect = (option, step) => {
     addMessage(option, "user");
-    
-    switch(step) {
+
+    switch (step) {
       case "fitnessLevel":
         setFitnessLevel(option);
         setCurrentStep("goal");
@@ -139,7 +145,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
           addMessage("What's your fitness goal?", "ai");
         }, 500);
         break;
-        
+
       case "daysPerWeek":
         setDaysPerWeek(option);
         setCurrentStep("timePerWorkout");
@@ -147,7 +153,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
           addMessage("How long would you like each workout to be (in minutes)?", "ai");
         }, 500);
         break;
-        
+
       default:
         // Handle other option selections if needed
         break;
@@ -162,26 +168,41 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   const generatePlan = async () => {
     try {
       setIsLoading(true);
-      
+      setIsPlanGenerationFailed(false); // Reset the failure flag before attempting to generate the plan
+
+      if (!exerciseList || exerciseList.length === 0) {
+        throw new Error("No exercise data available. Please try again later.");
+      }
+
       const plan = await generateWorkoutPlan(userInputData, exerciseList, true);
       const plans = extractPlansFromResponse(plan);
       setTotalWeeks(plans?.Totalweeks);
-      
+
       if (plans) {
         setGeneratedPlan(plan);
         setGeneratedExercises(plans?.workoutPlan);
         setDiet(plans?.dietPlan);
         onPlanGenerated(plan);
-        
+
         addMessage("Your workout and diet plan is ready!", "ai");
         setCurrentStep("complete");
+        // Store successful plan generation to prevent re-generation on refresh
+        sessionStorage.setItem(`planGenerated_${userId}`, 'true');
       } else {
-        addMessage("Sorry, I couldn't generate a plan. Please try again.", "ai");
-        setCurrentStep("welcome");
+        // Display a user-friendly error message
+        addMessage("We are sorry for the inconvenience. The workout plan generation failed. Please try again. If the issue persists, contact 7892808101.", "ai");
+        setIsPlanGenerationFailed(true); // Set the failure flag if the plan couldn't be generated
+        setCurrentStep("complete");
+        // Clear flag in case of failure
+        sessionStorage.removeItem(`planGenerated_${userId}`);
       }
     } catch (err) {
-      addMessage(`Error: ${err.message || "An unexpected error occurred"}`, "ai");
-      setCurrentStep("welcome");
+      console.error("Error generating workout plan:", err);
+       addMessage("We are sorry for the inconvenience. The workout plan generation failed. Please try again. If the issue persists, contact 7892808101.", "ai");
+      setIsPlanGenerationFailed(true); // Set the failure flag if an error occurred
+      setCurrentStep("complete");
+      // Clear flag in case of failure
+      sessionStorage.removeItem(`planGenerated_${userId}`);
     } finally {
       setIsLoading(false);
     }
@@ -189,12 +210,12 @@ const WorkoutChat = ({ onPlanGenerated }) => {
 
   const handleSendMessage = async () => {
     if (!userInput.trim()) return;
-    
+
     addMessage(userInput);
     setUserInput("");
     setShowCopyButton(false);
-    
-    switch(currentStep) {
+
+    switch (currentStep) {
       case "goal":
         setGoal(userInput);
         setCurrentStep("daysPerWeek");
@@ -202,7 +223,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
           addMessage("How many days per week would you like to train?", "ai");
         }, 500);
         break;
-        
+
       case "timePerWorkout":
         setTimePerWorkout(userInput);
         setCurrentStep("equipment");
@@ -210,13 +231,13 @@ const WorkoutChat = ({ onPlanGenerated }) => {
           addMessage("What equipment do you have access to? (Type 'none' if not applicable)", "ai");
         }, 500);
         break;
-        
+
       case "equipment":
         setEquipment(userInput);
         setCurrentStep("preferences");
         setTimeout(() => {
           addMessage("Any specific preferences or details you'd like to share?", "ai");
-          
+
           // If we have default preferences, show them as suggestion
           if (preferences) {
             setTimeout(() => {
@@ -226,13 +247,13 @@ const WorkoutChat = ({ onPlanGenerated }) => {
           }
         }, 500);
         break;
-        
+
       case "preferences":
         // Use either user input or default preferences
         const finalPreferences = userInput === "yes" ? preferences : userInput;
         setPreferences(finalPreferences);
         setCurrentStep("payment");
-        
+
         // Store the user input data for later use after payment
         const inputData = `
           Fitness level: ${fitnessLevel}
@@ -243,15 +264,15 @@ const WorkoutChat = ({ onPlanGenerated }) => {
           Preferences: ${finalPreferences || "None"}
         `;
         setUserInputData(inputData);
-        
+
         addMessage("Thanks! Your information has been collected. Please complete payment to generate your personalized workout and diet plan.", "ai");
         setIsReadyForPayment(true);
         break;
-        
+
       default:
         // Handle restart or other interactions
         if (userInput.toLowerCase().includes("restart")) {
-          setCurrentStep("welcome");
+          handleReset()
           addMessage("Let's start over with a new plan.", "ai");
         } else {
           addMessage("Is there anything else you'd like to know about your plan?", "ai");
@@ -259,11 +280,13 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     }
   };
 
+  const debouncedHandleSendMessage = debounce(handleSendMessage, 300);
+
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey && currentStep !== "preferences") {
       e.preventDefault();
       if (currentStep !== "welcome" && currentStep !== "fitnessLevel" && currentStep !== "daysPerWeek") {
-        handleSendMessage();
+        debouncedHandleSendMessage();
       }
     }
   };
@@ -273,16 +296,16 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     const match = exerciseName.match(/\$\$ID: (\d+)\$\$/);
     return match ? match[1] : null;
   }
-  
+
   function findExerciseData(id, exercisesData) {
     return exercisesData.find(exercise => exercise.id === id);
   }
-  
+
   const updatedWorkoutPlan = generatedExercises?.map(day => {
     const updatedWorkout = day.Workout.map(exercise => {
       const id = extractId(exercise.Exercise);
       const fullExerciseData = findExerciseData(id, exercisesData);
-      
+
       if (fullExerciseData) {
         return {
           Exercise: exercise.Exercise,
@@ -300,7 +323,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
       }
       return exercise;
     });
-  
+
     return {
       ...day,
       Workout: updatedWorkout
@@ -309,14 +332,14 @@ const WorkoutChat = ({ onPlanGenerated }) => {
 
   // Get input type based on current step
   const getInputType = () => {
-    switch(currentStep) {
+    switch (currentStep) {
       case "timePerWorkout":
         return "number";
       default:
         return "text";
     }
   };
-  
+
   const handleReset = () => {
     // Reset all state variables
     setMessages([
@@ -342,17 +365,27 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     setShowCopyButton(false);
     setIsLoading(false);
     setIsReadyForPayment(false);
-    
+    setIsPlanGenerationFailed(false)
+    setHasPaymentBeenAttempted(false)
+
     // Reset the completed state if necessary
     setIsPaymentSuccessful(false);
     setTotalWeeks(0);
+
+    // Clear payment and plan flags for the current user, allowing a new plan
+    sessionStorage.removeItem(`paymentSuccessful_${userId}`);
+    sessionStorage.removeItem(`planGenerated_${userId}`);
+
+     // Remove stored user data from localStorage
+    sessionStorage.removeItem(`workoutData_${userId}`);
+    setSaved(false)
   };
-  
+
   // Render appropriate input controls based on current step
   const renderInputArea = () => {
     if (currentStep === "welcome") {
       return (
-        <button 
+        <button
           onClick={handleStartChat}
           className="w-full px-4 py-2 font-semibold text-white transition duration-200 rounded-lg outline-none bg-tprimary "
         >
@@ -362,19 +395,19 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     } else if (currentStep === "fitnessLevel") {
       return (
         <div className="flex flex-wrap gap-2">
-          <button 
+          <button
             onClick={() => handleOptionSelect("beginner", "fitnessLevel")}
             className="px-3 py-2 font-medium text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600"
           >
             Beginner
           </button>
-          <button 
+          <button
             onClick={() => handleOptionSelect("intermediate", "fitnessLevel")}
             className="px-3 py-2 font-medium text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600"
           >
             Intermediate
           </button>
-          <button 
+          <button
             onClick={() => handleOptionSelect("advanced", "fitnessLevel")}
             className="px-3 py-2 font-medium text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600"
           >
@@ -386,7 +419,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
       return (
         <div className="flex flex-wrap gap-2">
           {[1, 2, 3, 4, 5, 6, 7].map(day => (
-            <button 
+            <button
               key={day}
               onClick={() => handleOptionSelect(day.toString(), "daysPerWeek")}
               className="flex items-center justify-center w-10 h-10 font-medium transition duration-200 rounded-lg text-tprimary glass-lite hover:bg-red-600"
@@ -419,16 +452,15 @@ const WorkoutChat = ({ onPlanGenerated }) => {
               disabled={isLoading}
             />
             <button
-              onClick={handleSendMessage}
+              onClick={debouncedHandleSendMessage}
               disabled={!userInput.trim() || isLoading}
               className="p-2 text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="flex items-center justify-center">
-              <i className="mr-2 text-white fa-sharp fa-solid fa-paper-plane-top"></i>
+                <i className="mr-2 text-white fa-sharp fa-solid fa-paper-plane-top"></i>
                 Send
               </span>
             </button>
-            <button onClick={handleReset}>Reset</button>
           </div>
         </div>
       );
@@ -445,6 +477,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
               </button>
             </div>
           )}
+          {!saved ? 
           <div className="flex items-center gap-2">
             <input
               type={getInputType()}
@@ -458,29 +491,45 @@ const WorkoutChat = ({ onPlanGenerated }) => {
               disabled={isLoading || currentStep === "complete" || currentStep === "payment"}
             />
             <button
-              onClick={handleSendMessage}
+              onClick={debouncedHandleSendMessage}
               disabled={!userInput.trim() || isLoading || currentStep === "payment"}
               className="p-2 text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <i className="text-white fa-sharp fa-solid fa-paper-plane-top"></i>
             </button>
-            <button
-              onClick={handleReset}
-              className="p-2 text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <i className="text-white fa-duotone fa-solid fa-arrows-rotate"></i>
-            </button>
-          </div>
+          </div>:<button onClick={handleReset}>Start Again</button>}
         </div>
       );
     }
   };
 
   const handlePaymentSuccess = () => {
+    setHasPaymentBeenAttempted(true);
     setIsPaymentSuccessful(true);
+
+    // Store payment success to prevent re-payment on refresh
+    sessionStorage.setItem(`paymentSuccessful_${userId}`, 'true');
+
+    // Store user data in session storage
+    const workoutData = {
+      fitnessLevel,
+      goal,
+      daysPerWeek,
+      timePerWorkout,
+      equipment,
+      preferences,
+      userInputData,
+    };
+    sessionStorage.setItem(`workoutData_${userId}`, JSON.stringify(workoutData));
+
     // Generate the workout plan only after payment is successful
     addMessage("Payment successful! Generating your personalized workout and diet plan...", "ai");
     generatePlan();
+  };
+
+  const handleRetryPlanGeneration = () => {
+    setIsPlanGenerationFailed(false); // Reset the failure flag
+    generatePlan(); // Retry workout plan generation
   };
 
   function updateWorkoutPlanWithFullDetails(workoutPlan, exercisesData) {
@@ -488,7 +537,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     if (!Array.isArray(workoutPlan) || !Array.isArray(exercisesData) || workoutPlan.length === 0 || exercisesData.length === 0) {
       return null;
     }
-  
+
     // Create a map of exercises by ID for quick lookup
     const exercisesById = {};
     exercisesData.forEach(exercise => {
@@ -496,10 +545,10 @@ const WorkoutChat = ({ onPlanGenerated }) => {
         exercisesById[exercise.id] = exercise;
       }
     });
-  
+
     // Deep clone the workout plan to avoid modifying the original
     const enrichedWorkoutPlan = JSON.parse(JSON.stringify(workoutPlan));
-  
+
     // Update each exercise in the workout plan with full details
     enrichedWorkoutPlan.forEach(day => {
       if (day.Workout && Array.isArray(day.Workout)) {
@@ -508,9 +557,9 @@ const WorkoutChat = ({ onPlanGenerated }) => {
             console.warn("Skipping exercise with missing ID:", exercise);
             return exercise;
           }
-  
+
           const fullExerciseDetails = exercisesById[exercise.id];
-  
+
           if (fullExerciseDetails) {
             // Return exercise with all details from exercisesData plus the workout-specific details
             return {
@@ -526,7 +575,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
         });
       }
     });
-  
+
     return enrichedWorkoutPlan;
   }
 
@@ -536,100 +585,135 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     const planName = `workoutPlan_AiGenerated_${goal}`;
     const daysPerWeek = originalPlan.length;
     const currentDate = new Date().toISOString();
-    
+
     // Create the workoutPlan array with nested structure
     const workoutPlan = [];
-    
+
     // Create first week (we'll have a single week in the array for now)
     const firstWeek = [];
-    
+
     // Add each day to the first week
     originalPlan.forEach(day => {
-        const transformedDay = {
-            day: day.Day,
-            exercises: day.Workout.map(exercise => {
-                return {
-                    bodyPart: exercise.bodyPart,
-                    equipment: exercise.equipment,
-                    gifUrl: exercise.gifUrl,
-                    id: exercise.id,
-                    name: exercise.name,
-                    target: exercise.target,
-                    secondaryMuscles: exercise.secondaryMuscles,
-                    instructions: exercise.instructions,
-                    weeklySetConfig: [
-                        { sets: exercise.Sets, isConfigured: true },
-                        { sets: 0, isConfigured: false }
-                    ]
-                };
-            })
-        };
-        firstWeek.push(transformedDay);
+      const transformedDay = {
+        day: day.Day,
+        exercises: day.Workout.map(exercise => {
+          return {
+            bodyPart: exercise.bodyPart,
+            equipment: exercise.equipment,
+            gifUrl: exercise.gifUrl,
+            id: exercise.id,
+            name: exercise.name,
+            target: exercise.target,
+            secondaryMuscles: exercise.secondaryMuscles,
+            instructions: exercise.instructions,
+            weeklySetConfig: [
+              { sets: exercise.Sets, isConfigured: true },
+              { sets: 0, isConfigured: false }
+            ]
+          };
+        })
+      };
+      firstWeek.push(transformedDay);
     });
-    
+
     // Add the first week to the workoutPlan array
     workoutPlan.push(firstWeek);
-    
+
     // Create week names and day names
     const weekNames = Array.from({ length: totalWeeks }, (_, i) => `Week ${i + 1}`);
     const dayNames = originalPlan.map(day => day.targetMuscle);
-    
+
     // Create the final structure
     const transformedWorkoutPlan = {
-        userIdCl: userId,
-        planName: planName,
-        workoutPlanDB: {
-            name: goal,
-            weeks: totalWeeks,
-            daysPerWeek: daysPerWeek,
-            workoutPlan: JSON.stringify(workoutPlan),
-            exerciseHistory: {},
-            weekNames: JSON.stringify(weekNames),
-            dayNames: JSON.stringify(dayNames),
-            date: currentDate,
-            setUpdate: false
-        }
+      userIdCl: userId,
+      planName: planName,
+      workoutPlanDB: {
+        name: goal,
+        weeks: totalWeeks,
+        daysPerWeek: daysPerWeek,
+        workoutPlan: JSON.stringify(workoutPlan),
+        exerciseHistory: {},
+        weekNames: JSON.stringify(weekNames),
+        dayNames: JSON.stringify(dayNames),
+        date: currentDate,
+        setUpdate: false
+      }
     };
-    
+
     return transformedWorkoutPlan;
-}
+  }
+
+  const savePlan = async () => {
+    const transformedPlan = transformWorkoutPlan(fullyUpdatedWorkoutPlan);
+
+    try {
+      const planDocRef = await addDoc(collection(db, 'workoutPlans'), transformedPlan);
+      toast.success('Plan Saved Successfully');
+      setSaved(true);
+      console.log("planDocRef", planDocRef);
+      sessionStorage.removeItem(`paymentSuccessful_${userId}`);
+      sessionStorage.removeItem(`planGenerated_${userId}`);
+      sessionStorage.removeItem(`workoutData_${userId}`);
+    } catch (error) {
+      console.error("Error saving plan:", error);
+      toast.error('Failed to save plan. Please try again.');
+    }
+  };
+
+  // Handle page refresh/re-entry after payment
+  useEffect(() => {
+    // Check if payment was successful for the current user
+    const paymentSuccessful = sessionStorage.getItem(`paymentSuccessful_${userId}`) === 'true';
+    const planGenerated = sessionStorage.getItem(`planGenerated_${userId}`) === 'true';
+
+    if (paymentSuccessful) {
+      setHasPaymentBeenAttempted(true)
+      setIsPaymentSuccessful(true);
+      setIsReadyForPayment(false);
+      setCurrentStep("complete");
+
+       // Retrieve stored user data from localStorage
+      const storedWorkoutData = sessionStorage.getItem(`workoutData_${userId}`);
+      if (storedWorkoutData) {
+        const workoutData = JSON.parse(storedWorkoutData);
+        setFitnessLevel(workoutData.fitnessLevel);
+        setGoal(workoutData.goal);
+        setDaysPerWeek(workoutData.daysPerWeek);
+        setTimePerWorkout(workoutData.timePerWorkout);
+        setEquipment(workoutData.equipment);
+        setPreferences(workoutData.preferences);
+        setUserInputData(workoutData.userInputData);
+      }
 
 
-
-const savePlan =async()=>{
-  const transformedPlan = transformWorkoutPlan(fullyUpdatedWorkoutPlan);
-
-  const planDocRef = await addDoc(collection(db, 'workoutPlans'), transformedPlan);
-  toast.success('Plan Saved Successfully');
-  setSaved(true)
-  console.log("planDocRef",planDocRef)
-
-}
-
-
+      // Check if plan has been generated before reloading the page.
+      if (!planGenerated) {
+        generatePlan();  // Regenerate the plan if it wasn't generated before refresh
+      }
+    }
+  }, [userId]); // Add userId as a dependency
 
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
       {/* Chat messages */}
       <div className="flex-grow mb-2 overflow-auto exerciseCard no-scrollbar">
-        <div 
-          ref={chatContainerRef} 
-          className="flex-1 space-y-2 overflow-y-auto no-scrollbar" 
+        <div
+          ref={chatContainerRef}
+          className="flex-1 space-y-2 overflow-y-auto no-scrollbar"
         >
           <div>
-            {messages.map((message,index) => (
-              <motion.div 
-                key={message.id+`_${Date.now()+index}`}
+            {messages.map((message, index) => (
+              <motion.div
+                key={message.id + `_${Date.now() + index}`}
                 className={`flex mb-2 ${message.type === 'user' ? 'justify-end' : 'justify-start '}`}
               >
-                <div 
-                  className={`max-w-[85%] rounded-lg p-2 text-sm ${
-                    message.type === 'user' 
-                      ? 'bg-red-500 text-white' 
-                      : message.isCaption 
-                        ? ' glass-lite text-tprimary' 
-                        : ' glass-lite text-tprimary'
-                  } ${message.isSuggestion ? 'cursor-pointer' : ''}`}
+                <div
+                  className={`max-w-[85%] rounded-lg p-2 text-sm ${message.type === 'user'
+                    ? 'bg-red-500 text-white'
+                    : message.isCaption
+                      ? ' glass-lite text-tprimary'
+                      : ' glass-lite text-tprimary'
+                    } ${message.isSuggestion ? 'cursor-pointer' : ''}`}
                   onClick={() => message.isSuggestion && handleCopySuggestion()}
                 >
                   {message.content}
@@ -640,33 +724,33 @@ const savePlan =async()=>{
               </motion.div>
             ))}
           </div>
-          
+
           {/* Show payment form or generated workout plan based on status */}
           {currentStep === "payment" && isReadyForPayment && !isPaymentSuccessful && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
               className="mt-2"
             >
-              <PaymentComponent 
-                onSuccess={handlePaymentSuccess} 
-                transactionId="AIWORKOUT123313"
-                amount={20} 
+              <PaymentComponent
+                onSuccess={handlePaymentSuccess}
+                transactionId={`AIWORKOUT_${userId}${Date.now()}`}
+                amount={20}
               />
             </motion.div>
           )}
-          
+
           {/* Show generated workout plan after payment and plan generation */}
-          {currentStep === "complete" && isPaymentSuccessful && updatedWorkoutPlan && (
-            <motion.div 
+          {currentStep === "complete" && isPaymentSuccessful && fullyUpdatedWorkoutPlan && !isPlanGenerationFailed && (
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
               className="mt-2 space-y-3"
             >
               {fullyUpdatedWorkoutPlan?.map((day) => (
-                <ExerciseAiCard 
+                <ExerciseAiCard
                   key={day.Day}
                   day={day.Day}
                   targetMuscle={day.targetMuscle}
@@ -679,44 +763,62 @@ const savePlan =async()=>{
                 <MealPlanCard mealData={diet} />
               )}
               <button
-  type="button"
-  onClick={!saved ? savePlan : undefined} // Prevent execution when saved = true
-  disabled={saved} // Ensure the button is disabled
-  className={`p-2 text-white transition duration-200 rounded-lg w-100
+                type="button"
+                onClick={!saved ? savePlan : undefined} // Prevent execution when saved = true
+                disabled={saved} // Ensure the button is disabled
+                className={`p-2 text-white transition duration-200 rounded-lg w-100
     ${saved ? "bg-gray-500 cursor-not-allowed" : "bg-tprimary hover:bg-red-600"}
   `}
->
-  <span className="flex items-center justify-center">
-  
-    <i className="mr-2 text-white fa-duotone fa-solid fa-floppy-disk-circle-arrow-right"></i>
-    {saved ? "Saved" : "Save Plan"} 
-  </span>
-</button>
+              >
+                <span className="flex items-center justify-center">
+
+                  <i className="mr-2 text-white fa-duotone fa-solid fa-floppy-disk-circle-arrow-right"></i>
+                  {saved ? "Saved" : "Save Plan"}
+                </span>
+              </button>
             </motion.div>
           )}
-          
+
+          {/* Display Retry Button on Plan Generation Failure */}
+          {currentStep === "complete" && isPaymentSuccessful && isPlanGenerationFailed && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+              className="mt-2"
+            >
+              
+              <button
+                onClick={handleRetryPlanGeneration}
+                className="px-4 py-2 font-semibold text-white transition duration-200 rounded-lg outline-none bg-tprimary hover:bg-red-600"
+              >
+                Retry Workout Plan Generation
+              </button>
+            </motion.div>
+          )}
+
           {/* Loading indicator */}
           {isLoading && (
             <div className="flex items-center justify-center p-2">
-              <motion.div 
+              <motion.div
                 animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
                 className="w-5 h-5 border-2 border-red-500 rounded-full border-t-transparent"
               />
             </div>
           )}
-          
+
           {/* Invisible element to scroll to */}
           <div ref={messagesEndRef} />
         </div>
       </div>
-      
+
       {/* Fixed input area at bottom */}
       <div className="mt-auto inputContainer">
         {renderInputArea()}
-        
+
       </div>
-      
+
     </div>
   );
 };

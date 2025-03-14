@@ -1,4 +1,4 @@
-import { geminiModel } from "@/firebase/firebaseConfig";
+import { geminiModel} from "@/firebase/firebaseConfig";
 
 
 
