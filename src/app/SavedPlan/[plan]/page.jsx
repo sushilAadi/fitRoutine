@@ -32,7 +32,7 @@ const TabButton = ({ active, onClick, children, disabled }) => (
 
 const PlanDetail = ({ params }) => {
   const { userId, plansRefetch,latestWeight,handleOpenClose:menuOpenClose } = useContext(GlobalContext);
-  console.log("latestWeight",{latestWeight,userId})
+  
   const USER_WEIGHT_KG = latestWeight?.userWeights;
 
   const router = useRouter();
@@ -1098,14 +1098,14 @@ const PlanDetail = ({ params }) => {
     try {
       const exercises =
         workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises;
-
+  
       if (!Array.isArray(exercises)) {
         console.error("Exercises is not a valid array:", exercises);
         return;
       }
-
+  
       const urls = { ...imageUrls };
-
+  
       for (const exercise of exercises) {
         if (
           exercise?.id &&
@@ -1113,7 +1113,9 @@ const PlanDetail = ({ params }) => {
           !brokenImages[exercise.id]
         ) {
           try {
-            const image = await getImage(exercise.id);
+            const formattedId = exercise.id.toString().padStart(4, "0"); // Ensure 4-digit ID
+  
+            const image = await getImage(formattedId);
             urls[exercise.id] = image;
             processedIds.current.add(exercise.id); // Mark as processed
           } catch (error) {
@@ -1124,12 +1126,13 @@ const PlanDetail = ({ params }) => {
           }
         }
       }
-
+  
       setImageUrls(urls); // Batch update the state
     } catch (error) {
       console.error("Error in fetchImages function:", error);
     }
   };
+  
 
   useEffect(() => {
     if (workoutData) {

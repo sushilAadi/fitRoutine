@@ -50,6 +50,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
   const [totalWeeks, setTotalWeeks] = useState(0);
+  const [saved,setSaved] = useState(false);
 
   const { data: exercisesData = [] } = useQuery({
     queryKey: ["exercise"],
@@ -531,9 +532,6 @@ const WorkoutChat = ({ onPlanGenerated }) => {
 
   const fullyUpdatedWorkoutPlan = updateWorkoutPlanWithFullDetails(updatedWorkoutPlan, exercisesData);
 
-
-
-  console.log("fullyUpdatedWorkoutPlan",{fullyUpdatedWorkoutPlan,generatedPlan})
   function transformWorkoutPlan(originalPlan) {
     const planName = `workoutPlan_AiGenerated_${goal}`;
     const daysPerWeek = originalPlan.length;
@@ -603,6 +601,7 @@ const savePlan =async()=>{
 
   const planDocRef = await addDoc(collection(db, 'workoutPlans'), transformedPlan);
   toast.success('Plan Saved Successfully');
+  setSaved(true)
   console.log("planDocRef",planDocRef)
 
 }
@@ -680,14 +679,19 @@ const savePlan =async()=>{
                 <MealPlanCard mealData={diet} />
               )}
               <button
-              onClick={savePlan}
-              className="p-2 text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed w-100"
-            >
-              <span className="flex items-center justify-center">
-              <i className="mr-2 text-white fa-duotone fa-solid fa-floppy-disk-circle-arrow-right"></i>
-                Save Plan
-              </span>
-            </button>
+  type="button"
+  onClick={!saved ? savePlan : undefined} // Prevent execution when saved = true
+  disabled={saved} // Ensure the button is disabled
+  className={`p-2 text-white transition duration-200 rounded-lg w-100
+    ${saved ? "bg-gray-500 cursor-not-allowed" : "bg-tprimary hover:bg-red-600"}
+  `}
+>
+  <span className="flex items-center justify-center">
+  
+    <i className="mr-2 text-white fa-duotone fa-solid fa-floppy-disk-circle-arrow-right"></i>
+    {saved ? "Saved" : "Save Plan"} 
+  </span>
+</button>
             </motion.div>
           )}
           
