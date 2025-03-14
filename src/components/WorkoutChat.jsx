@@ -25,7 +25,7 @@ const dotColorMap = {
 };
 
 const WorkoutChat = ({ onPlanGenerated }) => {
-  const { userDetailData } = useContext(GlobalContext);
+  const { userDetailData,userId } = useContext(GlobalContext);
   const [messages, setMessages] = useState([]);
   const [userInput, setUserInput] = useState("");
   const [currentStep, setCurrentStep] = useState("welcome");
@@ -528,7 +528,59 @@ const WorkoutChat = ({ onPlanGenerated }) => {
 
   const fullyUpdatedWorkoutPlan = updateWorkoutPlanWithFullDetails(updatedWorkoutPlan, exercisesData);
 
+  const saveWorkoutPlanToDatabase=async({
+    userId,
+    planName,
+    totalWeeks,
+    daysPerWeek,
+    workoutPlan,
+    exerciseHistory = [],
+    weekNames = [],
+    dayNames = [],
+    isChecked = false
+  }) =>{
+    // Format the data according to the required structure
+    const planToSave = {
+      name: planName,
+      weeks: JSON.stringify(totalWeeks),
+      daysPerWeek: JSON.stringify(daysPerWeek),
+      workoutPlan: JSON.stringify(workoutPlan),
+      exerciseHistory: JSON.stringify(exerciseHistory),
+      weekNames: JSON.stringify(weekNames),
+      dayNames: JSON.stringify(dayNames),
+      date: new Date().toISOString(),
+      setUpdate: isChecked,
+    };
+    
+    console.log("create", {
+      userIdCl: userId,
+      planName: `workoutPlan_${planName}`,
+      workoutPlanDB: planToSave,
+    });
+    
+    // Add a new document with a generated ID
+    const planDocRef = await addDoc(collection(db, 'workoutPlans'), {
+      userIdCl: userId,
+      planName: `workoutPlan_${planName}`,
+      workoutPlanDB: planToSave,
+    });
+    
+    return planDocRef;
+  }
+
   console.log("fullyUpdatedWorkoutPlan",fullyUpdatedWorkoutPlan,totalWeeks)
+
+  // const saveData ={
+  //   planName:"ai pLan",
+  //   userIdCl:userId,
+  //   weeks: totalWeeks,
+  // daysPerWeek: 5,
+  // workoutPlan: fullyUpdatedWorkoutPlan,
+  // exerciseHistory: [],
+  // weekNames: ["Week 1", "Week 2", "Week 3", "Week 4"],
+  // dayNames: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+  // isChecked: true
+  // }
 
   return (
     <div className="flex flex-col justify-between h-full overflow-hidden">
@@ -622,6 +674,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
       {/* Fixed input area at bottom */}
       <div className="mt-auto inputContainer">
         {renderInputArea()}
+        {/* <button onClick={()=>saveWorkoutPlanToDatabase(saveData)}>Save</button> */}
       </div>
     </div>
   );

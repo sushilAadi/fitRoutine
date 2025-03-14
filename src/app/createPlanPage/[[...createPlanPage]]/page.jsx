@@ -231,6 +231,11 @@ const createPlanPage = () => {
         date: new Date().toISOString(), // Store date in ISO string format
         setUpdate: isChecked,
       };
+      console.log("create",{
+        userIdCl: id,
+        planName: `workoutPlan_${planName}`,
+        workoutPlanDB: planToSave,
+      })
   
       // Add a new document with a generated ID
       const planDocRef = await addDoc(collection(db, 'workoutPlans'), {
