@@ -1,22 +1,22 @@
-import React from 'react'
+import React from 'react';
 import {
     Accordion,
     AccordionHeader,
     AccordionBody,
-  } from "@material-tailwind/react";
-  import { motion } from "framer-motion";
+} from "@material-tailwind/react";
+import { motion } from "framer-motion";
 
-const PlannedMeal = (props) => {
+const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion }) => {
   return (
     <div className="pb-20 space-y-3 overflow-y-auto">
-      {props.dietList?.map((meal, index) => (
+      {dietList?.map((meal, index) => (
         <Accordion
           key={index}
-          open={props.openAccordion === index + 1}
+          open={openAccordion === index + 1}
           className="overflow-hidden bg-white border border-blue-100 rounded-lg"
         >
           <AccordionHeader
-            onClick={() => props.handleOpenAccordion(index + 1)}
+            onClick={() => handleOpenAccordion(index + 1)}
             className="px-4 py-2 text-gray-800 border-b-0"
           >
             <div className="flex items-center justify-between w-full">
@@ -52,9 +52,7 @@ const PlannedMeal = (props) => {
                   <span className="text-amber-500">F: {meal.fats}</span>
                 </div>
                 <motion.button
-                  whileTap={{
-                    scale: 0.95,
-                  }}
+                  whileTap={{ scale: 0.95 }}
                   className="flex items-center gap-1 text-blue-500"
                 >
                   <span className="text-xl">+</span>
@@ -66,7 +64,7 @@ const PlannedMeal = (props) => {
         </Accordion>
       ))}
     </div>
-  )
-}
+  );
+};
 
-export default PlannedMeal
+export default PlannedMeal;
