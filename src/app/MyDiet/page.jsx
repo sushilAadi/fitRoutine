@@ -137,6 +137,7 @@ const MyDiet = () => {
           <h1 className="text-2xl font-bold">My Diet Plan</h1>
         </div>
 
+        <div className="mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">
         <div className="bg-white shadow-md">
           <WeeklyCalendar
             selectedDate={selectedDate}
@@ -166,8 +167,10 @@ const MyDiet = () => {
               openAccordion={openAccordion}
               dietList={dietList}
               handleOpenAccordion={handleOpenAccordion}
+              userId={userId}
             />
           )}
+        </div>
         </div>
       </div>
     </SecureComponent>
