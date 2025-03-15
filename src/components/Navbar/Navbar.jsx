@@ -20,10 +20,10 @@ import {
 import { GlobalContext } from "@/context/GloablContext";
 
 const NavbarComponent = () => {
-  const {handleOpenClose} = useContext(GlobalContext)
+  const {handleOpenClose,show} = useContext(GlobalContext)
 
   return (
-    <div className="absolute px-4 pt-2 w-100">
+    <div className="absolute px-4 pt-2 w-100 z-[999999999]">
       <div className="flex items-center justify-between ">
         <Typography
           as="a"
@@ -70,6 +70,7 @@ const NavbarComponent = () => {
 
             </ul>
         </div>
+        {!show && 
         <IconButton
           variant="text"
           className="w-6 h-6 ml-auto text-inherit hover:bg-transparent focus:bg-transparent active:bg-transparent lg:hidden"
@@ -77,7 +78,7 @@ const NavbarComponent = () => {
           onClick={handleOpenClose}
         >
           <Bars3Icon className="w-6 h-6" />
-        </IconButton>
+        </IconButton>}
       </div>
 
     </div>

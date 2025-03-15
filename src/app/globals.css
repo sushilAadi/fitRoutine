@@ -345,6 +345,16 @@ border-radius: 5px;
 border: 1px solid rgba( 255, 255, 255, 0.18 );
 }
 
+.datePicker .MuiInputBase-adornedEnd{
+  border: none !important; 
+}
+
+.datePicker input{
+  padding: 4px !important;
+  outline: 0 !important;
+  
+}
+
 
 
 

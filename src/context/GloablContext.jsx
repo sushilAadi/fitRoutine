@@ -147,6 +147,7 @@ export default function GlobalContextProvider({ children }) {
     plans,
     userAgeCal,
     isFetching,
+    
   ]);
 
   return <GlobalContext.Provider value={contextValue}>{children}</GlobalContext.Provider>;

@@ -648,6 +648,12 @@ const WorkoutChat = ({ onPlanGenerated }) => {
 
     try {
       const planDocRef = await addDoc(collection(db, 'workoutPlans'), transformedPlan);
+      const dietDocRef = await addDoc(collection(db, 'diet_AI'),{
+        ...diet,
+        totalWeeks: totalWeeks,
+        userIdCl: userId,
+        planName: goal
+      });
       toast.success('Plan Saved Successfully');
       setSaved(true);
       console.log("planDocRef", planDocRef);
@@ -659,6 +665,8 @@ const WorkoutChat = ({ onPlanGenerated }) => {
       toast.error('Failed to save plan. Please try again.');
     }
   };
+
+  console.log("diet",diet)
 
   const handleExport = () => {
     console.log("totalWeeks",totalWeeks)
