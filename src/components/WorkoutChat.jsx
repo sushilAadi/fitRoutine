@@ -643,8 +643,6 @@ const WorkoutChat = ({ onPlanGenerated }) => {
 
     return transformedWorkoutPlan;
   }
-
-  console.log("fullyUpdatedWorkoutPlan",fullyUpdatedWorkoutPlan,totalWeeks)
   const savePlan = async () => {
     const transformedPlan = transformWorkoutPlan(fullyUpdatedWorkoutPlan);
 

@@ -50,7 +50,7 @@ const jsonToSpreadsheet = (data, planName, totalWeeks) => {
 
            for (let i = 1; i <= maxSets; i++) {
             headerRow1.push(`SET ${i}`, '', '', '');
-             headerRow2.push('REPS', 'WEIGHT', 'TIME TAKEN', 'REST TIME');
+             headerRow2.push('REPS', 'WEIGHT', ' TIME TAKEN ', ' REST TIME ');
            }
 
 
