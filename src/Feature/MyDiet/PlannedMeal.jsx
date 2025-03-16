@@ -1,22 +1,24 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Accordion,
     AccordionHeader,
     AccordionBody,
 } from "@material-tailwind/react";
 import { motion } from "framer-motion";
-import { db } from '../../firebase/firebaseConfig'; // Adjust path as needed
+
 import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { format, isEqual, startOfDay } from 'date-fns';
+import { db, geminiModel } from '@/firebase/firebaseConfig';
 
 const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, selectedDate }) => {
-    const mealCategories = ["Breakfast", "Lunch", "Snack","Exercise", "Dinner" ];
+    const mealCategories = ["Breakfast", "Lunch", "Snack", "Exercise", "Dinner"];
     const [userMeals, setUserMeals] = useState({}); // Store user-added meals, keyed by category
     const [loading, setLoading] = useState(true);
     const [editingMeal, setEditingMeal] = useState(null); // { category: '...', id: '...' }
     const [newMealForms, setNewMealForms] = useState({}); // Track which categories have active new meal forms
     const [newMealData, setNewMealData] = useState({}); // Store data for new meals, keyed by category
     const [localMeals, setLocalMeals] = useState({}); // Store local meals for editing
+
     const inputRefs = useRef({}); // Store references to the input elements
 
 
@@ -31,12 +33,12 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                 const mealsByCategory = {};
                 querySnapshot.forEach((doc) => {
                     const mealData = doc.data();
-                    
+
                     // Convert Firestore timestamp to JS Date if necessary
-                    const mealDate = mealData.date instanceof Date 
-                        ? mealData.date 
+                    const mealDate = mealData.date instanceof Date
+                        ? mealData.date
                         : mealData.date?.toDate?.() || new Date();
-                    
+
                     // Check if the meal date matches the selected date
                     if (isEqual(startOfDay(mealDate), startOfDay(selectedDate))) {
                         const category = mealData.meal;  // Use 'meal' field
@@ -90,13 +92,18 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             delete newState[category];
             return newState;
         });
+        setNewMealData(prevState => {
+            const newState = { ...prevState };
+            delete newState[category];
+            return newState;
+        });
     };
 
     const handleSaveNewMeal = async (category, mealData) => {  // Pass the mealData
         try {
             const mealCollectionRef = collection(db, "meals");
             const docRef = await addDoc(mealCollectionRef, mealData); // Use the passed mealData
-            
+
 
             setUserMeals((prevState) => {
                 const newMealList = [
@@ -116,7 +123,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         }
     };
 
-   const handleEditMeal = (category, mealId) => {
+    const handleEditMeal = (category, mealId) => {
         // Initialize local meal state when editing starts
         setLocalMeals(prevState => ({
             ...prevState,
@@ -131,7 +138,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         setLocalMeals({}); // Clear local meals when canceling edit
     };
 
-   const handleUpdateMeal = async (category, mealId, updatedMealData) => {
+    const handleUpdateMeal = async (category, mealId, updatedMealData) => {
         try {
             const mealDocRef = doc(db, "meals", mealId);
             await updateDoc(mealDocRef, updatedMealData);
@@ -171,7 +178,69 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         }
     };
 
-   const renderMealItem = (meal, category, isSuggested) => {
+    const handleGeminiSuggestion = async (category, mealId, food, quantity, isNewMeal) => {
+        if (!food || !quantity) {
+            alert("Please enter food name and quantity to get suggestions.");
+            return;
+        }
+    
+        const prompt = `Give me the estimated nutritional information (calories, carbs, protein, and fat) for ${quantity} of ${food}. Return the response as a JSON object with keys: calories, carbs, protein, fats. If you cannot find the information, return a JSON object with all values set to empty strings ("").`;
+    
+        try {
+            const response = await geminiModel.generateContent(prompt);
+            let text = response.response.text();
+    
+    
+            // Use a regular expression to remove the code block
+            const codeBlockRegex = /```json\s*([\s\S]*?)\s*```/;
+            const match = text.match(codeBlockRegex);
+    
+            if (match) {
+                text = match[1]; // Extract the JSON from the first capturing group
+            }
+    
+    
+            let parsedData;
+            try {
+                parsedData = JSON.parse(text);
+            } catch (parseError) {
+                console.error("Error parsing Gemini response:", parseError, "Raw text:", text);
+                alert("Could not understand the response from Gemini. Please try again or enter manually.");
+                return;
+            }
+    
+            if (isNewMeal) {
+                setNewMealData(prevState => ({
+                    ...prevState,
+                    [category]: {
+                        ...prevState[category],
+                        calories: parsedData.calories || "",
+                        //Remove the unit and parse only the number
+                        carbs: parsedData.carbs ? parsedData.carbs.replace(/[^0-9.]/g, '') : "",
+                        protein: parsedData.protein ? parsedData.protein.replace(/[^0-9.]/g, '') : "",
+                        fats: parsedData.fats ? parsedData.fats.replace(/[^0-9.]/g, '') : "",
+                    },
+                }));
+            } else {
+                setLocalMeals(prevState => ({
+                    ...prevState,
+                    [mealId]: {
+                        ...prevState[mealId],
+                        calories: parsedData.calories || "",
+                        //Remove the unit and parse only the number
+                        carbs: parsedData.carbs ? parsedData.carbs.replace(/[^0-9.]/g, '') : "",
+                        protein: parsedData.protein ? parsedData.protein.replace(/[^0-9.]/g, '') : "",
+                        fats: parsedData.fats ? parsedData.fats.replace(/[^0-9.]/g, '') : "",
+                    }
+                }));
+            }
+    
+        } catch (error) {
+            console.error("Error getting Gemini suggestion:", error);
+            alert("Could not fetch suggestions. Please try again or enter manually.");
+        }
+    };
+    const renderMealItem = (meal, category, isSuggested) => {
         const isBeingEdited = editingMeal?.category === category && editingMeal?.id === meal.id;
         // Get localMeal from the state, or initialize it with the original meal data
         const localMeal = localMeals[meal.id] || meal;
@@ -188,6 +257,9 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             }));
         };
 
+        const handleGetSuggestion = () => {
+            handleGeminiSuggestion(category, meal.id, localMeal.food, localMeal.quantity, false);
+        };
 
         if (isBeingEdited) {
             return (
@@ -199,13 +271,19 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                         onChange={(e) => handleInputChange(e, 'food')}
                         className="w-full px-2 py-1 mb-1 border rounded"
                     />
+                    <div className="flex items-center justify-between gap-3">
                     <input
                         type="text"
                         value={localMeal.quantity || ""}
                         placeholder="Quantity (e.g., 100g)"
                         onChange={(e) => handleInputChange(e, 'quantity')}
-                        className="w-full px-2 py-1 mb-1 border rounded"
+                        className="px-2 py-1 mb-1 border rounded "
                     />
+                    
+                    <i className="text-xl text-orange-500 cursor-pointer fa-solid fa-hand-sparkles" onClick={handleGetSuggestion}></i>
+                    
+                    </div>
+                    
                     <input
                         type="number"
                         value={localMeal.calories || ""}
@@ -257,7 +335,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         }
 
         return (
-            <div key={meal.id} className={`pt-2 border-t border-gray-100 p-2 ${isSuggested && "bg-gray-100 rounded-sm"}`}>
+            <div key={meal.id} className={`pt-2 border-t border-gray-100 p-2 ${isSuggested && "bg-gray-100 rounded-lg"}`}>
                 <p className="mb-1 font-medium text-gray-800">{meal.food}</p>
                 <p className="mb-2 text-sm text-gray-500">{meal.quantity}</p>
                 {meal.calories && <p className="mb-2 text-sm font-semibold text-orange-500">CALORIES: {meal.calories} kcal</p>}
@@ -279,7 +357,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         );
     };
 
-   const renderNewMealForm = (category, mealData, setMealData, onSave, onCancel) => {
+    const renderNewMealForm = (category, mealData, setMealData) => {
         const handleInputChange = (e, field) => {
             setMealData(prevState => ({
                 ...prevState,
@@ -290,6 +368,10 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             }));
         };
 
+
+        const handleGetSuggestion = () => {
+            handleGeminiSuggestion(category, null, mealData[category]?.food, mealData[category]?.quantity, true);
+        };
         return (
             <div className="pt-2 border-t border-gray-100">
                 <input
@@ -299,6 +381,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                     onChange={(e) => handleInputChange(e, 'food')}
                     className="w-full px-2 py-1 mb-1 border rounded"
                 />
+                <div className="flex items-center justify-between gap-3">
                 <input
                     type="text"
                     placeholder="Quantity (e.g., 100g)"
@@ -306,6 +389,10 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                     onChange={(e) => handleInputChange(e, 'quantity')}
                     className="w-full px-2 py-1 mb-1 border rounded"
                 />
+                
+                    <i className="text-xl text-orange-500 cursor-pointer fa-solid fa-hand-sparkles" onClick={handleGetSuggestion}></i>
+                
+                </div>
                 <input
                     type="number"
                     placeholder="Calories"
@@ -339,7 +426,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                     <motion.button
                         whileTap={{ scale: 0.95 }}
                         className="flex items-center gap-1 text-green-500"
-                        onClick={() => onSave(category, mealData[category])}
+                        onClick={() => handleSaveNewMeal(category, mealData[category])}
                     >
                         <span className="text-xl">✔️</span>
                     </motion.button>
@@ -347,7 +434,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                     <motion.button
                         whileTap={{ scale: 0.95 }}
                         className="flex items-center gap-1 text-red-500"
-                        onClick={onCancel}
+                        onClick={() => handleCancelNewMeal(category)}
                     >
                         <span className="text-xl">❌</span>
                     </motion.button>
@@ -361,18 +448,18 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
     const filteredDietList = dietList?.filter(meal => {
         // Assuming dietList has a date field. If not, you might need to adjust this logic
         if (!meal.date) return false;
-        
-        const mealDate = meal.date instanceof Date 
-            ? meal.date 
+
+        const mealDate = meal.date instanceof Date
+            ? meal.date
             : meal.date?.toDate?.() || new Date();
-            
+
         return isEqual(startOfDay(mealDate), startOfDay(selectedDate));
     }) || [];
 
     if (loading) {
         return <div>Loading...</div>; // Or a better loading indicator
     }
-    
+
 
     return (
         <div className="pb-20 space-y-3 overflow-y-auto">
@@ -414,7 +501,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                                     )}
                                     <span className="font-medium">{category}</span>
                                 </div>
-                                
+
                             </div>
                         </AccordionHeader>
                         <AccordionBody className="p-2 pt-0">
@@ -429,8 +516,6 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                                 category,
                                 newMealData,
                                 setNewMealData,
-                                handleSaveNewMeal,
-                                () => handleCancelNewMeal(category)
                             )}
 
                             {!newMealForms[category] && (
@@ -445,7 +530,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                             )}
 
 
-                            {(suggestedMeals.length === 0 && userAddedMeals.length === 0) && !newMealForms[category] &&(
+                            {(suggestedMeals.length === 0 && userAddedMeals.length === 0) && !newMealForms[category] && (
                                 <div className="pt-2 border-t border-gray-100">
                                     <p className="mb-1 font-medium text-gray-800">No meals planned for {category}</p>
                                 </div>
