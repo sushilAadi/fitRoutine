@@ -189,6 +189,13 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                         onChange={(e) => handleInputChange(e, 'quantity')}
                         className="w-full px-2 py-1 mb-1 border rounded"
                     />
+                    <input
+                        type="text"
+                        value={meal.calories}
+                        placeholder="Calories"
+                        onChange={(e) => handleInputChange(e, 'calories')}
+                        className="w-full px-2 py-1 mb-1 border rounded"
+                    />
                     <div className="flex justify-between text-sm">
                         <input
                             type="text"
@@ -211,13 +218,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                             onChange={(e) => handleInputChange(e, 'fats')}
                             className="w-16 px-2 py-1 border rounded"
                         />
-                        <input
-                            type="text"
-                            value={meal.calories}
-                            placeholder="Calories"
-                            onChange={(e) => handleInputChange(e, 'calories')}
-                            className="w-16 px-2 py-1 border rounded"
-                        />
+
                         <motion.button
                             whileTap={{ scale: 0.95 }}
                             className="flex items-center gap-1 text-green-500"
@@ -242,12 +243,13 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             <div key={meal.id} className="pt-2 border-t border-gray-100">
                 <p className="mb-1 font-medium text-gray-800">{meal.food}</p>
                 <p className="mb-2 text-sm text-gray-500">{meal.quantity}</p>
+                {meal.calories && <p className="mb-2 text-sm font-semibold text-orange-500">CALORIES: {meal.calories} kcal</p>}
 
                 <div className="flex justify-between text-sm">
                     <div className="flex gap-3">
-                        <span className="text-red-500">CARBS: {meal.carbs}</span>
-                        <span className="text-blue-500">PROTEIN: {meal.protein}</span>
-                        <span className="text-amber-500">FAT: {meal.fats}</span>
+                        <span className="font-semibold text-red-500">CARBS: {meal.carbs}{!isSuggested && "g"}</span>
+                        <span className="font-semibold text-blue-500">PROTEIN: {meal.protein}{!isSuggested && "g"}</span>
+                        <span className="font-semibold text-amber-500">FAT: {meal.fats}{!isSuggested && "g"}</span>
                     </div>
                     {!isSuggested && (
                         <div className='flex gap-3'>
@@ -287,33 +289,33 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                     onChange={(e) => handleInputChange(e, 'quantity')}
                     className="w-full px-2 py-1 mb-1 border rounded"
                 />
+                 <input
+                    type="number"
+                    placeholder="Calories"
+                    value={mealData[category]?.calories || ""}  // Use mealData
+                    onChange={(e) => handleInputChange(e, 'calories')}
+                    className="w-full px-2 py-1 mb-1 border rounded"
+                />
                 <div className="flex justify-between text-sm">
                     <input
-                        type="text"
+                        type="number"
                         placeholder="Carbs (g)"
                         value={mealData[category]?.carbs || ""}  // Use mealData
                         onChange={(e) => handleInputChange(e, 'carbs')}
                         className="w-16 px-2 py-1 border rounded"
                     />
                     <input
-                        type="text"
+                        type="number"
                         placeholder="Protein (g)"
                         value={mealData[category]?.protein || ""}  // Use mealData
                         onChange={(e) => handleInputChange(e, 'protein')}
                         className="w-16 px-2 py-1 border rounded"
                     />
                     <input
-                        type="text"
+                        type="number"
                         placeholder="Fats (g)"
                         value={mealData[category]?.fats || ""}  // Use mealData
                         onChange={(e) => handleInputChange(e, 'fats')}
-                        className="w-16 px-2 py-1 border rounded"
-                    />
-                    <input
-                        type="text"
-                        placeholder="Calories"
-                        value={mealData[category]?.calories || ""}  // Use mealData
-                        onChange={(e) => handleInputChange(e, 'calories')}
                         className="w-16 px-2 py-1 border rounded"
                     />
 
@@ -365,9 +367,9 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                 const suggestedMeals = dietList?.filter(meal => meal.meal === category);
                 const userAddedMeals = userMeals[category] || [];  // Use || [] to avoid undefined errors
 
-                const totalCalories = (suggestedMeals?.reduce((sum, meal) => sum + Number(meal.calories || 0), 0) || 0) +  // Add suggested calories
-                    (userAddedMeals?.reduce((sum, meal) => sum + Number(meal.calories || 0), 0) || 0);       // add user entered calories
-
+                {/* const totalCalories = (suggestedMeals?.reduce((sum, meal) => sum + Number(meal.calories || 0), 0) || 0) +  // Add suggested calories */}
+                const totalCalories =     (userAddedMeals?.reduce((sum, meal) => sum + Number(meal.calories || 0), 0) || 0);       // add user entered calories
+console.log("userAddedMeals",userAddedMeals)
                 return (
                     <Accordion
                         key={category}
@@ -397,9 +399,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                                     )}
                                     <span className="font-medium">{category}</span>
                                 </div>
-                                <span className="text-sm text-gray-500">
-                                    {totalCalories} kcal
-                                </span>
+                                
                             </div>
                         </AccordionHeader>
                         <AccordionBody className="px-4 py-2 pt-0">
