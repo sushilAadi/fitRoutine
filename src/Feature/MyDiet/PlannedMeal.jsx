@@ -9,18 +9,21 @@ import { motion } from "framer-motion";
 import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { format, isEqual, startOfDay } from 'date-fns';
 import { db, geminiModel } from '@/firebase/firebaseConfig';
+import toast from 'react-hot-toast'; // Import react-hot-toast
+
+
 
 const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, selectedDate }) => {
     const mealCategories = ["Breakfast", "Lunch", "Snack", "Exercise", "Dinner"];
-    const [userMeals, setUserMeals] = useState({}); // Store user-added meals, keyed by category
+    const [userMeals, setUserMeals] = useState({});
     const [loading, setLoading] = useState(true);
-    const [editingMeal, setEditingMeal] = useState(null); // { category: '...', id: '...' }
-    const [newMealForms, setNewMealForms] = useState({}); // Track which categories have active new meal forms
-    const [newMealData, setNewMealData] = useState({}); // Store data for new meals, keyed by category
-    const [localMeals, setLocalMeals] = useState({}); // Store local meals for editing
+    const [editingMeal, setEditingMeal] = useState(null);
+    const [newMealForms, setNewMealForms] = useState({});
+    const [newMealData, setNewMealData] = useState({});
+    const [localMeals, setLocalMeals] = useState({});
+    const [generatingSuggestion, setGeneratingSuggestion] = useState(false);
 
-    const inputRefs = useRef({}); // Store references to the input elements
-
+    const inputRefs = useRef({});
 
     useEffect(() => {
         const fetchUserMeals = async () => {
@@ -34,14 +37,12 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                 querySnapshot.forEach((doc) => {
                     const mealData = doc.data();
 
-                    // Convert Firestore timestamp to JS Date if necessary
                     const mealDate = mealData.date instanceof Date
                         ? mealData.date
                         : mealData.date?.toDate?.() || new Date();
 
-                    // Check if the meal date matches the selected date
                     if (isEqual(startOfDay(mealDate), startOfDay(selectedDate))) {
-                        const category = mealData.meal;  // Use 'meal' field
+                        const category = mealData.meal;
                         if (!mealsByCategory[category]) {
                             mealsByCategory[category] = [];
                         }
@@ -51,24 +52,21 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                 setUserMeals(mealsByCategory);
             } catch (error) {
                 console.error("Error fetching user meals:", error);
-                // Handle error (e.g., display an error message)
             } finally {
                 setLoading(false);
             }
         };
 
-        if (userId) { // Only fetch if userId is available
+        if (userId) {
             fetchUserMeals();
         } else {
-            setLoading(false);  // Set loading to false if no userId to avoid infinite loading
+            setLoading(false);
         }
 
-    }, [userId, selectedDate]); // Re-fetch when selectedDate changes
+    }, [userId, selectedDate]);
 
     const handleAddMeal = (category) => {
-        // Open the new meal form for the specified category
         setNewMealForms(prevState => ({ ...prevState, [category]: true }));
-        // Initialize new meal data for the category
         setNewMealData(prevState => ({
             ...prevState,
             [category]: {
@@ -80,13 +78,12 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                 protein: "",
                 calories: "",
                 userId: userId,
-                date: selectedDate, // Use the selected date for new meals
+                date: selectedDate,
             },
         }));
     };
 
     const handleCancelNewMeal = (category) => {
-        // Close the new meal form
         setNewMealForms(prevState => {
             const newState = { ...prevState };
             delete newState[category];
@@ -99,11 +96,10 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         });
     };
 
-    const handleSaveNewMeal = async (category, mealData) => {  // Pass the mealData
+    const handleSaveNewMeal = async (category, mealData) => {
         try {
             const mealCollectionRef = collection(db, "meals");
-            const docRef = await addDoc(mealCollectionRef, mealData); // Use the passed mealData
-
+            const docRef = await addDoc(mealCollectionRef, mealData);
 
             setUserMeals((prevState) => {
                 const newMealList = [
@@ -115,16 +111,13 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                     [category]: newMealList,
                 };
             });
-            // Clear the new meal form after saving
             handleCancelNewMeal(category);
         } catch (e) {
             console.error("Error adding document: ", e);
-            // Handle error (e.g., display an error message)
         }
     };
 
     const handleEditMeal = (category, mealId) => {
-        // Initialize local meal state when editing starts
         setLocalMeals(prevState => ({
             ...prevState,
             [mealId]: { ...userMeals[category].find(meal => meal.id === mealId) }
@@ -132,10 +125,9 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         setEditingMeal({ category, id: mealId });
     };
 
-
     const handleCancelEdit = () => {
         setEditingMeal(null);
-        setLocalMeals({}); // Clear local meals when canceling edit
+        setLocalMeals({});
     };
 
     const handleUpdateMeal = async (category, mealId, updatedMealData) => {
@@ -143,7 +135,6 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             const mealDocRef = doc(db, "meals", mealId);
             await updateDoc(mealDocRef, updatedMealData);
 
-            // Optimistically update the state
             setUserMeals(prevState => {
                 const updatedCategoryMeals = prevState[category].map(meal =>
                     meal.id === mealId ? { ...meal, ...updatedMealData } : meal
@@ -151,11 +142,10 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                 return { ...prevState, [category]: updatedCategoryMeals };
             });
 
-            setEditingMeal(null); // Clear editing state
-            setLocalMeals({}); // Clear local meals after saving
+            setEditingMeal(null);
+            setLocalMeals({});
         } catch (error) {
             console.error("Error updating meal:", error);
-            // Handle error (e.g., display an error message)
         }
     };
 
@@ -164,61 +154,87 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             const mealDocRef = doc(db, "meals", mealId);
             await deleteDoc(mealDocRef);
 
-            // Optimistically update the state
             setUserMeals(prevState => {
                 const updatedCategoryMeals = prevState[category].filter(meal => meal.id !== mealId);
                 return { ...prevState, [category]: updatedCategoryMeals };
             });
 
-            setEditingMeal(null); // Clear editing state, in case we were editing the meal
-            setLocalMeals({}); // Clear local meals after deleting
+            setEditingMeal(null);
+            setLocalMeals({});
         } catch (error) {
             console.error("Error deleting meal:", error);
-            // Handle error (e.g., display an error message)
         }
     };
 
     const handleGeminiSuggestion = async (category, mealId, food, quantity, isNewMeal) => {
         if (!food || !quantity) {
-            alert("Please enter food name and quantity to get suggestions.");
+            toast.warn("Please enter food name and quantity to get suggestions.", { position: "top-center" });
             return;
         }
-    
-        const prompt = `Give me the estimated nutritional information (calories, carbs, protein, and fat) for ${quantity} of ${food}. Return the response as a JSON object with keys: calories, carbs, protein, fats. If you cannot find the information, return a JSON object with all values set to empty strings ("").`;
-    
+
+        setGeneratingSuggestion(true);
+
+        const prompt = `Give me the estimated nutritional information (calories, carbs, protein, and fat) for ${quantity} of ${food}. Return the response as a JSON object with keys: calories, carbs, protein, fats. If you cannot find the information, return a JSON object with all values set to empty strings (""). Give clear integer value only`;
+
         try {
             const response = await geminiModel.generateContent(prompt);
             let text = response.response.text();
-    
-    
-            // Use a regular expression to remove the code block
+
             const codeBlockRegex = /```json\s*([\s\S]*?)\s*```/;
             const match = text.match(codeBlockRegex);
-    
+
             if (match) {
-                text = match[1]; // Extract the JSON from the first capturing group
+                text = match[1];
             }
-    
-    
+
             let parsedData;
             try {
                 parsedData = JSON.parse(text);
             } catch (parseError) {
                 console.error("Error parsing Gemini response:", parseError, "Raw text:", text);
-                alert("Could not understand the response from Gemini. Please try again or enter manually.");
+                toast.error("Could not understand the response from Gemini. Please try again or add manually.", { position: "top-center" });
                 return;
             }
-    
+console.log("parsedData",parsedData)
+             if (parsedData && Object.keys(parsedData).length === 0 && parsedData.constructor === Object) {
+                  console.warn("Gemini returned an empty object, retrying");  // log the empty response
+                 return;
+             }
+
+             const processValue = (value) => {
+                if (!value) return "";
+            
+                // Ensure value is a string
+                const stringValue = typeof value === 'string' ? value : String(value);
+            
+                // 1. Clean the text
+                let cleanedValue = stringValue.replace(/approximately|approx\.|depending on.*|varies greatly|about/gi, "");
+            
+                // 2. Extract the first number from a range (e.g., "200-400" becomes "200")
+                const rangeMatch = cleanedValue.match(/(\d+(\.\d+)?)/); // Match a number with optional decimal
+                if (rangeMatch) {
+                    cleanedValue = rangeMatch[1]; // Take the first matched number
+                }
+            
+                // 3. Remove all non-numeric characters except the decimal point
+                const numericValue = cleanedValue.replace(/[^0-9.]/g, '');
+            
+                // 4. Parse as float (to handle decimals), then round to integer
+                const numValue = parseFloat(numericValue);
+            
+                // 5. Return as string, or empty string if parsing fails
+                return isNaN(numValue) ? "" : Math.round(numValue).toString();
+            };
+
             if (isNewMeal) {
                 setNewMealData(prevState => ({
                     ...prevState,
                     [category]: {
                         ...prevState[category],
-                        calories: parsedData.calories || "",
-                        //Remove the unit and parse only the number
-                        carbs: parsedData.carbs ? parsedData.carbs.replace(/[^0-9.]/g, '') : "",
-                        protein: parsedData.protein ? parsedData.protein.replace(/[^0-9.]/g, '') : "",
-                        fats: parsedData.fats ? parsedData.fats.replace(/[^0-9.]/g, '') : "",
+                        calories: processValue(parsedData.calories),
+                        carbs: processValue(parsedData.carbs),
+                        protein: processValue(parsedData.protein),
+                        fats: processValue(parsedData.fats),
                     },
                 }));
             } else {
@@ -226,38 +242,47 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                     ...prevState,
                     [mealId]: {
                         ...prevState[mealId],
-                        calories: parsedData.calories || "",
-                        //Remove the unit and parse only the number
-                        carbs: parsedData.carbs ? parsedData.carbs.replace(/[^0-9.]/g, '') : "",
-                        protein: parsedData.protein ? parsedData.protein.replace(/[^0-9.]/g, '') : "",
-                        fats: parsedData.fats ? parsedData.fats.replace(/[^0-9.]/g, '') : "",
+                        calories: processValue(parsedData.calories),
+                        carbs: processValue(parsedData.carbs),
+                        protein: processValue(parsedData.protein),
+                        fats: processValue(parsedData.fats),
                     }
                 }));
             }
-    
+
         } catch (error) {
             console.error("Error getting Gemini suggestion:", error);
-            alert("Could not fetch suggestions. Please try again or enter manually.");
+            toast.error("Could not fetch suggestions. Please add manually.", { position: "top-center" });
+        } finally {
+            setGeneratingSuggestion(false);
         }
     };
+
     const renderMealItem = (meal, category, isSuggested) => {
         const isBeingEdited = editingMeal?.category === category && editingMeal?.id === meal.id;
-        // Get localMeal from the state, or initialize it with the original meal data
         const localMeal = localMeals[meal.id] || meal;
 
         const handleInputChange = (e, field) => {
             const value = e.target.value;
-            // Update the localMeals state
-            setLocalMeals(prevState => ({
+
+            setLocalMeals(prevState => {
+                const updatedMeal = { ...(prevState[meal.id] || meal), [field]: value };
+                console.log(`Setting localMeal[${meal.id}]`, updatedMeal); // Debug log
+                return ({
                 ...prevState,
                 [meal.id]: {
-                    ...prevState[meal.id] || meal, // Initialize if it doesn't exist
+                    ...prevState[meal.id] || meal,
                     [field]: value
                 }
-            }));
+            })
+            });
         };
 
         const handleGetSuggestion = () => {
+            if (localMeal.food === "" || localMeal.quantity === "") {
+                 toast.error("Please enter food name and quantity.", { position: "top-center" });
+                 return;
+            }
             handleGeminiSuggestion(category, meal.id, localMeal.food, localMeal.quantity, false);
         };
 
@@ -272,18 +297,22 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                         className="w-full px-2 py-1 mb-1 border rounded"
                     />
                     <div className="flex items-center justify-between gap-3">
-                    <input
-                        type="text"
-                        value={localMeal.quantity || ""}
-                        placeholder="Quantity (e.g., 100g)"
-                        onChange={(e) => handleInputChange(e, 'quantity')}
-                        className="px-2 py-1 mb-1 border rounded "
-                    />
-                    
-                    <i className="text-xl text-orange-500 cursor-pointer fa-solid fa-hand-sparkles" onClick={handleGetSuggestion}></i>
-                    
+                        <input
+                            type="text"
+                            value={localMeal.quantity || ""}
+                            placeholder="Quantity (e.g., 100g)"
+                            onChange={(e) => handleInputChange(e, 'quantity')}
+                            className="px-2 py-1 mb-1 border rounded "
+                        />
+
+                        {generatingSuggestion ? (
+                            <span>Generating...</span>
+                        ) : (
+                            <i className="text-xl text-orange-500 cursor-pointer fa-solid fa-hand-sparkles" onClick={handleGetSuggestion}></i>
+                        )}
+
                     </div>
-                    
+
                     <input
                         type="number"
                         value={localMeal.calories || ""}
@@ -317,7 +346,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                         <motion.button
                             whileTap={{ scale: 0.95 }}
                             className="flex items-center gap-1 text-green-500"
-                            onClick={() => handleUpdateMeal(category, meal.id, localMeal)}  // Save updated data from local state
+                            onClick={() => handleUpdateMeal(category, meal.id, localMeal)}
                         >
                             <span className="text-xl">✔️</span>
                         </motion.button>
@@ -325,7 +354,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                         <motion.button
                             whileTap={{ scale: 0.95 }}
                             className="flex items-center gap-1 text-red-500"
-                            onClick={handleCancelEdit}  // Cancel editing
+                            onClick={handleCancelEdit}
                         >
                             <span className="text-xl">❌</span>
                         </motion.button>
@@ -368,10 +397,14 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             }));
         };
 
-
         const handleGetSuggestion = () => {
+           if (mealData[category]?.food === "" || mealData[category]?.quantity === "") {
+                toast.error("Please enter food name and quantity.", { position: "top-center" });
+                return;
+           }
             handleGeminiSuggestion(category, null, mealData[category]?.food, mealData[category]?.quantity, true);
         };
+
         return (
             <div className="pt-2 border-t border-gray-100">
                 <input
@@ -382,16 +415,20 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                     className="w-full px-2 py-1 mb-1 border rounded"
                 />
                 <div className="flex items-center justify-between gap-3">
-                <input
-                    type="text"
-                    placeholder="Quantity (e.g., 100g)"
-                    value={mealData[category]?.quantity || ""}
-                    onChange={(e) => handleInputChange(e, 'quantity')}
-                    className="w-full px-2 py-1 mb-1 border rounded"
-                />
-                
-                    <i className="text-xl text-orange-500 cursor-pointer fa-solid fa-hand-sparkles" onClick={handleGetSuggestion}></i>
-                
+                    <input
+                        type="text"
+                        placeholder="Quantity (e.g., 100g)"
+                        value={mealData[category]?.quantity || ""}
+                        onChange={(e) => handleInputChange(e, 'quantity')}
+                        className="w-full px-2 py-1 mb-1 border rounded"
+                    />
+
+                    {generatingSuggestion ? (
+                        <span>Generating...</span>
+                    ) : (
+                        <i className="text-xl text-orange-500 cursor-pointer fa-solid fa-hand-sparkles" onClick={handleGetSuggestion}></i>
+                    )}
+
                 </div>
                 <input
                     type="number"
@@ -463,6 +500,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
 
     return (
         <div className="pb-20 space-y-3 overflow-y-auto">
+            {/*  <ToastContainer /> you don't need ToastContainer with react-hot-toast*/}
             <div className="p-2 text-center rounded-lg bg-tprimary">
                 <h3 className="font-medium text-white">
                     {format(selectedDate, "EEEE, MMMM d, yyyy")}
