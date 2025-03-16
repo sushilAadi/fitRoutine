@@ -356,8 +356,8 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
 
     return (
         <div className="pb-20 space-y-3 overflow-y-auto">
-            <div className="p-2 text-center rounded-lg bg-blue-50">
-                <h3 className="font-medium text-blue-800">
+            <div className="p-2 text-center rounded-lg bg-tprimary">
+                <h3 className="font-medium text-white">
                     {format(selectedDate, "EEEE, MMMM d, yyyy")}
                 </h3>
             </div>
