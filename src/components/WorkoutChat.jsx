@@ -656,7 +656,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
       });
       toast.success('Plan Saved Successfully');
       setSaved(true);
-      console.log("planDocRef", planDocRef);
+      
       sessionStorage.removeItem(`paymentSuccessful_${userId}`);
       sessionStorage.removeItem(`planGenerated_${userId}`);
       sessionStorage.removeItem(`workoutData_${userId}`);
@@ -666,10 +666,9 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     }
   };
 
-  console.log("diet",diet)
+ 
 
   const handleExport = () => {
-    console.log("totalWeeks",totalWeeks)
     jsonToSpreadsheet(fullyUpdatedWorkoutPlan,goal,totalWeeks);
   };
 

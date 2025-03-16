@@ -104,7 +104,7 @@ const CustomPlanPage = () => {
   }, [plans, isFetchingPlans]);
 
   const deletePlan = async (planId, planName) => {
-    console.log("planName", planName);
+    
     const modifiedLastPositionKey = planName.replace(
       "workoutPlan_",
       "lastPosition_"

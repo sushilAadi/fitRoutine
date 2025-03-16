@@ -26,7 +26,7 @@ const MyDiet = () => {
   const [dietList, setDietList] = useState([]);
   const [totalCaloriesPlanned, setTotalCaloriesPlanned] = useState(0);
 
-  console.log("dietList", dietList);
+  
 
   // Function to handle accordion state
   const handleOpenAccordion = (value) => {
@@ -50,7 +50,7 @@ const MyDiet = () => {
         querySnapshot.forEach((doc) => {
           plans.push({ id: doc.id, ...doc.data() });
         });
-        console.log("plans", plans);
+        
         setDietPlans(plans);
         const extractedDietList = plans.length > 0 ? Object.values(plans[0]).filter((item) => typeof item === "object") : [];
         setDietList(extractedDietList);
@@ -143,6 +143,7 @@ const MyDiet = () => {
             selectedDate={selectedDate}
             setSelectedDate={setSelectedDate}
             _weekDays={weekDays}
+            
           ></WeeklyCalendar>
 
           {/* Macro Tracker */}
@@ -168,6 +169,7 @@ const MyDiet = () => {
               dietList={dietList}
               handleOpenAccordion={handleOpenAccordion}
               userId={userId}
+              selectedDate={selectedDate}
             />
           )}
         </div>

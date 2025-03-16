@@ -47,7 +47,7 @@ const PaymentComponent = ({ onSuccess, transactionId, amount }) => {
           timestamp: new Date().toISOString(),
         };
 
-        console.log("Payment Data:", paymentData); // Log paymentData before saving
+       
 
         try {
           // Only call setDoc if razorpay_payment_id is available
