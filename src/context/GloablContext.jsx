@@ -31,6 +31,7 @@ export default function GlobalContextProvider({ children }) {
   const [selectedGoals, setSelectedGoals] = useState(new Set([]));
   const [activityLevel, setActivityLevel] = useState(null);
   const [show, setShow] = useState(false);
+  const [dietPlans, setDietPlans] = useState([]);
 
   const fetchUserDetail = async () => {
     try {
@@ -86,6 +87,25 @@ export default function GlobalContextProvider({ children }) {
     }
   };
 
+  const fetchDietPlans = async () => {
+    if (userId) {
+      try {
+        const dietCollectionRef = collection(db, 'diet_AI');
+        const q = query(dietCollectionRef, where("userIdCl", "==", userId)); 
+        const querySnapshot = await getDocs(q);
+
+        const dietPlansData = [];
+        querySnapshot.forEach((doc) => {
+          dietPlansData.push({ id: doc.id, ...doc.data() });
+        });
+
+        setDietPlans(dietPlansData);
+      } catch (error) {
+        console.error("Error fetching diet plans:", error);
+      }
+    }
+  };
+
   useEffect(() => {
     if (userId) {
       fetchUserDetail();
@@ -133,6 +153,8 @@ export default function GlobalContextProvider({ children }) {
       userId,
       userAgeCal,
       isFetching,
+      fetchDietPlans,
+      dietPlans, setDietPlans
     };
   }, [
     gender,
@@ -147,6 +169,7 @@ export default function GlobalContextProvider({ children }) {
     plans,
     userAgeCal,
     isFetching,
+    dietPlans
     
   ]);
 
