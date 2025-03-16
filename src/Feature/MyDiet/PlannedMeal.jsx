@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     Accordion,
     AccordionHeader,
@@ -16,6 +16,9 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
     const [editingMeal, setEditingMeal] = useState(null); // { category: '...', id: '...' }
     const [newMealForms, setNewMealForms] = useState({}); // Track which categories have active new meal forms
     const [newMealData, setNewMealData] = useState({}); // Store data for new meals, keyed by category
+    const [localMeals, setLocalMeals] = useState({}); // Store local meals for editing
+    const inputRefs = useRef({}); // Store references to the input elements
+
 
     useEffect(() => {
         const fetchUserMeals = async () => {
@@ -113,15 +116,22 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         }
     };
 
-    const handleEditMeal = (category, mealId) => {
+   const handleEditMeal = (category, mealId) => {
+        // Initialize local meal state when editing starts
+        setLocalMeals(prevState => ({
+            ...prevState,
+            [mealId]: { ...userMeals[category].find(meal => meal.id === mealId) }
+        }));
         setEditingMeal({ category, id: mealId });
     };
 
+
     const handleCancelEdit = () => {
         setEditingMeal(null);
+        setLocalMeals({}); // Clear local meals when canceling edit
     };
 
-    const handleUpdateMeal = async (category, mealId, updatedMealData) => {
+   const handleUpdateMeal = async (category, mealId, updatedMealData) => {
         try {
             const mealDocRef = doc(db, "meals", mealId);
             await updateDoc(mealDocRef, updatedMealData);
@@ -135,6 +145,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             });
 
             setEditingMeal(null); // Clear editing state
+            setLocalMeals({}); // Clear local meals after saving
         } catch (error) {
             console.error("Error updating meal:", error);
             // Handle error (e.g., display an error message)
@@ -153,67 +164,73 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             });
 
             setEditingMeal(null); // Clear editing state, in case we were editing the meal
+            setLocalMeals({}); // Clear local meals after deleting
         } catch (error) {
             console.error("Error deleting meal:", error);
             // Handle error (e.g., display an error message)
         }
     };
 
-    const renderMealItem = (meal, category, isSuggested) => {
+   const renderMealItem = (meal, category, isSuggested) => {
         const isBeingEdited = editingMeal?.category === category && editingMeal?.id === meal.id;
+        // Get localMeal from the state, or initialize it with the original meal data
+        const localMeal = localMeals[meal.id] || meal;
 
         const handleInputChange = (e, field) => {
-            const updatedMealData = { ...meal, [field]: e.target.value };
-            setUserMeals(prevState => {
-                const updatedCategoryMeals = prevState[category].map(m =>
-                    m.id === meal.id ? { ...m, [field]: e.target.value } : m
-                );
-                return { ...prevState, [category]: updatedCategoryMeals };
-            });
+            const value = e.target.value;
+            // Update the localMeals state
+            setLocalMeals(prevState => ({
+                ...prevState,
+                [meal.id]: {
+                    ...prevState[meal.id] || meal, // Initialize if it doesn't exist
+                    [field]: value
+                }
+            }));
         };
+
 
         if (isBeingEdited) {
             return (
-                <div key={meal.id+Math.random()} className="pt-2 border-t border-gray-100">
+                <div key={meal.id} className="pt-2 border-t border-gray-100">
                     <input
                         type="text"
-                        value={meal.food}
+                        value={localMeal.food || ""}
                         placeholder="Food Name"
                         onChange={(e) => handleInputChange(e, 'food')}
                         className="w-full px-2 py-1 mb-1 border rounded"
                     />
                     <input
                         type="text"
-                        value={meal.quantity}
+                        value={localMeal.quantity || ""}
                         placeholder="Quantity (e.g., 100g)"
                         onChange={(e) => handleInputChange(e, 'quantity')}
                         className="w-full px-2 py-1 mb-1 border rounded"
                     />
                     <input
-                        type="text"
-                        value={meal.calories}
+                        type="number"
+                        value={localMeal.calories || ""}
                         placeholder="Calories"
                         onChange={(e) => handleInputChange(e, 'calories')}
                         className="w-full px-2 py-1 mb-1 border rounded"
                     />
                     <div className="flex justify-between text-sm">
                         <input
-                            type="text"
-                            value={meal.carbs}
+                            type="number"
+                            value={localMeal.carbs || ""}
                             placeholder="Carbs (g)"
                             onChange={(e) => handleInputChange(e, 'carbs')}
                             className="w-16 px-2 py-1 border rounded"
                         />
                         <input
-                            type="text"
-                            value={meal.protein}
+                            type="number"
+                            value={localMeal.protein || ""}
                             placeholder="Protein (g)"
                             onChange={(e) => handleInputChange(e, 'protein')}
                             className="w-16 px-2 py-1 border rounded"
                         />
                         <input
-                            type="text"
-                            value={meal.fats}
+                            type="number"
+                            value={localMeal.fats || ""}
                             placeholder="Fats (g)"
                             onChange={(e) => handleInputChange(e, 'fats')}
                             className="w-16 px-2 py-1 border rounded"
@@ -222,7 +239,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                         <motion.button
                             whileTap={{ scale: 0.95 }}
                             className="flex items-center gap-1 text-green-500"
-                            onClick={() => handleUpdateMeal(category, meal.id, meal)}  // Save updated data
+                            onClick={() => handleUpdateMeal(category, meal.id, localMeal)}  // Save updated data from local state
                         >
                             <span className="text-xl">✔️</span>
                         </motion.button>
@@ -262,7 +279,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         );
     };
 
-    const renderNewMealForm = (category, mealData, setMealData, onSave, onCancel) => {  // Props passed
+   const renderNewMealForm = (category, mealData, setMealData, onSave, onCancel) => {
         const handleInputChange = (e, field) => {
             setMealData(prevState => ({
                 ...prevState,
@@ -278,21 +295,21 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                 <input
                     type="text"
                     placeholder="Food Name"
-                    value={mealData[category]?.food || ""}  // Use mealData
+                    value={mealData[category]?.food || ""}
                     onChange={(e) => handleInputChange(e, 'food')}
                     className="w-full px-2 py-1 mb-1 border rounded"
                 />
                 <input
                     type="text"
                     placeholder="Quantity (e.g., 100g)"
-                    value={mealData[category]?.quantity || ""} // Use mealData
+                    value={mealData[category]?.quantity || ""}
                     onChange={(e) => handleInputChange(e, 'quantity')}
                     className="w-full px-2 py-1 mb-1 border rounded"
                 />
-                 <input
+                <input
                     type="number"
                     placeholder="Calories"
-                    value={mealData[category]?.calories || ""}  // Use mealData
+                    value={mealData[category]?.calories || ""}
                     onChange={(e) => handleInputChange(e, 'calories')}
                     className="w-full px-2 py-1 mb-1 border rounded"
                 />
@@ -300,21 +317,21 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                     <input
                         type="number"
                         placeholder="Carbs (g)"
-                        value={mealData[category]?.carbs || ""}  // Use mealData
+                        value={mealData[category]?.carbs || ""}
                         onChange={(e) => handleInputChange(e, 'carbs')}
                         className="w-16 px-2 py-1 border rounded"
                     />
                     <input
                         type="number"
                         placeholder="Protein (g)"
-                        value={mealData[category]?.protein || ""}  // Use mealData
+                        value={mealData[category]?.protein || ""}
                         onChange={(e) => handleInputChange(e, 'protein')}
                         className="w-16 px-2 py-1 border rounded"
                     />
                     <input
                         type="number"
                         placeholder="Fats (g)"
-                        value={mealData[category]?.fats || ""}  // Use mealData
+                        value={mealData[category]?.fats || ""}
                         onChange={(e) => handleInputChange(e, 'fats')}
                         className="w-16 px-2 py-1 border rounded"
                     />
@@ -322,7 +339,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                     <motion.button
                         whileTap={{ scale: 0.95 }}
                         className="flex items-center gap-1 text-green-500"
-                        onClick={() => onSave(category, mealData[category])}  // Use passed onSave
+                        onClick={() => onSave(category, mealData[category])}
                     >
                         <span className="text-xl">✔️</span>
                     </motion.button>
@@ -330,7 +347,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                     <motion.button
                         whileTap={{ scale: 0.95 }}
                         className="flex items-center gap-1 text-red-500"
-                        onClick={onCancel}  // Use passed onCancel
+                        onClick={onCancel}
                     >
                         <span className="text-xl">❌</span>
                     </motion.button>
@@ -338,6 +355,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             </div>
         );
     };
+
 
     // Filter dietList suggestions based on the selected date
     const filteredDietList = dietList?.filter(meal => {
@@ -367,9 +385,6 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                 const suggestedMeals = dietList?.filter(meal => meal.meal === category);
                 const userAddedMeals = userMeals[category] || [];  // Use || [] to avoid undefined errors
 
-                {/* const totalCalories = (suggestedMeals?.reduce((sum, meal) => sum + Number(meal.calories || 0), 0) || 0) +  // Add suggested calories */}
-                const totalCalories =     (userAddedMeals?.reduce((sum, meal) => sum + Number(meal.calories || 0), 0) || 0);       // add user entered calories
-console.log("userAddedMeals",userAddedMeals)
                 return (
                     <Accordion
                         key={category}
