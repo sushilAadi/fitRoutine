@@ -163,13 +163,13 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
       const currentRetryCount = retryCounts[mealId] || 0
   
       if (currentRetryCount >= 2) {
-        toast.error("Maximum retries reached. Please add manually.", { position: "top-center" })
+        toast("Maximum retries reached. Please add manually.", { position: "top-center" })
         setGeneratingSuggestion(false)
         return
       }
   
       if (!food || !quantity) {
-        toast.warn("Please enter food name and quantity to get suggestions.", { position: "top-center" })
+        toast("Please enter food name and quantity to get suggestions.", { position: "top-center" })
         return
       }
   
@@ -193,7 +193,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
           parsedData = JSON.parse(text)
         } catch (parseError) {
           console.error("Error parsing Gemini response:", parseError, "Raw text:", text)
-          toast.error("Could not understand the response from Gemini. Please try again or add manually.", {
+          toast("Could not understand the response from Gemini. Please try again or add manually.", {
             position: "top-center",
           })
           return
@@ -201,7 +201,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         console.log("parsedData", parsedData)
         if (parsedData && Object.keys(parsedData).length === 0 && parsedData.constructor === Object) {
           console.warn("Gemini returned an empty object, retrying") // log the empty response
-          toast.error("Gemini could not find suggestions. Please add manually.", { position: "top-center" })
+          toast("Gemini could not find suggestions. Please add manually.", { position: "top-center" })
           // Increment retry count
           setRetryCounts((prevCounts) => ({
             ...prevCounts,
@@ -261,7 +261,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
           ...prevCounts,
           [mealId]: (prevCounts[mealId] || 0) + 1,
         }))
-        toast.error("Could not fetch suggestions. Retrying...", { position: "top-center" })
+        toast("Could not fetch suggestions. Retrying...", { position: "top-center" })
       } finally {
         setGeneratingSuggestion(false)
       }
@@ -300,7 +300,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
 
     const handleGetSuggestion = () => {
       if (localMeal.food === "" || localMeal.quantity === "") {
-        toast.error("Please enter food name and quantity.", { position: "top-center" })
+        toast("Please enter food name and quantity.", { position: "top-center" })
         return
       }
 
@@ -440,7 +440,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
 
     const handleGetSuggestion = () => {
       if (mealData[category]?.food === "" || mealData[category]?.quantity === "") {
-        toast.error("Please enter food name and quantity.", { position: "top-center" })
+        toast("Please enter food name and quantity.", { position: "top-center" })
         return
       }
 
