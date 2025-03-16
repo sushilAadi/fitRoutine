@@ -257,7 +257,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         }
 
         return (
-            <div key={meal.id} className="pt-2 border-t border-gray-100">
+            <div key={meal.id} className={`pt-2 border-t border-gray-100 p-2 ${isSuggested && "bg-gray-100 rounded-sm"}`}>
                 <p className="mb-1 font-medium text-gray-800">{meal.food}</p>
                 <p className="mb-2 text-sm text-gray-500">{meal.quantity}</p>
                 {meal.calories && <p className="mb-2 text-sm font-semibold text-orange-500">CALORIES: {meal.calories} kcal</p>}
@@ -393,7 +393,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                     >
                         <AccordionHeader
                             onClick={() => handleOpenAccordion(index + 1)}
-                            className="px-4 py-2 text-gray-800 border-b-0"
+                            className="p-2 text-gray-800 border-b-0"
                         >
                             <div className="flex items-center justify-between w-full">
                                 <div className="flex items-center gap-3">
@@ -417,7 +417,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                                 
                             </div>
                         </AccordionHeader>
-                        <AccordionBody className="px-4 py-2 pt-0">
+                        <AccordionBody className="p-2 pt-0">
                             {/* Suggested Meals */}
                             {suggestedMeals?.map((meal, mealIndex) => renderMealItem(meal, category, true))}
 
