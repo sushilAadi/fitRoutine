@@ -572,7 +572,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
     <div className="pb-20 space-y-3 overflow-y-auto">
       <div className="p-2 text-center rounded-lg bg-tprimary">
         <h3 className="font-medium text-white">{format(selectedDate, "EEEE, MMMM d, yyyy")}</h3>
-        {dietId && <p className="text-xs text-white opacity-75">Diet Plan ID: {dietId}</p>}
+       
       </div>
       {mealCategories?.map((category, index) => {
         // Filter suggested meals by dietId

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { format, isSameDay, isToday, addDays, subDays } from "date-fns"
+import { format, isSameDay, isToday, addDays, subDays, parseISO } from "date-fns"
 import { motion } from "framer-motion"
 import Calendar from "react-calendar"
 import "react-calendar/dist/Calendar.css" // Import default styles
@@ -9,12 +9,16 @@ import { Swiper, SwiperSlide } from "swiper/react"
 import "swiper/css"
 import { FreeMode } from "swiper/modules"
 
-const WeeklyCalendar = ({ selectedDate, setSelectedDate, _weekDays }) => {
+const WeeklyCalendar = ({ selectedDate, setSelectedDate, activeDate, totalWeeks }) => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const calendarRef = useRef(null)
   const swiperRef = useRef(null)
   const [inputDate, setInputDate] = useState(format(selectedDate, "MM/dd/yyyy"))
   const today = new Date()
+
+  // Use activeDate as the starting date if it is valid, otherwise use today
+  const startDate = activeDate ? parseISO(activeDate) : today;
+  const endDate = addDays(startDate, totalWeeks * 7);  // Calculate end date for calendar
 
   // Set today as the selected date on initial render
   useEffect(() => {
@@ -29,26 +33,27 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate, _weekDays }) => {
   }
 
   // Generate dates for the full calendar (past and future)
-  // 30 days before today and 30 days after today
-  const pastDays = [...Array(30)].map((_, i) => subDays(today, 30 - i))
-  const futureDays = [...Array(30)].map((_, i) => addDays(today, i + 1))
+  // Start from activeDate and go for totalWeeks (12 weeks = 84 days)
+  const futureDays = [...Array(totalWeeks * 7)].map((_, i) => addDays(startDate, i));
 
-  // Combine past, today, and future days
-  const allDays = [...pastDays, today, ...futureDays]
+  // Combine the start date and future days
+  const allDays = [startDate, ...futureDays];
 
   // Remove duplicates and sort chronologically
   const uniqueDays = allDays
     .filter((day, index, self) => self.findIndex((d) => isSameDay(d, day)) === index)
-    .sort((a, b) => a - b)
+    .sort((a, b) => a - b);
+
+  console.log("uniqueDays", { uniqueDays, activeDate, totalWeeks });
 
   const handleDateChange = (newDate) => {
     setSelectedDate(newDate)
     setInputDate(format(newDate, "MM/dd/yyyy"))
     setIsCalendarOpen(false)
-    
+
     // Find the index of the selected date in uniqueDays
     const selectedIndex = uniqueDays.findIndex((day) => isSameDay(day, newDate))
-    
+
     // Scroll to the selected date if it exists in uniqueDays
     if (selectedIndex !== -1 && swiperRef.current && swiperRef.current.swiper) {
       setTimeout(() => {
@@ -66,7 +71,7 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate, _weekDays }) => {
       if (todayIndex !== -1) {
         // Add a small delay to ensure swiper is fully initialized
         setTimeout(() => {
-          swiper.slideTo(todayIndex, 300)
+          swiper.slideTo(todayIndex, 300, false) // Disable animation for initial slide
         }, 100)
       }
     }
@@ -143,7 +148,13 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate, _weekDays }) => {
 
           {isCalendarOpen && (
             <div className="absolute z-10 mt-1 bg-white rounded-md shadow-lg">
-              <Calendar value={selectedDate} onChange={handleDateChange} className="react-calendar" maxDate={new Date()} />
+              <Calendar
+                value={selectedDate}
+                onChange={handleDateChange}
+                className="react-calendar"
+                minDate={startDate}
+                maxDate={endDate}
+              />
             </div>
           )}
         </div>
@@ -157,8 +168,8 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate, _weekDays }) => {
           freeMode={true}
           modules={[FreeMode]}
           className="mySwiper"
-          initialSlide={todayIndex !== -1 ? todayIndex : 0}
-          centeredSlides={true}
+          initialSlide={0} // Start from the beginning
+          centeredSlides={false}  // Disable centering
           slideToClickedSlide={true}
         >
           {uniqueDays.map((day, index) => {

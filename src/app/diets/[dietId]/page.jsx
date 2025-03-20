@@ -1,10 +1,10 @@
-"use client";
-import React, { useEffect, useState, useContext } from "react";
+'use client'
+import React, { useEffect, useState, useContext } from "react"; // Correct useContext import
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import SecureComponent from "@/components/SecureComponent/[[...SecureComponent]]/SecureComponent";
 import { GlobalContext } from "@/context/GloablContext";
 import { db } from "@/firebase/firebaseConfig";
-import { startOfWeek, addDays } from "date-fns";
+import { startOfWeek, addDays, isAfter, isBefore, format, parseISO, isSameDay } from "date-fns";
 import "primereact/resources/primereact.min.css";
 import "primereact/resources/themes/lara-light-indigo/theme.css";
 import MacroTracker from "@/Feature/MyDiet/MacroTracker";
@@ -12,7 +12,7 @@ import PlannedMeal from "@/Feature/MyDiet/PlannedMeal";
 import WeeklyCalendar from "@/Feature/MyDiet/WeeklyCalendar";
 import _ from "lodash";
 
-const MyDiet = ({ params }) => {
+const DietDetail = ({ params }) => {
   const { userDetailData, userId } = useContext(GlobalContext);
   const [dietPlan, setDietPlan] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -28,6 +28,8 @@ const MyDiet = ({ params }) => {
   const [totalCaloriesPlanned, setTotalCaloriesPlanned] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [dietActive, setDietActive] = useState(true);  // New state to track if the diet is active
+  const [expiryMessage, setExpiryMessage] = useState("");
 
   // Get the dietId from params if available
   const dietId = params?.dietId ? decodeURIComponent(params.dietId) : null;
@@ -35,6 +37,26 @@ const MyDiet = ({ params }) => {
   // Function to handle accordion state
   const handleOpenAccordion = (value) => {
     setOpenAccordion(openAccordion === value ? 0 : value);
+  };
+
+  // Function to check diet plan expiry
+  const checkDietExpiry = (plan) => {
+      if (!plan || !plan.activeDate || !plan.totalWeeks) {
+          return;  // or handle the case where activeDate or totalWeeks is missing
+      }
+
+      const startDate = parseISO(plan.activeDate);
+      const endDate = addDays(startDate, plan.totalWeeks * 7);
+
+      if (isAfter(new Date(), endDate)) {
+          setDietActive(false);
+          setExpiryMessage(`Your diet plan "${plan.planName}" expired on ${format(endDate, 'MMMM dd, yyyy')}.`);
+          return false;
+      } else {
+          setDietActive(true);
+          setExpiryMessage("");
+          return true;
+      }
   };
 
   // Fetch specific diet plan by ID or all diet plans for the user
@@ -56,16 +78,19 @@ const MyDiet = ({ params }) => {
             
             // Check if the plan belongs to the current user for security
             if (plan.userIdCl === userId) {
-              setDietPlan(plan);
-              
-              // Extract diet list from the plan
-              const extractedDietList = Object.values(plan).filter(
-                (item) => typeof item === "object" && item !== null && !Array.isArray(item)
-              );
-              setDietList(extractedDietList);
-              
-              // Calculate macros
-              calculateMacros(extractedDietList);
+               // Check diet expiry before setting dietPlan
+              if (checkDietExpiry(plan)) {
+                setDietPlan(plan);
+
+                // Extract diet list from the plan
+                const extractedDietList = Object.values(plan).filter(
+                    (item) => typeof item === "object" && item !== null && !Array.isArray(item)
+                );
+                setDietList(extractedDietList);
+
+                // Calculate macros
+                calculateMacros(extractedDietList);
+              }
             } else {
               setError("You don't have permission to view this diet plan.");
             }
@@ -87,16 +112,19 @@ const MyDiet = ({ params }) => {
           });
           
           if (plans.length > 0) {
-            setDietPlan(plans[0]);
-            
-            // Extract diet list from the first plan
-            const extractedDietList = Object.values(plans[0]).filter(
-              (item) => typeof item === "object" && item !== null && !Array.isArray(item)
-            );
-            setDietList(extractedDietList);
-            
-            // Calculate macros
-            calculateMacros(extractedDietList);
+             // Check diet expiry before setting dietPlan
+            if (checkDietExpiry(plans[0])) {
+              setDietPlan(plans[0]);
+
+              // Extract diet list from the first plan
+              const extractedDietList = Object.values(plans[0]).filter(
+                (item) => typeof item === "object" && item !== null && !Array.isArray(item)
+              );
+              setDietList(extractedDietList);
+
+              // Calculate macros
+              calculateMacros(extractedDietList);
+            }
           } else {
             setError("No diet plans found.");
           }
@@ -162,20 +190,44 @@ const MyDiet = ({ params }) => {
     ]);
   };
 
-  // Generate week days
-  const generateWeekDays = () => {
-    const startDay = startOfWeek(selectedDate);
-    const weekDays = [];
+  // Custom hook to generate week days based on activeDate and totalWeeks
+  const useDietWeekDays = (activeDate, totalWeeks) => {
+    const [weekDays, setWeekDays] = useState([]);
 
-    for (let i = 0; i < 7; i++) {
-      const day = addDays(startDay, i);
-      weekDays.push(day);
-    }
+    useEffect(() => {
+      if (activeDate && totalWeeks) {
+        const startDate = parseISO(activeDate);
+        const endDate = addDays(startDate, totalWeeks * 7); // Calculate end date of the diet plan
+
+        const generateWeek = (currentDate) => {
+          const startDay = startOfWeek(currentDate);
+          const week = [];
+
+          for (let i = 0; i < 7; i++) {
+            const day = addDays(startDay, i);
+
+            // Only add dates that are within the diet plan's duration
+            if (isAfter(day, startDate) || isSameDay(day, startDate)) {
+              if (isBefore(day, endDate) || isSameDay(day, endDate)) {
+                week.push(day);
+              }
+            }
+          }
+
+          return week;
+        };
+
+        // Generate week days starting from activeDate
+        const generatedWeekDays = generateWeek(startDate);
+        setWeekDays(generatedWeekDays);
+      }
+    }, [activeDate, totalWeeks]);
 
     return weekDays;
   };
 
-  const weekDays = generateWeekDays();
+  const weekDays = useDietWeekDays(dietPlan?.activeDate, dietPlan?.totalWeeks);
+
   return (
     <SecureComponent>
       <div className="flex flex-col h-screen overflow-hidden">
@@ -196,11 +248,21 @@ const MyDiet = ({ params }) => {
             </div>
           ) : (
             <>
-              <div className="bg-white shadow-md">
+               {expiryMessage && (
+                    <div className="p-4 text-yellow-700 bg-yellow-100 border border-yellow-400 rounded">
+                        <p>{expiryMessage}</p>
+                    </div>
+                )}
+
+                {dietActive ? (
+                  <>
+                <div className="bg-white shadow-md">
                 <WeeklyCalendar
                   selectedDate={selectedDate}
                   setSelectedDate={setSelectedDate}
-                  _weekDays={weekDays}
+                  weekDays={weekDays}
+                  activeDate={dietPlan?.activeDate}
+                  totalWeeks={dietPlan?.totalWeeks}
                 />
 
                 {/* Macro Tracker */}
@@ -228,11 +290,19 @@ const MyDiet = ({ params }) => {
                     userId={userId}
                     selectedDate={selectedDate}
                     dietId={dietId}
+                    activeDate={dietPlan?.activeDate}
+                    totalWeeks={dietPlan?.totalWeeks}
                   />
                 ) : (
                   <p>No meals planned for this diet.</p>
                 )}
               </div>
+             </>
+               ) : (
+                        <div className="p-4 text-gray-700 bg-gray-100 border border-gray-400 rounded">
+                            <p>Your diet plan has expired.</p>
+                        </div>
+                    )}
             </>
           )}
         </div>
@@ -241,4 +311,4 @@ const MyDiet = ({ params }) => {
   );
 };
 
-export default MyDiet;
+export default DietDetail;
