@@ -32,7 +32,7 @@ const Sidebar = () => {
     },
     { name: "Join as Instructor", path: "/join", icon: "fa-user-vneck-hair" },
     { name: "Neeed FIT AI", path: "/AICoach", icon: "fa-duotone fa-solid fa-microchip-ai" },
-    { name: "My Diet", path: "/MyDiet", icon: "fa-duotone fa-solid fa-pan-food" },
+    { name: "My Diet", path: "/diets", icon: "fa-duotone fa-solid fa-pan-food" },
   ];
 
   

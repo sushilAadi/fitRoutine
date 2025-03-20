@@ -7,9 +7,9 @@ import { motion } from "framer-motion"
 import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc } from "firebase/firestore"
 import { format, isEqual, startOfDay } from "date-fns"
 import { db, geminiModel } from "@/firebase/firebaseConfig"
-import toast from "react-hot-toast" // Import react-hot-toast
+import toast from "react-hot-toast"
 
-const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, selectedDate }) => {
+const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, selectedDate, dietId }) => {
   const mealCategories = ["Breakfast", "Lunch", "Snack", "Exercise", "Dinner"]
   const [userMeals, setUserMeals] = useState({})
   const [loading, setLoading] = useState(true)
@@ -18,7 +18,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
   const [newMealData, setNewMealData] = useState({})
   const [localMeals, setLocalMeals] = useState({})
   const [generatingSuggestion, setGeneratingSuggestion] = useState(false)
-  const [retryCounts, setRetryCounts] = useState({}) // Track retry counts per meal item
+  const [retryCounts, setRetryCounts] = useState({})
 
   const inputRefs = useRef({})
 
@@ -27,7 +27,18 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
       setLoading(true)
       try {
         const mealCollectionRef = collection(db, "meals")
-        const q = query(mealCollectionRef, where("userId", "==", userId))
+        // Modified query to include dietId filter when available
+        let q
+        if (dietId) {
+          q = query(
+            mealCollectionRef, 
+            where("userId", "==", userId),
+            where("dietId", "==", dietId)
+          )
+        } else {
+          q = query(mealCollectionRef, where("userId", "==", userId))
+        }
+        
         const querySnapshot = await getDocs(q)
 
         const mealsByCategory = {}
@@ -57,7 +68,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
     } else {
       setLoading(false)
     }
-  }, [userId, selectedDate])
+  }, [userId, selectedDate, dietId])
 
   const handleAddMeal = (category) => {
     setNewMealForms((prevState) => ({ ...prevState, [category]: true }))
@@ -73,6 +84,8 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         calories: "",
         userId: userId,
         date: selectedDate,
+        // Include dietId in new meal data
+        dietId: dietId || null,
       },
     }))
   }
@@ -93,10 +106,12 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
   const handleSaveNewMeal = async (category, mealData) => {
     try {
       const mealCollectionRef = collection(db, "meals")
-      const docRef = await addDoc(mealCollectionRef, mealData)
+      // Ensure dietId is included when adding new meal
+      const mealWithDietId = { ...mealData, dietId: dietId || null }
+      const docRef = await addDoc(mealCollectionRef, mealWithDietId)
 
       setUserMeals((prevState) => {
-        const newMealList = [...(prevState[category] || []), { id: docRef.id, ...mealData }]
+        const newMealList = [...(prevState[category] || []), { id: docRef.id, ...mealWithDietId }]
         return {
           ...prevState,
           [category]: newMealList,
@@ -124,11 +139,17 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
   const handleUpdateMeal = async (category, mealId, updatedMealData) => {
     try {
       const mealDocRef = doc(db, "meals", mealId)
-      await updateDoc(mealDocRef, updatedMealData)
+      // Make sure we maintain the dietId during updates
+      const updateData = { ...updatedMealData }
+      if (dietId && !updateData.dietId) {
+        updateData.dietId = dietId
+      }
+      
+      await updateDoc(mealDocRef, updateData)
 
       setUserMeals((prevState) => {
         const updatedCategoryMeals = prevState[category].map((meal) =>
-          meal.id === mealId ? { ...meal, ...updatedMealData } : meal,
+          meal.id === mealId ? { ...meal, ...updateData } : meal,
         )
         return { ...prevState, [category]: updatedCategoryMeals }
       })
@@ -240,6 +261,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
               carbs: processValue(parsedData.carbs),
               protein: processValue(parsedData.protein),
               fats: processValue(parsedData.fats),
+              dietId: dietId || null, // Ensure dietId is included for new meals
             },
           }))
         } else {
@@ -268,7 +290,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
     },
     [
       retryCounts,
-      toast,
+      dietId,
       setGeneratingSuggestion,
       geminiModel,
       setNewMealData,
@@ -528,14 +550,18 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
   }
 
   // Filter dietList suggestions based on the selected date
+  // And filter by dietId if it's provided
   const filteredDietList =
     dietList?.filter((meal) => {
-      // Assuming dietList has a date field. If not, you might need to adjust this logic
+      // Filter by date
       if (!meal.date) return false
-
       const mealDate = meal.date instanceof Date ? meal.date : meal.date?.toDate?.() || new Date()
-
-      return isEqual(startOfDay(mealDate), startOfDay(selectedDate))
+      const dateMatches = isEqual(startOfDay(mealDate), startOfDay(selectedDate))
+      
+      // Filter by dietId (if provided)
+      const dietIdMatches = dietId ? meal.dietId === dietId : true
+      
+      return dateMatches && dietIdMatches
     }) || []
 
   if (loading) {
@@ -544,12 +570,16 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
 
   return (
     <div className="pb-20 space-y-3 overflow-y-auto">
-      {/*  <ToastContainer /> you don't need ToastContainer with react-hot-toast*/}
       <div className="p-2 text-center rounded-lg bg-tprimary">
         <h3 className="font-medium text-white">{format(selectedDate, "EEEE, MMMM d, yyyy")}</h3>
+        {dietId && <p className="text-xs text-white opacity-75">Diet Plan ID: {dietId}</p>}
       </div>
       {mealCategories?.map((category, index) => {
-        const suggestedMeals = dietList?.filter((meal) => meal.meal === category)
+        // Filter suggested meals by dietId
+        const suggestedMeals = dietId
+          ? dietList?.filter((meal) => meal.meal === category && (!meal.dietId || meal.dietId === dietId))
+          : dietList?.filter((meal) => meal.meal === category)
+          
         const userAddedMeals = userMeals[category] || [] // Use || [] to avoid undefined errors
 
         return (
@@ -605,4 +635,3 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
 }
 
 export default PlannedMeal
-
