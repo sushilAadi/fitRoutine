@@ -42,6 +42,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   const [equipment, setEquipment] = useState("");
   const [preferences, setPreferences] = useState("");
   const [generatedPlan, setGeneratedPlan] = useState(null);
+  const [totalCaloriesRequied, setTotalCaloriesRequied] = useState(null);
   const [generatedExercises, setGeneratedExercises] = useState([]);
   const [diet, setDiet] = useState([]);
   const [showCopyButton, setShowCopyButton] = useState(false);
@@ -183,6 +184,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
         setGeneratedPlan(plan);
         setGeneratedExercises(plans?.workoutPlan);
         setDiet(plans?.dietPlan);
+        setTotalCaloriesRequied(plans?.totalCaloriesRequired)
         onPlanGenerated(plan);
 
         addMessage("Your workout and diet plan is ready!", "ai");
@@ -208,6 +210,8 @@ const WorkoutChat = ({ onPlanGenerated }) => {
       setIsLoading(false);
     }
   };
+
+ 
 
   const handleSendMessage = async () => {
     if (!userInput.trim()) return;
@@ -362,6 +366,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     // Don't reset preferences entirely, as we want to keep the user profile data
     setGeneratedPlan(null);
     setGeneratedExercises([]);
+    setTotalCaloriesRequied(null)
     setDiet([]);
     setShowCopyButton(false);
     setIsLoading(false);
@@ -652,6 +657,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
         ...diet,
         totalWeeks: totalWeeks,
         userIdCl: userId,
+        totalCaloriesRequied:totalCaloriesRequied,
         planName: goal
       });
       toast.success('Plan Saved Successfully');

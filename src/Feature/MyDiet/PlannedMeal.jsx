@@ -9,7 +9,7 @@ import { format, isEqual, startOfDay } from "date-fns"
 import { db, geminiModel } from "@/firebase/firebaseConfig"
 import toast from "react-hot-toast"
 
-const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, selectedDate, dietId }) => {
+const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, selectedDate, dietId,handleRefetch }) => {
   const mealCategories = ["Breakfast", "Lunch", "Snack", "Exercise", "Dinner"]
   const [userMeals, setUserMeals] = useState({})
   const [loading, setLoading] = useState(true)
@@ -117,6 +117,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
           [category]: newMealList,
         }
       })
+      handleRefetch()
       handleCancelNewMeal(category)
     } catch (e) {
       console.error("Error adding document: ", e)
@@ -219,7 +220,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
           })
           return
         }
-        console.log("parsedData", parsedData)
+        
         if (parsedData && Object.keys(parsedData).length === 0 && parsedData.constructor === Object) {
           console.warn("Gemini returned an empty object, retrying") // log the empty response
           toast("Gemini could not find suggestions. Please add manually.", { position: "top-center" })
@@ -309,7 +310,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
 
       setLocalMeals((prevState) => {
         const updatedMeal = { ...(prevState[meal.id] || meal), [field]: value }
-        console.log(`Setting localMeal[${meal.id}]`, updatedMeal) // Debug log
+        
         return {
           ...prevState,
           [meal.id]: {
@@ -394,7 +395,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             <motion.button
               whileTap={{ scale: 0.95 }}
               className="flex items-center gap-1 text-green-500"
-              onClick={() => handleUpdateMeal(category, meal.id, localMeal)}
+              onClick={() => {handleUpdateMeal(category, meal.id, localMeal);handleRefetch()}}
             >
               <span className="text-xl">✔️</span>
             </motion.button>
@@ -532,7 +533,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
           <motion.button
             whileTap={{ scale: 0.95 }}
             className="flex items-center gap-1 text-green-500"
-            onClick={() => handleSaveNewMeal(category, mealData[category])}
+            onClick={() => {handleSaveNewMeal(category, mealData[category]);handleRefetch()}}
           >
             <span className="text-xl">✔️</span>
           </motion.button>

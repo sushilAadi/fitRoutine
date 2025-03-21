@@ -50,9 +50,11 @@ Then, provide the workout plan in this exact JSON format and mention which muscl
       "quantity": "100g",
       "protein": "13g",
       "carbs": "67g",
-      "fats": "7g"
+      "fats": "7g",
+      "fiber": "7g",
     }
-  ]
+  ],
+   "totalCaloriesRequired": "2500kcal"
 }
 
 Rules for the workout plan:

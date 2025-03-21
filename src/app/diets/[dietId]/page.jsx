@@ -13,23 +13,19 @@ import WeeklyCalendar from "@/Feature/MyDiet/WeeklyCalendar";
 import _ from "lodash";
 
 const DietDetail = ({ params }) => {
-  const { userDetailData, userId } = useContext(GlobalContext);
+  const { userId } = useContext(GlobalContext);
   const [dietPlan, setDietPlan] = useState(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [openAccordion, setOpenAccordion] = useState(1);
-  const [macroData, setMacroData] = useState([]);
-  const [caloriesLeft, setCaloriesLeft] = useState(0);
-  const [macrosLeft, setMacrosLeft] = useState({
-    carbs: 0,
-    protein: 0,
-    fat: 0,
-  });
   const [dietList, setDietList] = useState([]);
-  const [totalCaloriesPlanned, setTotalCaloriesPlanned] = useState(0);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dietActive, setDietActive] = useState(true);  // New state to track if the diet is active
   const [expiryMessage, setExpiryMessage] = useState("");
+  const [plannedCarbs, setPlannedCarbs] = useState(0);
+  const [plannedProtein, setPlannedProtein] = useState(0);
+  const [plannedFat, setPlannedFat] = useState(0);
 
   // Get the dietId from params if available
   const dietId = params?.dietId ? decodeURIComponent(params.dietId) : null;
@@ -89,7 +85,7 @@ const DietDetail = ({ params }) => {
                 setDietList(extractedDietList);
 
                 // Calculate macros
-                calculateMacros(extractedDietList);
+                calculateMacros(plan);
               }
             } else {
               setError("You don't have permission to view this diet plan.");
@@ -123,7 +119,7 @@ const DietDetail = ({ params }) => {
               setDietList(extractedDietList);
 
               // Calculate macros
-              calculateMacros(extractedDietList);
+              calculateMacros(plans[0]);
             }
           } else {
             setError("No diet plans found.");
@@ -140,54 +136,27 @@ const DietDetail = ({ params }) => {
     fetchDietPlan();
   }, [userId, dietId]);
 
-  console.log("dietPlan",dietPlan)
+
 
   // Calculate macros from diet plan
-  const calculateMacros = (dietList) => {
-    if (!dietList || dietList.length === 0) {
+  const calculateMacros = (dietPlan) => {
+    if (!dietPlan) {
       return;
     }
+    let carbs = 0;
+    let protein = 0;
+    let fat = 0;
 
-    let totalCarbs = 0;
-    let totalProtein = 0;
-    let totalFat = 0;
-    let calculatedTotalCalories = 0;
-
-    dietList.forEach((meal) => {
-      // Parse macros from strings like "50g" to numbers
-      const carbs = parseInt(meal.carbs) || 0;
-      const protein = parseInt(meal.protein) || 0;
-      const fat = parseInt(meal.fats) || 0;
-
-      totalCarbs += carbs;
-      totalProtein += protein;
-      totalFat += fat;
-
-      // Approximate calories: 4 calories per gram of protein and carbs, 9 per gram of fat
-      calculatedTotalCalories += protein * 4 + carbs * 4 + fat * 9;
-    });
-
-    const dailyTargets = {
-      calories: 2500,
-      carbs: 300,
-      protein: 150,
-      fat: 80,
-    };
-
-    // Update State with Planned Values
-    setTotalCaloriesPlanned(calculatedTotalCalories);
-    setCaloriesLeft(dailyTargets.calories - calculatedTotalCalories);
-    setMacrosLeft({
-      carbs: dailyTargets.carbs - totalCarbs,
-      protein: dailyTargets.protein - totalProtein,
-      fat: dailyTargets.fat - totalFat,
-    });
-
-    setMacroData([
-      { name: "Carbs", value: totalCarbs, color: "#FF6384" },
-      { name: "Protein", value: totalProtein, color: "#36A2EB" },
-      { name: "Fat", value: totalFat, color: "#FFCE56" },
-    ]);
+    for (const key in dietPlan) {
+      if (typeof dietPlan[key] === 'object' && dietPlan[key] !== null) {
+        carbs += parseInt(dietPlan[key].carbs) || 0;
+        protein += parseInt(dietPlan[key].protein) || 0;
+        fat += parseInt(dietPlan[key].fats) || 0;
+      }
+    }
+      setPlannedCarbs(carbs);
+      setPlannedProtein(protein);
+      setPlannedFat(fat);
   };
 
   // Custom hook to generate week days based on activeDate and totalWeeks
@@ -227,6 +196,14 @@ const DietDetail = ({ params }) => {
   };
 
   const weekDays = useDietWeekDays(dietPlan?.activeDate, dietPlan?.totalWeeks);
+  const [refetchFunction, setRefetchFunction] = useState(null);
+  const handleRefetch = () => {
+    if (refetchFunction) {
+      refetchFunction(); // Call the function from state
+     
+    }
+  };
+
 
   return (
     <SecureComponent>
@@ -263,17 +240,19 @@ const DietDetail = ({ params }) => {
                   weekDays={weekDays}
                   activeDate={dietPlan?.activeDate}
                   totalWeeks={dietPlan?.totalWeeks}
+                  
                 />
 
                 {/* Macro Tracker */}
                 <MacroTracker
-                  macroData={macroData}
-                  caloriesLeft={caloriesLeft}
-                  macrosLeft={macrosLeft}
-                  totalCaloriesPlanned={totalCaloriesPlanned}
-                  plannedCarbs={300}
-                  plannedProtein={150}
-                  plannedFat={80}
+                  totalCaloriesPlanned={dietPlan?.totalCaloriesRequied}
+                  plannedCarbs={plannedCarbs}
+                  plannedProtein={plannedProtein}
+                  plannedFat={plannedFat}
+                  dietId={dietId}
+                  userId={userId}
+                  selectedDate={selectedDate}
+                  handleRefetch={setRefetchFunction}
                 />
               </div>
 
@@ -292,6 +271,7 @@ const DietDetail = ({ params }) => {
                     dietId={dietId}
                     activeDate={dietPlan?.activeDate}
                     totalWeeks={dietPlan?.totalWeeks}
+                    handleRefetch={handleRefetch}
                   />
                 ) : (
                   <p>No meals planned for this diet.</p>

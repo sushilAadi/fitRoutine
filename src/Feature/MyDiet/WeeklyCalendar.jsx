@@ -44,7 +44,7 @@ const WeeklyCalendar = ({ selectedDate, setSelectedDate, activeDate, totalWeeks 
     .filter((day, index, self) => self.findIndex((d) => isSameDay(d, day)) === index)
     .sort((a, b) => a - b);
 
-  console.log("uniqueDays", { uniqueDays, activeDate, totalWeeks });
+  
 
   const handleDateChange = (newDate) => {
     setSelectedDate(newDate)

@@ -101,6 +101,7 @@ const Diet = () => {
     onClick,
     onComplete,
     anyPlanActive,
+    totalCaloriesRequied
   }) => {
     const [selectedMeal, setSelectedMeal] = useState(null);
 
@@ -290,7 +291,8 @@ const Diet = () => {
                 <div className="flex flex-col items-center">
                   <span className="text-xs text-gray-500">Calories</span>
                   <span className="text-sm font-medium text-gray-800">
-                    {calories}Kcal
+                    {/* {calories}Kcal */}
+                    {totalCaloriesRequied}
                   </span>
                 </div>
               </div>
@@ -432,6 +434,7 @@ const Diet = () => {
         </div>
         <div className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {console.log("dietPlans",dietPlans)}
             {dietPlans.length > 0 ? (
               dietPlans.map((plan) => {
                 // Convert the plan object into an array of meals
@@ -448,6 +451,7 @@ const Diet = () => {
                       weeks={plan?.totalWeeks}
                       onClick={handleStartPlan}
                       onComplete={handleCompletePlan}
+                      totalCaloriesRequied={plan?.totalCaloriesRequied}
                       anyPlanActive={anyPlanActive} // Pass the status to the card
                     />
                   </div>
