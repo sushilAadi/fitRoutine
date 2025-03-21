@@ -28,6 +28,16 @@
   font-display: swap;
 }
 
+input[type="number"] {
+  -moz-appearance: textfield; /* Firefox */
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none; /* Chrome, Safari, Edge */
+  margin: 0;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -353,6 +363,11 @@ border: 1px solid rgba( 255, 255, 255, 0.18 );
   padding: 4px !important;
   outline: 0 !important;
   
+}
+.swiper-pagination-bullet-active{
+  background-color: black !important;
+  width:20px !important;
+  border-radius: 30px !important;
 }
 
 
