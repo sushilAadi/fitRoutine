@@ -11,19 +11,18 @@ import { Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import RegularButton from "@/components/Button/RegularButton";
-import Stopwatch from "@/components/StopWatch/StopWatch";
-import { useStopwatch } from "react-timer-hook";
+
 
 
 const ExerciseCardSelected = ({ exercisesBasedOnDay }) => {
   const [open, setOpen] = useState(false);
   const swiperRef = useRef(null);
 
-  const { exercises } = exercisesBasedOnDay || {};
+  const { exercises,day } = exercisesBasedOnDay || {};
   const filteredExercises = exercises?.filter(
     (exercise) => exercise.name && exercise.bodyPart && exercise.gifUrl
   );
-  console.log("exercisesBasedOnDay", filteredExercises);
+  console.log("exercisesBasedOnDay", exercisesBasedOnDay);
 
   const toggleOpen = () => setOpen((cur) => !cur);
 
@@ -39,11 +38,7 @@ const ExerciseCardSelected = ({ exercisesBasedOnDay }) => {
     }
   };
 
-  const { milliseconds, seconds, minutes, hours, days, isRunning, start, pause, reset} = useStopwatch({ autoStart: false, interval: 20 });
-
-  const timerdata = {
-    milliseconds, seconds, minutes, hours, days, isRunning, start, pause, reset
-  }
+  
 
   return (
     <div className="w-full">
@@ -71,31 +66,13 @@ const ExerciseCardSelected = ({ exercisesBasedOnDay }) => {
                   open={open}
                 />
                 <div className="p-3">
-                <div className="my-2 mb-4">
-                {isRunning && <Stopwatch timerdata={timerdata} />}
-                
-                </div>
-                
-                  <SetAndRepsForm sets={setData?.sets} timerdata={timerdata} />
-                  <RegularButton title="Stop Rest (1 m 20 sec)" className="font-medium bg-red-600 hover:bg-red-400"/>
+                  <SetAndRepsForm sets={setData?.sets} day={day} goPrev={goPrev} goNext={goNext} />
                 </div>
               </div>
             </SwiperSlide>
           );
         })}
       </Swiper>
-
-      {/* Custom Navigation Buttons */}
-      <div className="flex justify-end">
-        <i
-          className="p-2 border cursor-pointer fa-duotone fa-solid fa-arrow-left"
-          onClick={goPrev}
-        ></i>
-        <i
-          className="p-2 border cursor-pointer fa-duotone fa-solid fa-arrow-right"
-          onClick={goNext}
-        ></i>
-      </div>
     </div>
   );
 };
