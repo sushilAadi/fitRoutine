@@ -17,7 +17,6 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import { getExercisesGif } from "@/service/exercise";
 import toast from "react-hot-toast";
-import ExerciseCanvas from "./ExerciseCanvas";
 import CaloriesBurnt from "./CaloriesBurnt";
 
 // Import Swiper React components
@@ -29,7 +28,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import "swiper/css/scrollbar";
 // import required modules
-import { Navigation, Pagination, Scrollbar, A11y } from "swiper/modules";
+import {  Pagination } from "swiper/modules";
 
 const TabButton = ({ active, onClick, children, disabled }) => (
   <button
@@ -1129,9 +1128,8 @@ const PlanDetail = ({ params }) => {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const [imageUrls, setImageUrls] = useState({});
   const [brokenImages, setBrokenImages] = useState({});
-  const processedIds = useRef(new Set());
+
 
   const getImage = async (id) => {
     try {
@@ -1143,50 +1141,50 @@ const PlanDetail = ({ params }) => {
     }
   };
 
-  const fetchImages = async () => {
-    try {
-      const exercises =
-        workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises;
+  // const fetchImages = async () => {
+  //   try {
+  //     const exercises =
+  //       workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises;
 
-      if (!Array.isArray(exercises)) {
-        console.error("Exercises is not a valid array:", exercises);
-        return;
-      }
+  //     if (!Array.isArray(exercises)) {
+  //       console.error("Exercises is not a valid array:", exercises);
+  //       return;
+  //     }
 
-      const urls = { ...imageUrls };
+  //     const urls = { ...imageUrls };
 
-      for (const exercise of exercises) {
-        if (
-          exercise?.id &&
-          !processedIds.current.has(exercise.id) &&
-          !brokenImages[exercise.id]
-        ) {
-          try {
-            const formattedId = exercise.id.toString().padStart(4, "0"); // Ensure 4-digit ID
+  //     for (const exercise of exercises) {
+  //       if (
+  //         exercise?.id &&
+  //         !processedIds.current.has(exercise.id) &&
+  //         !brokenImages[exercise.id]
+  //       ) {
+  //         try {
+  //           const formattedId = exercise.id.toString().padStart(4, "0"); // Ensure 4-digit ID
 
-            const image = await getImage(formattedId);
-            urls[exercise.id] = image;
-            processedIds.current.add(exercise.id); // Mark as processed
-          } catch (error) {
-            console.error(
-              `Error fetching image for exercise ID ${exercise.id}:`,
-              error
-            );
-          }
-        }
-      }
+  //           const image = await getImage(formattedId);
+  //           urls[exercise.id] = image;
+  //           processedIds.current.add(exercise.id); // Mark as processed
+  //         } catch (error) {
+  //           console.error(
+  //             `Error fetching image for exercise ID ${exercise.id}:`,
+  //             error
+  //           );
+  //         }
+  //       }
+  //     }
 
-      setImageUrls(urls); // Batch update the state
-    } catch (error) {
-      console.error("Error in fetchImages function:", error);
-    }
-  };
+  //     setImageUrls(urls); // Batch update the state
+  //   } catch (error) {
+  //     console.error("Error in fetchImages function:", error);
+  //   }
+  // };
 
-  useEffect(() => {
-    if (workoutData) {
-      fetchImages();
-    }
-  }, [workoutData, selectedWeek, selectedDay]);
+  // useEffect(() => {
+  //   if (workoutData) {
+  //     fetchImages();
+  //   }
+  // }, [workoutData, selectedWeek, selectedDay]);
 
   // Handle broken images
   const handleImageError = (exerciseId) => {
@@ -1319,7 +1317,7 @@ const PlanDetail = ({ params }) => {
               );
               const key = `${selectedWeek}-${selectedDay}-${exerciseIndex}`;
               const warning = setWarnings[key];
-              const imageUrl = imageUrls[exercise?.id] || "";
+              {/* const imageUrl = imageUrls[exercise?.id] || ""; */}
 
               return (
                 <SwiperSlide key={exerciseIndex}>
@@ -1327,7 +1325,7 @@ const PlanDetail = ({ params }) => {
                     {/* Exercise Content - Existing Code Here */}
                     <div className={`flex p-2 "bg-gray-900 gap-x-4 rounded-xl`}>
                       <div className="min-w-[50px] min-h-[50px] max-h-[50px] max-w-[50px] overflow-hidden">
-                        {imageUrl && (
+                        {/* {imageUrl && (
                           <Image
                             src={imageUrl || "/placeholder.svg"}
                             alt={exercise.name}
@@ -1339,7 +1337,7 @@ const PlanDetail = ({ params }) => {
                               setSelectedExercise(exercise);
                             }}
                           />
-                        )}
+                        )} */}
                       </div>
                       <div className="text-conatiner w-100">
                         <p
