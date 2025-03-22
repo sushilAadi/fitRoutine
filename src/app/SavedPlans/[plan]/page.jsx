@@ -66,7 +66,7 @@ const PlanDetail = ({ params }) => {
   const [currentDay, setCurrentDay] = useState(0);
   const [exerciseDetails, setExerciseDetails] = useState({});
   const [selectedExercise, setSelectedExercise] = useState(null);
-  const [show, setShow] = useState(false);
+
   const [warningMessage, setWarningMessage] = useState("");
   const [lockPreviousTabs, setLockPreviousTabs] = useState(true);
   const [restTime, setRestTime] = useState(null);
@@ -82,7 +82,6 @@ const PlanDetail = ({ params }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const handleOpenClose = () => setShow(!show);
   const selectedPlanId = decodeURIComponent(params?.plan);
 
   // Store timer state in localStorage to persist across refreshes
@@ -1338,7 +1337,6 @@ const PlanDetail = ({ params }) => {
                             onError={() => handleImageError(exercise.id)}
                             onClick={() => {
                               setSelectedExercise(exercise);
-                              handleOpenClose();
                             }}
                           />
                         )}
@@ -1348,7 +1346,6 @@ const PlanDetail = ({ params }) => {
                           className={`text-gray-400`}
                           onClick={() => {
                             setSelectedExercise(exercise);
-                            handleOpenClose();
                           }}
                         >
                           {_.upperFirst(exercise.name)}
@@ -1703,12 +1700,6 @@ const PlanDetail = ({ params }) => {
               )}
             </>
           )}
-
-          <ExerciseCanvas
-            show={show}
-            handleOpenClose={handleOpenClose}
-            selectedExercise={selectedExercise}
-          />
         </div>
       </div>
     </>
