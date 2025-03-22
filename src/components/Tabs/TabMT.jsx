@@ -34,9 +34,9 @@ function TabMT({ tab, selectededDay, setSelectededDay,exercisesBasedOnDay }) {
 
   return (
     <Tabs value={activeTab}>
-      <div className="pb-1 overflow-x-auto">
+      <div className="headerStyle ">
         <TabsHeader
-          className="p-0 bg-transparent border-b rounded-none border-blue-gray-50 flex-nowrap min-w-max"
+          className="p-0 bg-transparent bg-white border-b rounded-none border-blue-gray-50 flex-nowrap min-w-max"
           indicatorProps={{
             className:
               "bg-transparent border-b-2 border-gray-900 shadow-none rounded-none",

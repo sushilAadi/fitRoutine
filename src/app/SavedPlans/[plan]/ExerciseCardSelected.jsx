@@ -1,15 +1,19 @@
 "use client";
-import CCollapse from "@/components/Tabs/CCollapse";
+
 import _ from "lodash";
 import React, { useState, useRef } from "react";
 import ExerciseDetailHeader from "./ExerciseDetailHeader";
 import SetAndRepsForm from "./SetAndRepsForm";
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Pagination } from 'swiper/modules';
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Pagination } from "swiper/modules";
 
 // Import Swiper styles
-import 'swiper/css';
-import 'swiper/css/pagination';
+import "swiper/css";
+import "swiper/css/pagination";
+import RegularButton from "@/components/Button/RegularButton";
+import Stopwatch from "@/components/StopWatch/StopWatch";
+import { useStopwatch } from "react-timer-hook";
+
 
 const ExerciseCardSelected = ({ exercisesBasedOnDay }) => {
   const [open, setOpen] = useState(false);
@@ -22,21 +26,27 @@ const ExerciseCardSelected = ({ exercisesBasedOnDay }) => {
   console.log("exercisesBasedOnDay", filteredExercises);
 
   const toggleOpen = () => setOpen((cur) => !cur);
-  
+
   const goNext = () => {
     if (swiperRef.current && swiperRef.current.swiper) {
       swiperRef.current.swiper.slideNext();
     }
   };
-  
+
   const goPrev = () => {
     if (swiperRef.current && swiperRef.current.swiper) {
       swiperRef.current.swiper.slidePrev();
     }
   };
-  
+
+  const { milliseconds, seconds, minutes, hours, days, isRunning, start, pause, reset} = useStopwatch({ autoStart: false, interval: 20 });
+
+  const timerdata = {
+    milliseconds, seconds, minutes, hours, days, isRunning, start, pause, reset
+  }
+
   return (
-    <div className="w-full p-3">
+    <div className="w-full">
       <Swiper
         ref={swiperRef}
         slidesPerView={1}
@@ -49,36 +59,42 @@ const ExerciseCardSelected = ({ exercisesBasedOnDay }) => {
         className="w-full"
       >
         {filteredExercises?.map((exercise, index) => {
-          const setData = exercise?.weeklySetConfig?.find((i) => i?.isConfigured);
+          const setData = exercise?.weeklySetConfig?.find(
+            (i) => i?.isConfigured
+          );
           return (
             <SwiperSlide key={index} className="w-full">
               <div className="w-full mb-4">
-                <ExerciseDetailHeader 
-                  data={exercise} 
-                  toggleOpen={toggleOpen} 
+                <ExerciseDetailHeader
+                  data={exercise}
+                  toggleOpen={toggleOpen}
                   open={open}
                 />
-                <SetAndRepsForm sets={setData?.sets} />
-                <p className="text-sm font-medium text-black">Previous Data</p>
-                <ul className="pl-0">
-                  <li>23/01/2025 -  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 30 * 12, &nbsp;&nbsp;&nbsp;   30 * 12, &nbsp;&nbsp;&nbsp;   30 * 12</li>
-                  <li>26/01/2025 -  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 30 * 12, &nbsp;&nbsp;&nbsp;   30 * 12, &nbsp;&nbsp;&nbsp;   30 * 12</li>
-                  <li>01/02/2025 -  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 30 * 12, &nbsp;&nbsp;&nbsp;   30 * 12, &nbsp;&nbsp;&nbsp;   30 * 12</li>
-                  <li>06/02/2025 -  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 30 * 12, &nbsp;&nbsp;&nbsp;   30 * 12, &nbsp;&nbsp;&nbsp;   30 * 12</li>
-                  
-                </ul>
+                <div className="p-3">
+                <div className="my-2 mb-4">
+                {isRunning && <Stopwatch timerdata={timerdata} />}
+                
+                </div>
+                
+                  <SetAndRepsForm sets={setData?.sets} timerdata={timerdata} />
+                  <RegularButton title="Stop Rest (1 m 20 sec)" className="font-medium bg-red-600 hover:bg-red-400"/>
+                </div>
               </div>
             </SwiperSlide>
           );
         })}
       </Swiper>
-      
+
       {/* Custom Navigation Buttons */}
       <div className="flex justify-end">
-        
-        <i className="p-2 border cursor-pointer fa-duotone fa-solid fa-arrow-left"  onClick={goPrev}></i>
-        <i className="p-2 border cursor-pointer fa-duotone fa-solid fa-arrow-right"  onClick={goNext}></i>
-      
+        <i
+          className="p-2 border cursor-pointer fa-duotone fa-solid fa-arrow-left"
+          onClick={goPrev}
+        ></i>
+        <i
+          className="p-2 border cursor-pointer fa-duotone fa-solid fa-arrow-right"
+          onClick={goNext}
+        ></i>
       </div>
     </div>
   );

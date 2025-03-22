@@ -53,7 +53,7 @@ const ExerciseDetailHeader = ({data, toggleOpen, open}) => {
     }, [data?.id, getImage]);
 
     return (
-        <div className="pb-2 mx-auto overflow-hidden border-b">
+        <div className="p-3 pt-4 mx-auto overflow-hidden bg-white">
             <div className="">
                 {showImage && <img src={imageUrl || ""} alt={data?.name} className="mx-auto" />}
             

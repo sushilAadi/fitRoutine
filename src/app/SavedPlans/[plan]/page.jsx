@@ -117,10 +117,10 @@ const PlanDetail = ({ params }) => {
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       <div className="top-0 p-3 pb-1 sticky-top">
-        <h2>{workoutData?.name}</h2>
+        <h2>{_.capitalize(workoutData?.name)}</h2>
       </div>
 
-      <div className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">
+      <div className="flex-1 mb-2 overflow-auto overflow-y-auto bg-gray-50 exerciseCard h-fit no-scrollbar" >
         <TabMT
           tab={dataDay}
           selectededDay={selectededDay}

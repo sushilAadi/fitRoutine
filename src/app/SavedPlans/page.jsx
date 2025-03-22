@@ -242,7 +242,7 @@ const CustomPlanPage = () => {
             </div>
           )} */}
 
-          <div className="flex flex-wrap justify-between p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar h-100">
+          <div className="flex flex-wrap justify-between mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar h-100">
           {savedPlans.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {savedPlans.map((plan, index) => (
