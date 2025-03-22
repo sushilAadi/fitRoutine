@@ -372,6 +372,22 @@ border: 1px solid rgba( 255, 255, 255, 0.18 );
 .headerStyle nav ul{
   margin-bottom: 0;
 }
+.swiper-pagination{
+  width: 100% !important;
+}
+
+.swiper-custom-bullet {
+  @apply w-2.5 h-2.5 inline-block rounded-full bg-gray-400 opacity-80 cursor-pointer;
+}
+
+.swiper-custom-bullet.swiper-pagination-bullet-active {
+  @apply bg-white opacity-100;
+}
+
+.swiper-pagination {
+  position: relative !important;
+  margin-top: 0.625rem; /* 10px */
+}
 
 
 
