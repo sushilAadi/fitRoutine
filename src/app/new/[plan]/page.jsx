@@ -45,12 +45,24 @@ const PlanDetail = ({ params }) => {
 
       let parsedWorkoutPlan = null;
       let parsedExerciseHistory = null;
+      let dayNames = null;
+      let weekNames = null;
 
       try {
         if (typeof data.workoutPlanDB.workoutPlan === "string") {
           parsedWorkoutPlan = JSON.parse(data.workoutPlanDB.workoutPlan);
         } else {
           parsedWorkoutPlan = data.workoutPlanDB.workoutPlan;
+        }
+        if (typeof data.workoutPlanDB.dayNames === "string") {
+          dayNames = JSON.parse(data.workoutPlanDB.dayNames);
+        } else {
+          dayNames = data.workoutPlanDB.dayNames;
+        }
+        if (typeof data.workoutPlanDB.weekNames === "string") {
+          weekNames = JSON.parse(data.workoutPlanDB.weekNames);
+        } else {
+          weekNames = data.workoutPlanDB.weekNames;
         }
 
         if (typeof data.workoutPlanDB.exerciseHistory === "string") {
@@ -72,6 +84,12 @@ const PlanDetail = ({ params }) => {
         progress: 0, // Initial progress
         workoutPlan: parsedWorkoutPlan,
         exerciseHistory: parsedExerciseHistory,
+        dayNames: dayNames,
+        daysPerWeek:data.workoutPlanDB.daysPerWeek,
+        weeks:data.workoutPlanDB.weeks,
+        weekNames:weekNames,
+        setUpdate: data.workoutPlanDB.setUpdate,
+        date: data.workoutPlanDB.date,
       });
     } catch (fetchError) {
       console.error("Error fetching workout plan:", fetchError);
@@ -89,6 +107,8 @@ const PlanDetail = ({ params }) => {
   }, [selectedPlanId, userId]); // Add userId as dependency
 
   const { workoutPlan, exerciseHistory } = workoutData || {};
+
+  console.log("workoutData",workoutData)
 
   const dayTab = workoutPlan?.[0]?.map((i) => i?.day);
 
