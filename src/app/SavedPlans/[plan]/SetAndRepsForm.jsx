@@ -375,8 +375,8 @@ const SetAndRepsForm = ({
                     <i className="text-gray-400 fa-solid fa-lock"></i>
                   )}
                   
-                  {/* Edit button only for completed sets that are not in editing mode */}
-                  {set.isCompleted && !set.isEditing && (
+                  {/* Edit button only for completed sets that are not in editing mode AND not waiting for rest completion */}
+                  {set.isCompleted && !set.isEditing && !waitingForRestCompletion.current && (
                     <i 
                       className="p-2 text-orange-500 cursor-pointer fa-duotone fa-light fa-pen-to-square"
                       onClick={() => editSet(set.id)}
