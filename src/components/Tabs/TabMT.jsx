@@ -6,7 +6,7 @@ import {
   Tab,
   TabPanel,
 } from "@material-tailwind/react";
-import ExerciseCardSelected from "@/app/SavedPlans/[plan]/ExerciseCardSelected";
+import ExerciseCardSelected from "@/app/new/[plan]/ExerciseCardSelected";
 
  
 function TabMT({ tab, selectededDay, setSelectededDay,exercisesBasedOnDay }) {

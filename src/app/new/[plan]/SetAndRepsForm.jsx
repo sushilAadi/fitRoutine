@@ -128,15 +128,17 @@ const SetAndRepsForm = ({
     updatedSets[setIndex].isCompleted = true;
     updatedSets[setIndex].isEditing = false;
     
-    // Activate next set if exists
+    // Start rest timer for the completed set (even if it's the last set)
+    waitingForRestCompletion.current = true;
+    activeSetRef.current = setId;
+    setActiveTimer('rest');
+    setSeconds(0);
+    
+    // Activate next set if exists (this part remains unchanged)
     if (setIndex < updatedSets.length - 1) {
-      // Don't activate next set yet, wait for rest timer completion
-      waitingForRestCompletion.current = true;
-      
-      // Start rest timer for the completed set
-      activeSetRef.current = setId;
-      setActiveTimer('rest');
-      setSeconds(0);
+      // Next set will be activated when rest timer is stopped
+    } else {
+      // This is the last set, we'll still show the rest timer
     }
     
     setSets(updatedSets);
@@ -156,6 +158,11 @@ const SetAndRepsForm = ({
       const updatedSets = [...sets];
       updatedSets[lastCompletedIndex + 1].isActive = true;
       setSets(updatedSets);
+    }
+    
+    // If all sets are completed, run checkAllSetsCompleted again
+    if (sets.every(set => set.isCompleted)) {
+      checkAllSetsCompleted();
     }
   };
 
@@ -316,7 +323,7 @@ const SetAndRepsForm = ({
                     onChange={(e) => handleInputChange(set.id, "weight", e.target.value)}
                     disabled={(!set.isActive && !set.isEditing) || (set.isCompleted && !set.isEditing)}
                   />
-                  <span className="text-[12px] text-gray-500">
+                  <span className="text-[12px] text-gray-800">
                     Duration: {set.duration}
                   </span>
                 </div>
@@ -331,7 +338,7 @@ const SetAndRepsForm = ({
                     onChange={(e) => handleInputChange(set.id, "reps", e.target.value)}
                     disabled={(!set.isActive && !set.isEditing) || (set.isCompleted && !set.isEditing)}
                   />
-                  <span className="text-[12px] text-gray-500">
+                  <span className="text-[12px] text-gray-800">
                     Rest: {set.rest}
                   </span>
                 </div>
@@ -389,7 +396,7 @@ const SetAndRepsForm = ({
                     onClick={() => deleteSet(set.id)}
                   ></i>
                 </div>
-                <span className="text-[12px] text-gray-500 block mt-1">
+                <span className="text-[12px] text-gray-800 block mt-1">
                   Total Weight: {set.weight && set.reps ? (parseInt(set.weight) * parseInt(set.reps)) : 0} kg
                 </span>
               </td>
@@ -401,7 +408,7 @@ const SetAndRepsForm = ({
       {activeTimer === 'rest' && (
         <RegularButton 
           title={`Stop Rest Time (${Math.floor(seconds / 60)} min ${seconds % 60} sec)`} 
-          className="w-full mt-4 font-medium bg-red-500"
+          className="w-full mt-4 font-medium bg-red-500 hover:bg-red-700"
           onClick={stopRestTimer}
         />
       )}

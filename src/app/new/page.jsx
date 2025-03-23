@@ -162,7 +162,7 @@ const CustomPlanPage = () => {
 
     setSavedPlans(updatedPlans);
 
-    router.push(`/SavedPlans/${planId}`);
+    router.push(`/new/${planId}`);
   };
 
   const hasActivePlan = savedPlans.some(
@@ -251,7 +251,7 @@ const CustomPlanPage = () => {
                       plan={plan}
                       onClick={() => {
                         if (plan.progress === 100 || plan.status === "active") {
-                          router.push(`/SavedPlans/${plan.id}`);
+                          router.push(`/new/${plan.id}`);
                         } else {
                           startPlan(plan.id, plan.planName);
                         }
