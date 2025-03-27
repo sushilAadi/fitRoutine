@@ -63,6 +63,16 @@ const SetAndRepsForm = ({
     }
   }, [sets, selectedDay, exerciseId]);
 
+  useEffect(() => {
+    if (isAllSetsCompleted && !isLastExercise) {
+      const moveToNextTimeout = setTimeout(() => {
+        goNext();
+      }, 500); // Small delay to allow user to see completion
+
+      return () => clearTimeout(moveToNextTimeout);
+    }
+  }, [isAllSetsCompleted, isLastExercise, goNext]);
+
   // Timer logic
   useEffect(() => {
     if (activeTimer) {
