@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import ExerciseCardSelected from "@/app/new/[plan]/ExerciseCardSelected";
 
-function TabMT({ tab, selectededDay, setSelectededDay, exercisesBasedOnDay }) {
+function TabMT({ tab, selectededDay,setSelectedWeek,selectedWeek, setSelectededDay, exercisesBasedOnDay,selectedPlanId,noOfweeks }) {
   const data = tab;
 
   // Use useMemo to calculate the initial tab value
@@ -9,18 +9,16 @@ function TabMT({ tab, selectededDay, setSelectededDay, exercisesBasedOnDay }) {
     return data && data.length > 0 ? data[0].value : null;
   }, [data]);
 
-  console.log("called", initialTab);
+  
 
   // Set the selected day when the component mounts or data changes
   useEffect(() => {
-    console.log("called useEffect running");
+    
     if (data?.length > 0 && !selectededDay) {
-      console.log("called Setting selected day to", initialTab);
       setSelectededDay(initialTab);
     }
   }, [data, initialTab, selectededDay, setSelectededDay]);
 
-  console.log("called outside Current selectededDay:", selectededDay);
 
   // Use a fallback value if selectededDay is null
   const activeTab = selectededDay || initialTab;
@@ -45,7 +43,7 @@ function TabMT({ tab, selectededDay, setSelectededDay, exercisesBasedOnDay }) {
 
       {selectededDay && (
         <div className="mt-4">
-          <ExerciseCardSelected exercisesBasedOnDay={exercisesBasedOnDay} />
+          <ExerciseCardSelected selectedPlanId={selectedPlanId} noOfweeks={noOfweeks} setSelectedWeek={setSelectedWeek} selectedWeek={selectedWeek} selectededDay={selectededDay} setSelectededDay={setSelectededDay} exercisesBasedOnDay={exercisesBasedOnDay} />
         </div>
       )}
     </div>

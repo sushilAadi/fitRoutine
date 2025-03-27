@@ -107,18 +107,19 @@ const PlanDetail = ({ params }) => {
     }
   }, [selectedPlanId, userId]); // Add userId as dependency
 
-  const { workoutPlan } = workoutData || {};  // Removed exerciseHistory - unused
-  console.log("workoutData",workoutData)
+ 
+  
   const transFormWorkoutData =!loading && workoutData ? transformData(workoutData) : null; // Check workoutData before transforming.
   const weekData = transFormWorkoutData?.weeksExercise?.map((i) => i) || []; // Handle possible null
-
+  
   useEffect(() => {
     if (weekData && weekData.length > 0 && !selectedWeek) {
       setSelectedWeek(weekData[0]);
     }
   }, [weekData, selectedWeek]);
-
-  const dayTab = workoutPlan?.[0]?.map((i) => i?.day) || []; 
+  
+  
+  
 
   
 
@@ -133,10 +134,10 @@ const PlanDetail = ({ params }) => {
 const exercisesBasedOnDay = dataDay?.find(
   (i) => i?.value === selectededDay
 );
-console.log("exercisesBasedOnDay",exercisesBasedOnDay)
-const structuredExercisesBasedOnDay = {label:exercisesBasedOnDay?.label,day:exercisesBasedOnDay?.value,exercises:exercisesBasedOnDay?.exercise,week:selectedWeek?.weekName}||{};
-console.log("dataDay",{workoutData,structuredExercisesBasedOnDay,selectededDay,selectedWeek})
 
+const structuredExercisesBasedOnDay = {dayName:exercisesBasedOnDay?.label,day:exercisesBasedOnDay?.value,exercises:exercisesBasedOnDay?.exercise,weekName:selectedWeek?.weekName,week:selectedWeek?.week}||{};
+
+console.log("weekData",{selectedWeek,structuredExercisesBasedOnDay,weeks:transFormWorkoutData?.weeks})
   if (loading) {
     return <div className="p-4">Loading workout plan...</div>;
   }
@@ -174,6 +175,9 @@ console.log("dataDay",{workoutData,structuredExercisesBasedOnDay,selectededDay,s
           setSelectededDay={setSelectededDay}
           exercisesBasedOnDay={structuredExercisesBasedOnDay}
           selectedWeek={selectedWeek}
+          setSelectedWeek={setSelectedWeek}
+          selectedPlanId={selectedPlanId}
+          noOfweeks={transFormWorkoutData?.weeks}
         />
       </div>
     </div>

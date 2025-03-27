@@ -1,7 +1,8 @@
 "use client";
 
 import _ from "lodash";
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useContext } from "react";
+import { useRouter } from "next/navigation";
 import ExerciseDetailHeader from "./ExerciseDetailHeader";
 import SetAndRepsForm from "./SetAndRepsForm";
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -10,13 +11,15 @@ import { Pagination } from "swiper/modules";
 // Import Swiper styles
 import "swiper/css";
 import "swiper/css/pagination";
-import RegularButton from "@/components/Button/RegularButton";
+import { GlobalContext } from "@/context/GloablContext";
 
-const ExerciseCardSelected = ({ exercisesBasedOnDay }) => {
+const ExerciseCardSelected = ({ exercisesBasedOnDay, selectedPlanId, selectededDay, setSelectedWeek, selectedWeek, setSelectededDay, noOfweeks }) => {
+  const router = useRouter();
+  const { userId } = useContext(GlobalContext);
   const [open, setOpen] = useState(false);
   const swiperRef = useRef(null);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-  const { exercises, day } = exercisesBasedOnDay || {};
+  const { exercises, day, dayName, weekName } = exercisesBasedOnDay || {};
   
   const filteredExercises = exercises?.filter(
     (exercise) => exercise.name && exercise.bodyPart && exercise.gifUrl
@@ -57,6 +60,12 @@ const ExerciseCardSelected = ({ exercisesBasedOnDay }) => {
     }
   };
 
+  const necessaryData = {
+    day, dayName, weekName, selectedPlanId, userId, 
+    selectededDay, setSelectedWeek, selectedWeek, 
+    setSelectededDay, noOfweeks
+  };
+
   return (
     <div className="w-full">
       <Swiper
@@ -74,6 +83,8 @@ const ExerciseCardSelected = ({ exercisesBasedOnDay }) => {
       >
         {filteredExercises?.map((exercise, index) => {
           const setData = exercise?.weeklySetConfig;
+          const isLastExercise = index === filteredExercises.length - 1;
+
           return (
             <SwiperSlide key={index} className="w-full">
               <div className="w-full mb-4">
@@ -90,6 +101,9 @@ const ExerciseCardSelected = ({ exercisesBasedOnDay }) => {
                     exerciseName={exercise.name}
                     goPrev={goPrev} 
                     goNext={goNext} 
+                    necessaryData={necessaryData}
+                    exerciseIndex={index}
+                    isLastExercise={isLastExercise}
                   />
                 </div>
               </div>

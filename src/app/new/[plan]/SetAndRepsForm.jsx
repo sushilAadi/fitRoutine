@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import RegularButton from "@/components/Button/RegularButton";
+import { useRouter } from "next/navigation";
 
 const SetAndRepsForm = ({
   sets: initialSets,
@@ -10,7 +11,13 @@ const SetAndRepsForm = ({
   exerciseName,
   goPrev,
   goNext,
+  necessaryData,
+  exerciseIndex,
+  isLastExercise, // Add this prop
 }) => {
+  const router = useRouter();
+
+  const {day,dayName,weekName,selectedPlanId,userId,selectededDay,setSelectedWeek,selectedWeek, setSelectededDay,noOfweeks} = necessaryData || {};
   // Initialize sets data from local storage or create new
   const getInitialSets = () => {
     if (typeof window !== 'undefined') {
@@ -94,8 +101,22 @@ const SetAndRepsForm = ({
 
   // Check if all sets are completed
   const checkAllSetsCompleted = () => {
-    const allCompleted = sets.length > 0 && sets.every(set => set.isCompleted);
+    const allCompleted = sets.length > 0 && 
+      sets.every(set => set.isCompleted) && 
+      !waitingForRestCompletion.current;
+
     setIsAllSetsCompleted(allCompleted);
+    
+    return allCompleted;
+  };
+
+  const handleWorkoutCompletion = () => {
+    // Final validation to ensure last exercise sets are actually complete
+    if (isLastExercise && checkAllSetsCompleted()) {
+      router.push("/new");
+    } else {
+      alert("Please complete all sets of the last exercise before finishing the workout.");
+    }
   };
 
   // Start workout timer for a set
@@ -411,6 +432,16 @@ const SetAndRepsForm = ({
           className="w-full mt-4 font-medium bg-red-500 hover:bg-red-700"
           onClick={stopRestTimer}
         />
+      )}
+
+      {isLastExercise && isAllSetsCompleted && (
+        <div className="mt-4">
+          <RegularButton 
+            title="Workout Completed" 
+            className="w-full bg-green-500 hover:bg-green-700"
+            onClick={handleWorkoutCompletion}
+          />
+        </div>
       )}
 
       {showHistory && (

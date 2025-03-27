@@ -324,6 +324,7 @@ export const transformData = (data) => {
       });
 
       return {
+        week:weekIndex,
         weekName: weekNames[weekIndex],
         days: days,
       };
