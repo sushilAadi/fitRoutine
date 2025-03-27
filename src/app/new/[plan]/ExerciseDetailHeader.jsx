@@ -12,57 +12,57 @@ const ExerciseDetailHeader = ({data, toggleOpen, open}) => {
     const [showImage, setShowImage] = useState(false);
     const [imageUrl, setImageUrl] = useState("");
 
-    const getImage = useCallback(async (id) => {
-        // Check if we have a cached image that hasn't expired
-        if (imageCache.has(id)) {
-            const cachedData = imageCache.get(id);
-            const now = new Date().getTime();
+    // const getImage = useCallback(async (id) => {
+    //     // Check if we have a cached image that hasn't expired
+    //     if (imageCache.has(id)) {
+    //         const cachedData = imageCache.get(id);
+    //         const now = new Date().getTime();
             
-            // If the cache hasn't expired, use the cached image
-            if (now - cachedData.timestamp < CACHE_EXPIRY) {
-                return cachedData.url;
-            }
-        }
+    //         // If the cache hasn't expired, use the cached image
+    //         if (now - cachedData.timestamp < CACHE_EXPIRY) {
+    //             return cachedData.url;
+    //         }
+    //     }
         
-        // If no cache or expired, fetch new image
-        try {
-            const response = await getExercisesGif(id);
+    //     // If no cache or expired, fetch new image
+    //     try {
+    //         const response = await getExercisesGif(id);
             
-            // Store in cache with timestamp
-            imageCache.set(id, {
-                url: response,
-                timestamp: new Date().getTime()
-            });
+    //         // Store in cache with timestamp
+    //         imageCache.set(id, {
+    //             url: response,
+    //             timestamp: new Date().getTime()
+    //         });
             
-            return response;
-        } catch (error) {
-            console.error("Error fetching image:", error);
-            return "";
-        }
-    }, []);
+    //         return response;
+    //     } catch (error) {
+    //         console.error("Error fetching image:", error);
+    //         return "";
+    //     }
+    // }, []);
 
-    useEffect(() => {
-        const fetchImage = async () => {
-            if (data?.id) {
-                const image = await getImage(data.id);
-                setImageUrl(image);
-            }
-        };
+    // useEffect(() => {
+    //     const fetchImage = async () => {
+    //         if (data?.id) {
+    //             const image = await getImage(data.id);
+    //             setImageUrl(image);
+    //         }
+    //     };
         
-        fetchImage();
-    }, [data?.id, getImage]);
+    //     fetchImage();
+    // }, [data?.id, getImage]);
 
     return (
         <div className="p-3 pt-4 mx-auto overflow-hidden bg-white">
             <div className="">
-                {showImage && <img src={imageUrl || ""} alt={data?.name} className="mx-auto" />}
+                {showImage && <img src={data?.gifUrl || ""} alt={""} className="mx-auto" />}
             
                 <div className="flex items-center">
-                    <div className="flex items-center justify-center w-12 h-12 mr-4 rounded-full">
+                    <div className="flex items-center justify-center w-12 h-12 mr-4 bg-gray-300 rounded-full">
                         <img 
                             onClick={() => setShowImage(!showImage)} 
-                            src={imageUrl || ""} 
-                            alt={data?.name || ""} 
+                            src={data?.gifUrl || ""} 
+                            alt={ ""} 
                             className="w-[60px] cursor-pointer" 
                         />
                     </div>

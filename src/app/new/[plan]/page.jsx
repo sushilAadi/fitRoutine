@@ -6,7 +6,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import toast from "react-hot-toast";
 import TabMT from "@/components/Tabs/TabMT";
-
+import { transformData } from "@/utils";
 
 const PlanDetail = ({ params }) => {
   const { userId, latestWeight } = useContext(GlobalContext);
@@ -15,6 +15,7 @@ const PlanDetail = ({ params }) => {
   const [workoutData, setWorkoutData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState(null);
   const [selectededDay, setSelectededDay] = useState(null);
   const selectedPlanId = decodeURIComponent(params?.plan);
 
@@ -85,9 +86,9 @@ const PlanDetail = ({ params }) => {
         workoutPlan: parsedWorkoutPlan,
         exerciseHistory: parsedExerciseHistory,
         dayNames: dayNames,
-        daysPerWeek:data.workoutPlanDB.daysPerWeek,
-        weeks:data.workoutPlanDB.weeks,
-        weekNames:weekNames,
+        daysPerWeek: data.workoutPlanDB.daysPerWeek,
+        weeks: data.workoutPlanDB.weeks,
+        weekNames: weekNames,
         setUpdate: data.workoutPlanDB.setUpdate,
         date: data.workoutPlanDB.date,
       });
@@ -106,21 +107,35 @@ const PlanDetail = ({ params }) => {
     }
   }, [selectedPlanId, userId]); // Add userId as dependency
 
-  const { workoutPlan, exerciseHistory } = workoutData || {};
-
+  const { workoutPlan } = workoutData || {};  // Removed exerciseHistory - unused
   console.log("workoutData",workoutData)
+  const transFormWorkoutData =!loading && workoutData ? transformData(workoutData) : null; // Check workoutData before transforming.
+  const weekData = transFormWorkoutData?.weeksExercise?.map((i) => i) || []; // Handle possible null
 
-  const dayTab = workoutPlan?.[0]?.map((i) => i?.day);
+  useEffect(() => {
+    if (weekData && weekData.length > 0 && !selectedWeek) {
+      setSelectedWeek(weekData[0]);
+    }
+  }, [weekData, selectedWeek]);
 
-  const exercisesBasedOnDay = workoutPlan?.[0]?.find(i=>i?.day === selectededDay)
- console.log("workoutPlan",exercisesBasedOnDay)
+  const dayTab = workoutPlan?.[0]?.map((i) => i?.day) || []; 
 
-  const dataDay = dayTab?.map((day, index) => ({
-    label: `Day ${day}`,
-    value: day,
-    desc: `Description for Day ${day}. Customize this as needed.`,
-  }));
+  
 
+  const dataDay = selectedWeek?.days?.map(i=>({
+    "label": i?.dayName,
+    "value": i?.day,
+    "exercise": i?.exercises
+})) || [];  // Handle possible null
+
+
+
+const exercisesBasedOnDay = dataDay?.find(
+  (i) => i?.value === selectededDay
+);
+console.log("exercisesBasedOnDay",exercisesBasedOnDay)
+const structuredExercisesBasedOnDay = {label:exercisesBasedOnDay?.label,day:exercisesBasedOnDay?.value,exercises:exercisesBasedOnDay?.exercise,week:selectedWeek?.weekName}||{};
+console.log("dataDay",{workoutData,structuredExercisesBasedOnDay,selectededDay,selectedWeek})
 
   if (loading) {
     return <div className="p-4">Loading workout plan...</div>;
@@ -139,13 +154,26 @@ const PlanDetail = ({ params }) => {
       <div className="top-0 p-3 pb-1 sticky-top">
         <h2>{_.capitalize(workoutData?.name)}</h2>
       </div>
-
-      <div className="flex-1 mb-2 overflow-auto overflow-y-auto bg-gray-50 exerciseCard h-fit no-scrollbar" >
+      <div className="flex gap-2 overflow-auto">
+      {weekData && weekData?.map((i) => (
+          <div
+            className={`border cursor-pointer ${
+              selectedWeek?.weekName === i?.weekName && "bg-black text-white"
+            }`}
+            onClick={() => setSelectedWeek(i)}
+            key={i?.weekName}
+          >
+            {i?.weekName}  
+          </div>
+        )) }
+      </div>
+      <div className="flex-1 mb-2 overflow-auto overflow-y-auto bg-gray-50 exerciseCard h-fit no-scrollbar">
         <TabMT
           tab={dataDay}
           selectededDay={selectededDay}
           setSelectededDay={setSelectededDay}
-          exercisesBasedOnDay={exercisesBasedOnDay}
+          exercisesBasedOnDay={structuredExercisesBasedOnDay}
+          selectedWeek={selectedWeek}
         />
       </div>
     </div>

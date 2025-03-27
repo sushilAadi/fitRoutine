@@ -73,9 +73,7 @@ const ExerciseCardSelected = ({ exercisesBasedOnDay }) => {
         initialSlide={currentSlideIndex}
       >
         {filteredExercises?.map((exercise, index) => {
-          const setData = exercise?.weeklySetConfig?.find(
-            (i) => i?.isConfigured
-          );
+          const setData = exercise?.weeklySetConfig;
           return (
             <SwiperSlide key={index} className="w-full">
               <div className="w-full mb-4">

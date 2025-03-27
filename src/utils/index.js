@@ -265,3 +265,84 @@ export const Dummydata = [
     content: <DummyContent />,
   },
 ];
+
+
+export const transformData = (data) => {
+  try {
+    if (!data) {
+      console.error("Error: Data is null or undefined.");
+      return null; // Or throw an error, or return a default object
+    }
+
+    const {
+      id,
+      name,
+      progress,
+      workoutPlan,
+      exerciseHistory,
+      dayNames,
+      daysPerWeek,
+      weeks,
+      weekNames,
+      setUpdate,
+      date,
+    } = data;
+
+    const weeksData = workoutPlan.map((week, weekIndex) => {
+      const days = week.map((dayData, dayIndex) => {
+        const exercises = dayData.exercises.map((exercise) => {
+          const configuredSet = exercise.weeklySetConfig.find(
+            (set) => set.isConfigured
+          );
+
+          let weeklySetConfig = null;
+
+          if (configuredSet) {
+            weeklySetConfig = {
+              sets: configuredSet.sets,
+              isConfigured: configuredSet.isConfigured,
+            };
+          }
+          return {
+            bodyPart: exercise.bodyPart,
+            equipment: exercise.equipment,
+            gifUrl: exercise.gifUrl,
+            id: exercise.id,
+            instructions: exercise.instructions,
+            name: exercise.name,
+            target: exercise.target,
+            secondaryMuscles: exercise.secondaryMuscles,
+            weeklySetConfig: weeklySetConfig,
+          };
+        });
+
+        return {
+          day: dayData.day,
+          dayName: dayNames[dayIndex],
+          exercises: exercises,
+        };
+      });
+
+      return {
+        weekName: weekNames[weekIndex],
+        days: days,
+      };
+    });
+
+    return {
+      id: id,
+      name: name,
+      progress: progress,
+      weeks: weeks,
+      weeksExercise: weeksData,
+      exerciseHistory: exerciseHistory,
+      daysPerWeek: parseInt(daysPerWeek),
+      weeksCount: parseInt(weeks),
+      setUpdate: setUpdate,
+      date: date,
+    };
+  } catch (error) {
+    console.error("An error occurred during data transformation:", error);
+    return null; // Or throw the error, or return a default object
+  }
+};
