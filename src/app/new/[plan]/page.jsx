@@ -19,6 +19,8 @@ const PlanDetail = ({ params }) => {
   const [selectededDay, setSelectededDay] = useState(null);
   const selectedPlanId = decodeURIComponent(params?.plan);
 
+  const workoutProgressKey = `workout-progress-${selectedPlanId}`;
+
   const fetchWorkoutPlan = async () => {
     setLoading(true);
     setError(null);
@@ -112,13 +114,73 @@ const PlanDetail = ({ params }) => {
   const transFormWorkoutData =!loading && workoutData ? transformData(workoutData) : null; // Check workoutData before transforming.
   const weekData = transFormWorkoutData?.weeksExercise?.map((i) => i) || []; // Handle possible null
   
+  
+
+  const selectedWeekKey = `selectedWeek_${selectedPlanId || 'default'}`;
+
   useEffect(() => {
-    if (weekData && weekData.length > 0 && !selectedWeek) {
-      setSelectedWeek(weekData[0]);
+    try {
+     
+      const storedSelectedWeek = localStorage.getItem(selectedWeekKey);
+      
+      if (weekData && weekData.length > 0 && !selectedWeek) {
+        const filteredWeek = weekData?.find(i=>i?.weekName === storedSelectedWeek)
+        console.log("filteredWeek",filteredWeek)
+        setSelectedWeek(filteredWeek);
+      }
+    } catch (error) {
+      console.error("Error retrieving from localStorage:", error);
     }
-  }, [weekData, selectedWeek]);
+  }, []); 
+
+  useEffect(() => {
+    if (!workoutData) return;
+
+    // Transform workout data
+    const transFormWorkoutData = transformData(workoutData);
+    const weekData = transFormWorkoutData?.weeksExercise?.map((i) => i) || [];
+
+    try {
+      // Check for saved workout progress
+      const savedProgress = JSON.parse(localStorage.getItem(workoutProgressKey) || 'null');
+
+      if (savedProgress) {
+        // Find corresponding week and day based on saved progress
+        const progressWeek = weekData.find(w => w.weekName === savedProgress.weekName);
+        const progressDay = progressWeek?.days.find(d => d.dayName === savedProgress.dayName);
+
+        if (progressWeek && progressDay) {
+          setSelectedWeek(progressWeek);
+          setSelectededDay(progressDay.day);
+        }
+      } else if (weekData.length > 0) {
+        // Default to first week and first day if no progress
+        setSelectedWeek(weekData[0]);
+        setSelectededDay(weekData[0].days[0].day);
+      }
+    } catch (error) {
+      console.error("Error retrieving workout progress:", error);
+      // Fallback to default
+      if (weekData.length > 0) {
+        setSelectedWeek(weekData[0]);
+        setSelectededDay(weekData[0].days[0].day);
+      }
+    }
+  }, [workoutData]);
   
   
+  useEffect(() => {
+    try {
+      if (weekData && weekData.length > 0 && !selectedWeek) {
+        setSelectedWeek(weekData[0]);
+        localStorage.setItem(selectedWeekKey, weekData[0]?.weekName);
+      }
+    } catch (error) {
+      console.error("Error storing in localStorage:", error);
+    }
+  }, [ weekData, selectedWeek, selectedPlanId]);
+  
+  console.log("selectedWeek",transFormWorkoutData)
   
 
   
@@ -174,17 +236,17 @@ const structuredExercisesBasedOnDay = {dayName:exercisesBasedOnDay?.label,day:ex
         )) }
       </div>
       <div className="flex-1 mb-2 overflow-auto overflow-y-auto bg-gray-50 exerciseCard h-fit no-scrollbar">
-        <TabMT
-          tab={dataDay}
-          selectededDay={selectededDay}
-          setSelectededDay={setSelectededDay}
-          exercisesBasedOnDay={structuredExercisesBasedOnDay}
-          selectedWeek={selectedWeek}
-          setSelectedWeek={setSelectedWeek}
-          selectedPlanId={selectedPlanId}
-          noOfweeks={transFormWorkoutData?.weeks}
-          weekStructure={weekStructure}
-        />
+      <TabMT
+        tab={dataDay}
+        selectededDay={selectededDay}
+        setSelectededDay={setSelectededDay}
+        exercisesBasedOnDay={structuredExercisesBasedOnDay}
+        selectedWeek={selectedWeek}
+        setSelectedWeek={setSelectedWeek}
+        selectedPlanId={selectedPlanId}
+        noOfweeks={transFormWorkoutData?.weeks}
+        weekStructure={weekStructure}
+      />
       </div>
     </div>
   );

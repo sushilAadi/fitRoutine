@@ -13,7 +13,17 @@ import "swiper/css";
 import "swiper/css/pagination";
 import { GlobalContext } from "@/context/GloablContext";
 
-const ExerciseCardSelected = ({ exercisesBasedOnDay, selectedPlanId, selectededDay, setSelectedWeek, selectedWeek, setSelectededDay, noOfweeks,dayData,weekStructure }) => {
+const ExerciseCardSelected = ({ 
+  exercisesBasedOnDay, 
+  selectedPlanId, 
+  selectededDay, 
+  setSelectedWeek, 
+  selectedWeek, 
+  setSelectededDay, 
+  noOfweeks,
+  dayData,
+  weekStructure 
+}) => {
   const router = useRouter();
   const { userId } = useContext(GlobalContext);
   const [open, setOpen] = useState(false);
@@ -24,6 +34,22 @@ const ExerciseCardSelected = ({ exercisesBasedOnDay, selectedPlanId, selectededD
   const filteredExercises = exercises?.filter(
     (exercise) => exercise.name && exercise.bodyPart && exercise.gifUrl
   );
+
+  // Reset slide index when day changes
+  useEffect(() => {
+    // Reset slide index when the day changes
+    setCurrentSlideIndex(0);
+    
+    // If swiperRef exists, reset to first slide
+    if (swiperRef.current && swiperRef.current.swiper) {
+      swiperRef.current.swiper.slideTo(0);
+    }
+    
+    // Clear the saved slide index for the previous day
+    if (day) {
+      localStorage.removeItem(`slideIndex-${day}`);
+    }
+  }, [day]);
 
   // Load saved slide index from localStorage
   useEffect(() => {
@@ -63,7 +89,7 @@ const ExerciseCardSelected = ({ exercisesBasedOnDay, selectedPlanId, selectededD
   const necessaryData = {
     day, dayName, weekName, selectedPlanId, userId, 
     selectededDay, setSelectedWeek, selectedWeek, 
-    setSelectededDay, noOfweeks,dayData,weekStructure
+    setSelectededDay, noOfweeks, dayData, weekStructure
   };
 
   return (

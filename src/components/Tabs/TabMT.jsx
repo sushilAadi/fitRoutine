@@ -4,13 +4,34 @@ import ExerciseCardSelected from "@/app/new/[plan]/ExerciseCardSelected";
 function TabMT({ tab, selectededDay,setSelectedWeek,selectedWeek, setSelectededDay, exercisesBasedOnDay,selectedPlanId,noOfweeks,weekStructure }) {
   const data = tab;
 
+  const selectedDayKey = `selectedDay_${selectedPlanId || 'default'}`;
+
+  useEffect(() => {
+    try {
+     
+      const storedSelectedDay = localStorage.getItem(selectedDayKey);
+      
+      if (!selectededDay && storedSelectedDay) {
+        setSelectededDay(+storedSelectedDay);
+      }
+    } catch (error) {
+      console.error("Error retrieving from localStorage:", error);
+    }
+  }, []); 
+  
   
   useEffect(() => {
-    
-    if (data?.length > 0 && !selectededDay) {
-      setSelectededDay(data[0].value);
+    try {
+      if (data?.length > 0 && !selectededDay) {
+        setSelectededDay(+data[0].value);
+        localStorage.setItem(selectedDayKey, data[0].value);
+      }
+    } catch (error) {
+      console.error("Error storing in localStorage:", error);
     }
-  }, [data,  selectededDay, setSelectededDay]);
+  }, [data, selectededDay, selectedPlanId]);
+  
+
 
   const shareNecessaryData = data?.map(i=>({label:i.label,value:i.value,day:i?.day})) || [];
 

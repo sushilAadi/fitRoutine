@@ -13,12 +13,17 @@ const SetAndRepsForm = ({
   goNext,
   necessaryData,
   exerciseIndex,
-  isLastExercise, // Add this prop
+  isLastExercise,
 }) => {
   const router = useRouter();
 
+  
   const {day, dayName, weekName, selectedPlanId, userId, selectededDay, setSelectedWeek, selectedWeek, setSelectededDay, noOfweeks,dayData,weekStructure} = necessaryData || {};
-
+  
+  const workoutProgressKey = `workout-progress-${selectedPlanId}`;
+  const selectedDayKey = `selectedDay_${selectedPlanId || 'default'}`;
+  const selectedWeekKey = `selectedWeek_${selectedPlanId || 'default'}`;
+  
   console.log("+++++++++++++++", {day, dayName, weekName, selectedPlanId, userId, selectededDay,selectedWeek,noOfweeks,dayData,weekStructure});
   // Initialize sets data from local storage or create new
   const getInitialSets = () => {
@@ -123,11 +128,60 @@ const SetAndRepsForm = ({
   };
 
   const handleWorkoutCompletion = () => {
-    // Final validation to ensure last exercise sets are actually complete
-    if (isLastExercise && checkAllSetsCompleted()) {
+    try {
+      // Retrieve current workout progress
+      const savedProgress = JSON.parse(localStorage.getItem(workoutProgressKey) || '{}');
+
+      // Determine next progression
+      const totalWeeks = parseInt(noOfweeks);
+      const totalDays = dayData.length;
+
+      // Current week and day
+      let nextWeek = selectedWeek.week;
+      let nextDay = selectededDay;
+
+      // Progress logic
+      if (nextDay < totalDays) {
+        // Move to next day in current week
+        nextDay++;
+      } else if (nextWeek < totalWeeks - 1) {
+        // Move to next week and reset to first day
+        nextWeek++;
+        nextDay = 1;
+      } else {
+        // Completed entire plan
+        router.push("/new");
+        
+        // Clear workout progress
+        localStorage.removeItem(workoutProgressKey);
+        return;
+      }
+
+      // Find the corresponding week and day objects
+      const nextWeekObj = weekStructure.find(w => w.week === nextWeek);
+      const nextDayObj = dayData.find(d => d.value === nextDay);
+
+      // Save progress
+      const newProgress = {
+        currentWeek: nextWeek,
+        currentDay: nextDay,
+        weekName: nextWeekObj?.weekName,
+        dayName: nextDayObj?.label
+      };
+
+      localStorage.setItem(workoutProgressKey, JSON.stringify(newProgress));
+      localStorage.setItem(selectedWeekKey, nextWeekObj?.weekName);
+      localStorage.setItem(selectedDayKey, nextDay.toString());
+
+      // Update state or trigger navigation
+      setSelectedWeek(nextWeekObj);
+      setSelectededDay(nextDay);
+
+      // Navigate or reset for next workout
       router.push("/new");
-    } else {
-      alert("Please complete all sets of the last exercise before finishing the workout.");
+    } catch (error) {
+      console.error("Error in workout completion:", error);
+      toast.error("An error occurred while completing the workout");
     }
   };
 
