@@ -126,7 +126,8 @@ const PlanDetail = ({ params }) => {
   const dataDay = selectedWeek?.days?.map(i=>({
     "label": i?.dayName,
     "value": i?.day,
-    "exercise": i?.exercises
+    "exercise": i?.exercises,
+    "day":i?.day
 })) || [];  // Handle possible null
 
 
@@ -135,9 +136,11 @@ const exercisesBasedOnDay = dataDay?.find(
   (i) => i?.value === selectededDay
 );
 
+console.log("weekData",weekData)
+const weekStructure = weekData?.map(i=>({week:i?.week,weekName:i?.weekName})) || [];
+
 const structuredExercisesBasedOnDay = {dayName:exercisesBasedOnDay?.label,day:exercisesBasedOnDay?.value,exercises:exercisesBasedOnDay?.exercise,weekName:selectedWeek?.weekName,week:selectedWeek?.week}||{};
 
-console.log("weekData",{selectedWeek,structuredExercisesBasedOnDay,weeks:transFormWorkoutData?.weeks})
   if (loading) {
     return <div className="p-4">Loading workout plan...</div>;
   }
@@ -149,6 +152,8 @@ console.log("weekData",{selectedWeek,structuredExercisesBasedOnDay,weeks:transFo
   if (!workoutData) {
     return <div className="p-4">No workout data available.</div>;
   }
+
+  
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -178,6 +183,7 @@ console.log("weekData",{selectedWeek,structuredExercisesBasedOnDay,weeks:transFo
           setSelectedWeek={setSelectedWeek}
           selectedPlanId={selectedPlanId}
           noOfweeks={transFormWorkoutData?.weeks}
+          weekStructure={weekStructure}
         />
       </div>
     </div>

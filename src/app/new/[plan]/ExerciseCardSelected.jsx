@@ -13,7 +13,7 @@ import "swiper/css";
 import "swiper/css/pagination";
 import { GlobalContext } from "@/context/GloablContext";
 
-const ExerciseCardSelected = ({ exercisesBasedOnDay, selectedPlanId, selectededDay, setSelectedWeek, selectedWeek, setSelectededDay, noOfweeks }) => {
+const ExerciseCardSelected = ({ exercisesBasedOnDay, selectedPlanId, selectededDay, setSelectedWeek, selectedWeek, setSelectededDay, noOfweeks,dayData,weekStructure }) => {
   const router = useRouter();
   const { userId } = useContext(GlobalContext);
   const [open, setOpen] = useState(false);
@@ -63,7 +63,7 @@ const ExerciseCardSelected = ({ exercisesBasedOnDay, selectedPlanId, selectededD
   const necessaryData = {
     day, dayName, weekName, selectedPlanId, userId, 
     selectededDay, setSelectedWeek, selectedWeek, 
-    setSelectededDay, noOfweeks
+    setSelectededDay, noOfweeks,dayData,weekStructure
   };
 
   return (

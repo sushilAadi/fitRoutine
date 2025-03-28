@@ -17,7 +17,9 @@ const SetAndRepsForm = ({
 }) => {
   const router = useRouter();
 
-  const {day,dayName,weekName,selectedPlanId,userId,selectededDay,setSelectedWeek,selectedWeek, setSelectededDay,noOfweeks} = necessaryData || {};
+  const {day, dayName, weekName, selectedPlanId, userId, selectededDay, setSelectedWeek, selectedWeek, setSelectededDay, noOfweeks,dayData,weekStructure} = necessaryData || {};
+
+  console.log("+++++++++++++++", {day, dayName, weekName, selectedPlanId, userId, selectededDay,selectedWeek,noOfweeks,dayData,weekStructure});
   // Initialize sets data from local storage or create new
   const getInitialSets = () => {
     if (typeof window !== 'undefined') {

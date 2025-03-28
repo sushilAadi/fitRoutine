@@ -1,27 +1,19 @@
 import React, { useEffect, useState, useMemo } from "react";
 import ExerciseCardSelected from "@/app/new/[plan]/ExerciseCardSelected";
 
-function TabMT({ tab, selectededDay,setSelectedWeek,selectedWeek, setSelectededDay, exercisesBasedOnDay,selectedPlanId,noOfweeks }) {
+function TabMT({ tab, selectededDay,setSelectedWeek,selectedWeek, setSelectededDay, exercisesBasedOnDay,selectedPlanId,noOfweeks,weekStructure }) {
   const data = tab;
 
-  // Use useMemo to calculate the initial tab value
-  const initialTab = useMemo(() => {
-    return data && data.length > 0 ? data[0].value : null;
-  }, [data]);
-
   
-
-  // Set the selected day when the component mounts or data changes
   useEffect(() => {
     
     if (data?.length > 0 && !selectededDay) {
-      setSelectededDay(initialTab);
+      setSelectededDay(data[0].value);
     }
-  }, [data, initialTab, selectededDay, setSelectededDay]);
+  }, [data,  selectededDay, setSelectededDay]);
 
+  const shareNecessaryData = data?.map(i=>({label:i.label,value:i.value,day:i?.day})) || [];
 
-  // Use a fallback value if selectededDay is null
-  const activeTab = selectededDay || initialTab;
 
   return (
     <div>
@@ -31,7 +23,7 @@ function TabMT({ tab, selectededDay,setSelectedWeek,selectedWeek, setSelectededD
             key={value}
             onClick={() => setSelectededDay(value)}
             className={`px-4 py-2 rounded-md ${
-              activeTab === value
+              selectededDay === value
                 ? "bg-gray-200 text-gray-900 font-semibold"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
             } whitespace-nowrap`}
@@ -43,7 +35,7 @@ function TabMT({ tab, selectededDay,setSelectedWeek,selectedWeek, setSelectededD
 
       {selectededDay && (
         <div className="mt-4">
-          <ExerciseCardSelected selectedPlanId={selectedPlanId} noOfweeks={noOfweeks} setSelectedWeek={setSelectedWeek} selectedWeek={selectedWeek} selectededDay={selectededDay} setSelectededDay={setSelectededDay} exercisesBasedOnDay={exercisesBasedOnDay} />
+          <ExerciseCardSelected dayData={shareNecessaryData} weekStructure={weekStructure} selectedPlanId={selectedPlanId} noOfweeks={noOfweeks} setSelectedWeek={setSelectedWeek} selectedWeek={selectedWeek} selectededDay={selectededDay} setSelectededDay={setSelectededDay} exercisesBasedOnDay={exercisesBasedOnDay} />
         </div>
       )}
     </div>
