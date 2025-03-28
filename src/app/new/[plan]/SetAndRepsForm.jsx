@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 
 // Helper function to parse time string (HH:MM:SS or MM:SS) to seconds
 const parseTimeToSeconds = (timeString = "00:00:00") => {
+  // ... (keep the function as it is)
   if (!timeString || typeof timeString !== 'string') return 0;
   const parts = timeString.split(':').map(Number);
   if (parts.length === 3) { // HH:MM:SS
@@ -21,7 +22,7 @@ const parseTimeToSeconds = (timeString = "00:00:00") => {
 const SetAndRepsForm = ({
   sets: initialSets,
   selectedDay,
-  exerciseId,
+  exerciseId, // <--- exerciseId prop is already here
   exerciseName,
   goPrev,
   goNext,
@@ -41,7 +42,8 @@ const SetAndRepsForm = ({
 
   // Initialize sets data from local storage or create new
   const getInitialSets = () => {
-    if (typeof window !== 'undefined') {
+    // ... (keep the function as it is)
+     if (typeof window !== 'undefined') {
       try {
         const savedData = localStorage.getItem(`workout-${selectedDay}-${exerciseId}`);
         if (savedData) {
@@ -49,11 +51,12 @@ const SetAndRepsForm = ({
            // Ensure new flags exist with defaults if loading old data
            return parsedData.map((set, index) => ({
              ...set,
+             exerciseId: set.exerciseId || exerciseId, // Add exerciseId if missing from old data
              isActive: set.isActive === undefined ? (index === 0 && !set.isCompleted) : set.isActive, // Default isActive logic if missing
              isEditing: set.isEditing || false,
              isDurationRunning: set.isDurationRunning || false,
              isRestRunning: set.isRestRunning || false,
-             date: set.date || new Date().toISOString().split('T')[0], // Add date if missing
+             date: set.date || new Date().toISOString().split('T')[0],
            }));
         }
       } catch (error) {
@@ -62,10 +65,17 @@ const SetAndRepsForm = ({
     }
     // Default creation if no saved data or error
     return Array(parseInt(initialSets) || 1).fill().map((_, index) => ({
-      id: index + 1, weight: "", reps: "", duration: "00:00:00", rest: "00:00",
-      isCompleted: false, isActive: index === 0, isEditing: false,
-      isDurationRunning: false, // Add new flag
-      isRestRunning: false,     // Add new flag
+      id: index + 1,
+      exerciseId: exerciseId, // <--- ADDED exerciseId HERE during initial creation
+      weight: "",
+      reps: "",
+      duration: "00:00:00",
+      rest: "00:00",
+      isCompleted: false,
+      isActive: index === 0,
+      isEditing: false,
+      isDurationRunning: false,
+      isRestRunning: false,
       date: new Date().toISOString().split('T')[0],
     }));
   };
@@ -82,6 +92,7 @@ const SetAndRepsForm = ({
 
   // Reset auto-navigation tracking when the exercise itself changes
   useEffect(() => {
+      // ... (keep the effect as it is)
       setHasAutoNavigated(false);
       initialLoadComplete.current = false; // Reset load flag on exercise change
   }, [exerciseId]);
@@ -89,6 +100,7 @@ const SetAndRepsForm = ({
 
   // Load data on mount & Restore Timer State
   useEffect(() => {
+     // ... (keep the effect as it is)
     const initialData = getInitialSets();
     setSets(initialData);
 
@@ -141,11 +153,13 @@ const SetAndRepsForm = ({
       initialData.every(set => set.isCompleted);
     setIsAllSetsCompleted(allInitiallyCompleted);
 
-  }, [selectedDay, exerciseId, initialSets]); // Rerun if these core identifiers change
+  // NOTE: Replaced initialSets with exerciseId in dependency array for getInitialSets
+  }, [selectedDay, exerciseId]); // Rerun if these core identifiers change
 
 
   // Save data to localStorage & check completion
   useEffect(() => {
+    // ... (keep the effect as it is)
     // Only save if initial load is done and sets array is not empty
     if (initialLoadComplete.current && sets.length > 0) {
         // Debounce or throttle might be good here for performance if updates are very frequent
@@ -157,6 +171,7 @@ const SetAndRepsForm = ({
 
   // Check if all sets are completed
   const checkAllSetsCompleted = () => {
+     // ... (keep the function as it is)
     const allCompleted = Array.isArray(sets) && sets.length > 0 &&
       sets.every(set => set.isCompleted) &&
       !waitingForRestCompletion.current && // Should not be considered complete if waiting for rest
@@ -168,6 +183,7 @@ const SetAndRepsForm = ({
 
   // Auto-navigation effect
   useEffect(() => {
+     // ... (keep the effect as it is)
     // Condition: All sets marked completed, not the last exercise, not currently resting, not already navigated
     if (isAllSetsCompleted && !isLastExercise && !waitingForRestCompletion.current && !hasAutoNavigated && activeTimer === null) {
       const moveToNextTimeout = setTimeout(() => {
@@ -186,6 +202,7 @@ const SetAndRepsForm = ({
 
   // Timer logic (Interval)
   useEffect(() => {
+    // ... (keep the effect as it is)
     if (activeTimer) {
       timerRef.current = setInterval(() => setSeconds(prev => prev + 1), 1000);
     } else {
@@ -197,6 +214,7 @@ const SetAndRepsForm = ({
 
   // Update set duration/rest time string based on 'seconds' state
   useEffect(() => {
+    // ... (keep the effect as it is)
     // No timer running or no active set referenced? Do nothing.
     if (!activeTimer || activeSetRef.current === null) return;
 
@@ -242,6 +260,7 @@ const SetAndRepsForm = ({
   // =========================================
 
   const startWorkout = (setId) => {
+    // ... (keep the function as it is)
     const setIndex = sets.findIndex(set => set.id === setId);
     if (setIndex === -1) return;
     const currentSet = sets[setIndex];
@@ -256,15 +275,17 @@ const SetAndRepsForm = ({
             ...s,
             isDurationRunning: index === setIndex, // True only for the starting set
             isRestRunning: false,                 // False for all sets
-            duration: index === setIndex && (currentSet.isEditing || currentSet.duration === "00:00:00") ? "00:00:00" : s.duration, // Reset duration visually if editing or was 0
+            // Reset duration *only if* editing OR duration was zero, otherwise continue from saved if restoring
+            duration: index === setIndex && (currentSet.isEditing || parseTimeToSeconds(s.duration) === 0) ? "00:00:00" : s.duration,
             isActive: index === setIndex, // Ensure only this one is active
+            isEditing: index === setIndex ? currentSet.isEditing : false, // Persist editing state if it was true
         }));
 
         setSets(updatedSets); // Update state triggering save and UI update
 
         // Now start the timer state
         setActiveTimer('workout');
-        setSeconds(0); // Start from 0 when manually starting
+        setSeconds(parseTimeToSeconds(updatedSets[setIndex].duration)); // Start from 0 OR existing time if not explicitly reset
         activeSetRef.current = setId;
         waitingForRestCompletion.current = false; // Ensure not waiting for rest
 
@@ -274,41 +295,62 @@ const SetAndRepsForm = ({
   };
 
   const completeSet = (setId) => {
-    const setIndex = sets.findIndex(set => set.id === setId);
+    // ... (keep the function as it is)
+     const setIndex = sets.findIndex(set => set.id === setId);
     if (setIndex === -1) return;
     const currentSet = sets[setIndex];
 
-    // Allow completion if: (Active or Editing) AND (Workout timer is running for this set OR it's being edited)
-    if ((currentSet.isActive || currentSet.isEditing) && ( (activeTimer === 'workout' && activeSetRef.current === setId) || currentSet.isEditing) ) {
+    // Allow completion if: (Active or Editing) AND (Workout timer is running for this set OR it's being edited WITHOUT timer running)
+    const canCompleteWhileEditing = currentSet.isEditing && activeTimer === null; // Added condition for editing without timer
+    if ((currentSet.isActive || currentSet.isEditing) &&
+        ( (activeTimer === 'workout' && activeSetRef.current === setId) || canCompleteWhileEditing) )
+    {
       if (!currentSet.weight || !currentSet.reps) {
         toast.error("Please enter weight and reps.");
         return;
       }
 
+      // Stop any workout timer *if* it was running for this set
+      if (activeTimer === 'workout' && activeSetRef.current === setId) {
+          setActiveTimer(null); // Stop the interval logic
+          // The duration would have been updated by the useEffect timer logic
+      }
+       // Reset seconds locally, the actual rest timer starts below
+      setSeconds(0);
+
+
       // Prepare updated sets array
       const updatedSets = sets.map((s, index) => {
           if (index === setIndex) {
-              // Mark completed, stop duration timer flag, start rest timer flag
+              // Mark completed, stop duration timer flag, clear editing flag, start rest timer flag conceptually
               return {
                   ...s,
                   isCompleted: true,
-                  isEditing: false,
+                  isEditing: false, // <<<--- IMPORTANT: Turn off editing mode on completion
                   isActive: false,
-                  isDurationRunning: false, // Stop duration timer
+                  isDurationRunning: false, // Stop duration timer flag
                   isRestRunning: true,      // Start rest timer conceptually (timer itself starts below)
-                  // Keep the final duration calculated by the timer useEffect
+                  // Duration is kept from timer or manual edit
+                  rest: s.rest || "00:00", // Ensure rest has a default
               };
           }
-          // Ensure other sets have flags cleared if somehow set
-          return { ...s, isDurationRunning: false, isRestRunning: false };
+          // Ensure other sets have flags cleared if somehow set, and deactivate
+          return { ...s, isDurationRunning: false, isRestRunning: false, isActive: false };
       });
+
+      // Find the next incomplete set to activate *after* rest
+      const nextSetIndex = updatedSets.findIndex((s, index) => index > setIndex && !s.isCompleted);
+
 
       setSets(updatedSets); // Update state first
 
-      // Then start the actual rest timer
+      // --- Start Rest Timer ---
+      // Only start rest if there's a next set OR it's the last set (common practice)
+      // We can perhaps make this configurable later if needed.
+      // For now, always start rest after completing a set.
       activeSetRef.current = setId; // Rest timer references the set just completed
       setActiveTimer('rest');
-      setSeconds(0); // Start rest timer from 0
+      setSeconds(0); // Start rest timer count from 0
       waitingForRestCompletion.current = true; // Set the waiting flag
 
     } else if (activeTimer === 'rest') {
@@ -319,7 +361,9 @@ const SetAndRepsForm = ({
     }
   };
 
+
   const stopRestTimer = () => {
+    // ... (keep the function as it is)
     if (activeTimer !== 'rest' || activeSetRef.current === null) return; // Only stop if rest timer is active
 
     const lastCompletedSetIndex = sets.findIndex(set => set.id === activeSetRef.current);
@@ -352,7 +396,8 @@ const SetAndRepsForm = ({
   };
 
   const handleWorkoutCompletion = () => {
-    // Prevent completion if any timer is running
+    // ... (keep the function as it is)
+     // Prevent completion if any timer is running
     if (activeTimer !== null || waitingForRestCompletion.current) {
       toast.error("Cannot finish day while a timer is active.");
       return;
@@ -415,23 +460,26 @@ const SetAndRepsForm = ({
   };
 
   const editSet = (setId) => {
+    // ... (keep the function as it is)
     const setIndex = sets.findIndex(set => set.id === setId);
     if (setIndex === -1) return;
 
     // Allow editing only completed sets and when NO timer is running
-    if (sets[setIndex].isCompleted && activeTimer === null) {
+    if (sets[setIndex].isCompleted && activeTimer === null && !waitingForRestCompletion.current) { // Also ensure not waiting for rest
       const updatedSets = sets.map((set, index) => {
         // Reset flags for all sets during edit preparation
         let updatedSet = { ...set, isDurationRunning: false, isRestRunning: false };
 
         if (index === setIndex) {
           // Mark target set for editing, make active, un-complete
+          // Keep existing weight/reps/duration/rest for editing
           updatedSet = { ...updatedSet, isEditing: true, isActive: true, isCompleted: false };
         } else if (index > setIndex) {
-          // Deactivate and reset subsequent sets
-          updatedSet = { ...updatedSet, isCompleted: false, isActive: false, isEditing: false, duration: "00:00:00", rest: "00:00" };
+           // Deactivate and UN-COMPLETE subsequent sets, reset time/rest potentially?
+           // Let's just un-complete and deactivate them for now. User will redo them.
+           updatedSet = { ...updatedSet, isCompleted: false, isActive: false, isEditing: false /*, duration: "00:00:00", rest: "00:00" */}; // Optionally reset times
         } else {
-            // Deactivate sets before the edited one as well
+            // Deactivate sets before the edited one as well, but keep their completed state
              updatedSet = { ...updatedSet, isActive: false, isEditing: false };
         }
         return updatedSet;
@@ -446,21 +494,23 @@ const SetAndRepsForm = ({
 
       setSets(updatedSets);
 
-    } else if (activeTimer !== null) {
-        toast.error("Finish or skip the current timer before editing.");
+    } else if (activeTimer !== null || waitingForRestCompletion.current) {
+        toast.error("Finish or skip the current timer/rest before editing.");
     } else if (!sets[setIndex].isCompleted) {
-        // Allow editing active/non-completed sets? Usually not needed.
-        // toast.info("Set is already active/not completed.");
+        // This state shouldn't show the edit button anyway
     }
   };
 
   const deleteSet = (setId) => {
+    // ... (keep the function as it is)
     if (sets.length <= 1) {
       toast.error("Cannot delete the only set.");
       return;
     }
 
+    const setBeingDeleted = sets.find(set => set.id === setId);
     const isTimerRunningForThisSet = activeSetRef.current === setId && activeTimer !== null;
+    const isSetEditing = setBeingDeleted?.isEditing;
 
     // Stop timer if it was running for the deleted set
      if (isTimerRunningForThisSet) {
@@ -470,15 +520,17 @@ const SetAndRepsForm = ({
         waitingForRestCompletion.current = false;
      }
 
-    const updatedSets = sets.filter(set => set.id !== setId);
+    let updatedSets = sets.filter(set => set.id !== setId);
     let activeSetFound = false;
+    const deletedSetIndex = sets.findIndex(s => s.id === setId); // Get index before filtering
 
     // Re-index and ensure correct active state and clean flags
-    const reindexedSets = updatedSets.map((set, index) => {
+    let reindexedSets = updatedSets.map((set, index) => {
        // Reset flags during reindex, clear timer flags
-       const newSet = { ...set, id: index + 1, isActive: false, isEditing: false, isDurationRunning: false, isRestRunning: false };
-        // First non-completed set becomes active IF no timer was restored/running for another set
-        if (!activeSetFound && !set.isCompleted && !isTimerRunningForThisSet) { // Only make active if we just stopped the timer OR no timer was running
+       let newSet = { ...set, id: index + 1, isActive: false, isEditing: false, isDurationRunning: false, isRestRunning: false };
+        // First non-completed set becomes active IF no timer was restored/running for another set,
+        // AND we weren't just editing the deleted set (allow activation logic below to handle that)
+        if (!activeSetFound && !set.isCompleted && !isTimerRunningForThisSet && !(isSetEditing && index >= deletedSetIndex)) {
             newSet.isActive = true;
             activeSetFound = true;
         }
@@ -486,13 +538,13 @@ const SetAndRepsForm = ({
     });
 
     // Edge case: If deleting caused the need to activate the first set (if it's not completed)
+    // OR activate the set immediately following the deleted one if it exists and wasn't auto-activated above
      if (!activeSetFound && reindexedSets.length > 0 && !isTimerRunningForThisSet) {
         const firstIncompleteIndex = reindexedSets.findIndex(set => !set.isCompleted);
         if (firstIncompleteIndex !== -1) {
             reindexedSets[firstIncompleteIndex].isActive = true;
-        } else if(reindexedSets.length > 0) { // If all remaining are complete, maybe activate first? Or handle as completed? Let's default to not activating.
-           // Decide desired behavior: maybe activate first even if complete? Or rely on completion check?
-           // For now, only activate if incomplete exists.
+        } else if (reindexedSets.length > 0) {
+           // If all remaining are complete, don't activate any. Let completion logic handle it.
         }
      }
 
@@ -501,22 +553,30 @@ const SetAndRepsForm = ({
   };
 
   const addSet = () => {
+     // ... (keep the function as it is)
      // Prevent adding a set if a timer is running
-    if (activeTimer !== null) {
-        toast.error("Cannot add set while timer is active.");
+    if (activeTimer !== null || waitingForRestCompletion.current) { // Ensure not resting either
+        toast.error("Cannot add set while timer or rest is active.");
         return;
     }
 
     const newSetId = sets.length > 0 ? Math.max(...sets.map(s => s.id)) + 1 : 1;
     const allPreviousCompleted = sets.every(set => set.isCompleted);
     // Only make active if all previous are completed AND we are not in a rest state
-    const makeActive = sets.length === 0 || (allPreviousCompleted && !waitingForRestCompletion.current);
+    const makeActive = sets.length === 0 || allPreviousCompleted; // Simplified: make active if last or all done
 
     const newSet = {
       id: newSetId,
-      weight: "", reps: "", duration: "00:00:00", rest: "00:00",
-      isCompleted: false, isActive: makeActive, isEditing: false,
-      isDurationRunning: false, isRestRunning: false, // Initialize flags
+      exerciseId: exerciseId, // <--- ADDED exerciseId HERE when adding a new set
+      weight: "",
+      reps: "",
+      duration: "00:00:00",
+      rest: "00:00",
+      isCompleted: false,
+      isActive: makeActive,
+      isEditing: false,
+      isDurationRunning: false,
+      isRestRunning: false,
       date: new Date().toISOString().split('T')[0],
     };
 
@@ -526,11 +586,17 @@ const SetAndRepsForm = ({
     setIsAllSetsCompleted(false); // Adding a set means not all are completed
   };
 
+
   const handleInputChange = (setId, field, value) => {
+    // ... (keep the function as it is)
     setSets(prevSets =>
         prevSets.map(set => {
-            // Allow input only if the set is active or editing AND no timer is running for *another* set
-            if (set.id === setId && (set.isActive || set.isEditing) && (activeTimer === null || activeSetRef.current === setId)) {
+            // Allow input only if the set is active or editing AND no *global* timer/rest is running (unless it's the duration timer for *this* set)
+            const isThisSetDurationRunning = activeTimer === 'workout' && activeSetRef.current === setId;
+            const isGlobalTimerBlocking = (activeTimer !== null || waitingForRestCompletion.current) && !isThisSetDurationRunning;
+
+            if (set.id === setId && (set.isActive || set.isEditing) && !isGlobalTimerBlocking) {
+                // Add specific validation/formatting if needed here
                 return { ...set, [field]: value };
             }
             return set;
@@ -538,36 +604,46 @@ const SetAndRepsForm = ({
     );
   };
 
+  // --- History logic remains the same ---
   const getExerciseHistory = () => {
-    // (Keep existing history logic - it's independent of timers)
+     // ... (keep the function as it is)
     const history = [];
     if (typeof window !== 'undefined') {
       try {
+        // Iterate through all localStorage keys
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
-          // Ensure key is not null and follows the expected pattern
-          if (key && key.startsWith(`workout-${selectedDay}-`) && key.endsWith(`-${exerciseId}`)) {
-            // Check if the key matches the exact format `workout-${day}-${exerciseId}`
-             const parts = key.split('-');
-             // Example key: "workout-1-101" -> parts = ["workout", "1", "101"]
-             // We need to ensure the middle part is *exactly* the selectedDay and the last is exerciseId
-             if (parts.length === 3 && parts[1] === String(selectedDay) && parts[2] === String(exerciseId)) {
-                 // Skip the currently active key to avoid showing today's partial data as history
-                 if (key === `workout-${selectedDay}-${exerciseId}`) continue;
 
-                 try {
-                     const data = JSON.parse(localStorage.getItem(key));
-                     // Check if data is an array and has at least one valid entry with a date
-                     if (Array.isArray(data) && data.length > 0 && data[0]?.date) {
-                         // Filter for sets that are reasonably complete (have id, weight, reps)
-                         const validSets = data.filter(item => item && typeof item.id !== 'undefined' && typeof item.weight !== 'undefined' && typeof item.reps !== 'undefined' && item.isCompleted); // Only show completed sets from history
-                         if (validSets.length > 0) {
-                             // Extract date from the first valid set
-                             history.push({ date: validSets[0].date, day: `Day ${parts[1]}`, sets: validSets });
-                         }
-                     }
-                 } catch (e) { console.error("Error parsing history item:", key, e); }
-             }
+          // Check if the key matches the pattern `workout-${someDay}-${specificExerciseId}`
+          if (key && key.startsWith('workout-') && key.endsWith(`-${exerciseId}`)) {
+            const parts = key.split('-');
+            // Ensure the key has exactly 3 parts and the last part is the current exerciseId
+            if (parts.length === 3 && parts[2] === String(exerciseId)) {
+               // Optional: Use parts[1] if you need the 'day' from the key
+               const dayFromKey = parts[1];
+
+              // Skip the currently active key to avoid showing today's partial data as history
+              if (key === `workout-${selectedDay}-${exerciseId}`) continue;
+
+              try {
+                const data = JSON.parse(localStorage.getItem(key));
+                // Check if data is an array and has at least one valid entry with a date
+                if (Array.isArray(data) && data.length > 0 && data[0]?.date) {
+                   // Filter for sets that are reasonably complete AND were completed
+                   const validSets = data.filter(item =>
+                      item &&
+                      typeof item.id !== 'undefined' &&
+                      typeof item.weight !== 'undefined' && // Check weight/reps exist
+                      typeof item.reps !== 'undefined' &&
+                      item.isCompleted // Only show completed sets from history
+                    );
+                  if (validSets.length > 0) {
+                    // Now sets within history will also have exerciseId (if they were saved with the new code)
+                    history.push({ date: validSets[0].date, day: `Day ${dayFromKey}`, sets: validSets });
+                  }
+                }
+              } catch (e) { console.error("Error parsing history item:", key, e); }
+            }
           }
         }
       } catch (error) { console.error("Error accessing localStorage:", error); }
@@ -578,11 +654,12 @@ const SetAndRepsForm = ({
 
 
   const handleGoNext = () => {
+    // ... (keep the function as it is)
     // Re-check completion status and ensure no timer is running
-    if (checkAllSetsCompleted() && activeTimer === null) {
+    if (checkAllSetsCompleted() && activeTimer === null && !waitingForRestCompletion.current) { // Ensure not waiting for rest either
       goNext();
-    } else if (activeTimer !== null) {
-       toast.error("Complete or skip the current timer first.");
+    } else if (activeTimer !== null || waitingForRestCompletion.current) {
+       toast.error("Complete or skip the current timer/rest first.");
     }
      else {
       toast.error("Please complete all sets first.");
@@ -590,14 +667,17 @@ const SetAndRepsForm = ({
   };
 
   const toggleHistory = () => {
+     // ... (keep the function as it is)
     setShowHistory(!showHistory);
   };
 
 
+  // --- JSX ---
   return (
     <>
       {/* Header and History Toggle */}
       <div className="flex items-center justify-between mb-4">
+        {/* ... (no changes here) ... */}
         <div>
           <h2 className="text-xl font-bold capitalize">{exerciseName}</h2>
           <p className="text-sm text-gray-500">Track your progress</p>
@@ -610,7 +690,8 @@ const SetAndRepsForm = ({
       {/* History Section */}
       {showHistory && (
          <div className="mb-4 overflow-y-auto border rounded bg-gray-50 max-h-48">
-          <h3 className="p-2 text-base font-semibold bg-gray-100 border-b sticky-top">Previous Records</h3>
+           {/* ... (no changes here) ... */}
+           <h3 className="p-2 text-base font-semibold bg-gray-100 border-b sticky-top">Previous Records</h3>
           <div className="p-2 text-sm">
             {(() => {
                 const history = getExerciseHistory();
@@ -631,6 +712,7 @@ const SetAndRepsForm = ({
       {/* Sets Table */}
       <table className="w-full mb-4 border-collapse table-fixed">
         <thead>
+           {/* ... (no changes here) ... */}
           <tr className="bg-gray-100">
             <th className="w-12 p-1 text-sm font-semibold text-center text-gray-600 border">Set</th>
             <th className="w-1/3 p-1 text-sm font-semibold text-center text-gray-600 border">Weight (kg)</th>
@@ -642,25 +724,25 @@ const SetAndRepsForm = ({
           {sets.map((set) => {
              // --- Determine State Variables ---
              const isThisSetDurationRunning = activeTimer === 'workout' && activeSetRef.current === set.id;
-             const isAnyRestRunning = activeTimer === 'rest';
+             const isAnyRestRunning = activeTimer === 'rest' || waitingForRestCompletion.current; // Consider waiting flag too
              const isCompleted = set.isCompleted && !set.isEditing;
-             // Can edit only if completed AND no timer running globally
-             const isEditable = set.isCompleted && !set.isEditing && activeTimer === null;
+             // Can edit only if completed AND no timer running globally AND not waiting for rest
+             const isEditable = set.isCompleted && !set.isEditing && activeTimer === null && !waitingForRestCompletion.current;
              // Active but not editing, not completed
              const isActiveNormal = set.isActive && !set.isCompleted && !set.isEditing;
              // Waiting for previous sets, not active/completed/editing
              const isLocked = !set.isActive && !set.isCompleted && !set.isEditing;
-             const isEditing = set.isEditing; // Alias for clarity
+              // Is this specific set being edited?
+             const isEditingThisSet = set.isEditing;
 
-             // Input disabled if: locked OR completed (not editing) OR timer running for another set OR resting globally
+             // Input disabled if: locked OR completed (not editing) OR timer/rest running globally (unless it's duration for *this* set)
              const isInputDisabled = isLocked ||
-                                     (isCompleted && !isEditing) ||
-                                     (activeTimer !== null && activeSetRef.current !== set.id) ||
-                                     isAnyRestRunning;
+                                     (isCompleted && !isEditingThisSet) ||
+                                     ( (activeTimer !== null || waitingForRestCompletion.current) && !isThisSetDurationRunning );
 
 
              return (
-                <tr key={set.id} className={`${(isLocked || isAnyRestRunning) && !isThisSetDurationRunning ? "opacity-50 bg-gray-50" : "bg-white"} border`}>
+                <tr key={set.id} className={`${(isLocked || (isAnyRestRunning && !isThisSetDurationRunning)) ? "opacity-50 bg-gray-50" : "bg-white"} border`}>
                   {/* Set ID */}
                   <td className="p-1 font-medium text-center border">{set.id}</td>
 
@@ -687,62 +769,75 @@ const SetAndRepsForm = ({
                         disabled={isInputDisabled}
                         aria-label={`Reps for set ${set.id}`}
                     />
-                    <span className={`block text-[10px] text-center mt-0.5 ${isAnyRestRunning && activeSetRef.current === set.id ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>Rest: {set.rest}</span>
+                     {/* Show rest timer for the set that just finished */}
+                    <span className={`block text-[10px] text-center mt-0.5 ${(activeTimer === 'rest' && activeSetRef.current === set.id) ? 'text-orange-600 font-medium' : 'text-gray-500'}`}>
+                        Rest: {set.rest || '00:00'} {/* Default display */}
+                    </span>
                   </td>
 
-                  {/* Actions Cell - REVISED LOGIC */}
+                  {/* ======================================== */}
+                  {/* == ACTIONS CELL - REVISED LOGIC START == */}
+                  {/* ======================================== */}
                   <td className="p-1 text-center align-middle border">
                     <div className="flex flex-wrap items-center justify-center gap-1 text-base sm:text-lg sm:gap-2">
 
-                        {/* --- Primary State: Timer Running for THIS set --- */}
+                        {/* Priority 1: Workout Timer is running for THIS set */}
                         {isThisSetDurationRunning ? (
                             <i className="text-green-500 cursor-pointer fas fa-check hover:text-green-700"
                                onClick={() => completeSet(set.id)}
-                               title={isEditing ? "Save & Complete" : "Complete Set"}>
+                               title="Complete Set">
                             </i>
-                        ) : /* --- Secondary State: Resting Globally --- */
-                          isAnyRestRunning ? (
-                            <i className="text-orange-400 fas fa-hourglass-half" title="Resting"></i>
-                        ) : /* --- Tertiary State: Locked --- */
+                        ) : /* Priority 2: Global Rest Timer is Running */
+                          activeTimer === 'rest' ? ( // Check activeTimer specifically, not waitingForRestCompletion
+                            <i className="text-orange-400 fas fa-hourglass-half" title="Resting (globally)"></i>
+                        ) : /* Priority 3: Set is Locked (inactive, not completed, not editing) */
                           isLocked ? (
                             <i className="text-gray-400 fas fa-lock" title="Complete previous set"></i>
-                        ) : /* --- Otherwise: Show appropriate actions based on Editing/Active/Completed --- */
-                          (<>
-                              
-                              {isEditing && (
-                                  <i className="text-blue-500 cursor-pointer fas fa-play hover:text-blue-700"
-                                     onClick={() => startWorkout(set.id)}
-                                     title="Restart Timer">
-                                  </i>
-                                  /* Removed the unconditional checkmark when editing */
-                              )}
-
-                              {/* Active Normal State Actions (Timer NOT running) */}
-                              {isActiveNormal && (
-                                  <i className="text-blue-500 cursor-pointer fas fa-play hover:text-blue-700"
-                                     onClick={() => startWorkout(set.id)}
-                                     title="Start Timer">
-                                  </i>
-                              )}
-
-                              {/* Completed State Actions (Timer NOT running -> checked by isEditable) */}
-                              {isEditable && (
-                                  <i className="text-orange-500 cursor-pointer fas fa-pencil-alt hover:text-orange-700"
-                                     onClick={() => editSet(set.id)}
-                                     title="Edit Set">
-                                  </i>
-                              )}
-
-                              <i
-                                  className={`cursor-pointer fas fa-trash-alt ${sets.length <= 1 ? 'text-gray-300 cursor-not-allowed' : activeTimer !== null ? 'text-gray-300 cursor-not-allowed' : 'text-red-500 hover:text-red-700'}`}
-                                  onClick={() => sets.length > 1 && activeTimer === null && deleteSet(set.id)}
-                                  title={sets.length <= 1 ? "Cannot delete" : activeTimer !== null ? "Cannot delete while timer active" : "Delete Set"}
-                              ></i>
-                          </>)
+                        ) : /* Priority 4: Set is being Edited (and timer not running) */
+                          isEditingThisSet ? (
+                            <>
+                              {/* Action 1: Start/Restart Timer */}
+                              <i className="text-blue-500 cursor-pointer fas fa-play hover:text-blue-700"
+                                 onClick={() => startWorkout(set.id)}
+                                 title="Start/Restart Timer">
+                              </i>
+                              {/* Action 2: Save Changes & Complete */}
+                              <i className="text-green-500 cursor-pointer fas fa-check hover:text-green-700"
+                                 onClick={() => completeSet(set.id)}
+                                 title="Save Changes & Complete">
+                              </i>
+                            </>
+                        ) : /* Priority 5: Set is Active (Normal State - not editing, not completed) */
+                          isActiveNormal ? (
+                            <i className="text-blue-500 cursor-pointer fas fa-play hover:text-blue-700"
+                               onClick={() => startWorkout(set.id)}
+                               title="Start Timer">
+                            </i>
+                        ) : /* Priority 6: Set is Completed & Editable (Pencil Icon) */
+                          isEditable ? (
+                             <i className="text-orange-500 cursor-pointer fas fa-pencil-alt hover:text-orange-700"
+                                 onClick={() => editSet(set.id)}
+                                 title="Edit Set">
+                             </i>
+                          ) : /* Fallback/Completed but not Editable (e.g., during rest) - show nothing specific? */
+                           ( <i className="text-green-600 fas fa-check-circle" title="Completed"></i> ) // Show a completed icon if truly completed and not editable
                         }
+
+                        {/* Always show Delete Icon, except when locked or global timer/rest active */}
+                        {/* Let's refine delete condition: show if NOT locked AND NOT (global timer/rest active) */}
+                        { !isLocked && activeTimer === null && !waitingForRestCompletion.current && (
+                            <i
+                                className={`cursor-pointer fas fa-trash-alt ${sets.length <= 1 ? 'text-gray-300 cursor-not-allowed' : 'text-red-500 hover:text-red-700'}`}
+                                onClick={() => sets.length > 1 && deleteSet(set.id)}
+                                title={sets.length <= 1 ? "Cannot delete last set" : "Delete Set"}
+                            ></i>
+                        )}
+
                     </div>
                   </td>
-                  
+                  {/* ====================================== */}
+                  {/* == ACTIONS CELL - REVISED LOGIC END == */}
+                  {/* ====================================== */}
 
                 </tr>
              );
@@ -752,7 +847,7 @@ const SetAndRepsForm = ({
 
       {/* Add Set Button */}
       <div className="flex justify-center mb-4">
-         <RegularButton title="+ Add Set" className="px-4 py-1.5 text-sm" onClick={addSet} disabled={activeTimer !== null} />
+         <RegularButton title="+ Add Set" className="px-4 py-1.5 text-sm" onClick={addSet} disabled={activeTimer !== null || waitingForRestCompletion.current} /> {/* Disable during rest too */}
       </div>
 
       {/* Rest Timer Button */}
@@ -761,15 +856,18 @@ const SetAndRepsForm = ({
       )}
 
       {/* Workout Completion Button */}
-      {isLastExercise && isAllSetsCompleted && activeTimer === null && ( // Ensure timer is null
+       {/* Ensure timer is null AND not waiting for rest completion */}
+      {isLastExercise && isAllSetsCompleted && activeTimer === null && !waitingForRestCompletion.current && (
         <div className="mt-4"> <RegularButton title="Finish Day's Workout" className="w-full font-semibold text-white bg-green-600 hover:bg-green-700" onClick={handleWorkoutCompletion} /> </div>
       )}
 
       {/* Navigation Arrows */}
       <div className="flex items-center justify-between mt-6">
-        <button onClick={goPrev} className="p-3 text-xl text-gray-700 bg-gray-200 rounded-full hover:bg-gray-300 disabled:opacity-50" aria-label="Previous Exercise" disabled={exerciseIndex === 0 || activeTimer !== null} > <i className="fas fa-arrow-left"></i> </button> {/* Disable if timer running */}
+         {/* Disable if timer/rest running */}
+        <button onClick={goPrev} className="p-3 text-xl text-gray-700 bg-gray-200 rounded-full hover:bg-gray-300 disabled:opacity-50" aria-label="Previous Exercise" disabled={exerciseIndex === 0 || activeTimer !== null || waitingForRestCompletion.current} > <i className="fas fa-arrow-left"></i> </button>
         <span className="text-sm text-gray-500"> Exercise {exerciseIndex + 1} of {necessaryData?.exercises?.length || 0} </span>
-        <button onClick={handleGoNext} className={`p-3 text-xl rounded-full hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed ${isLastExercise ? 'invisible' : 'text-gray-700 bg-gray-200'}`} aria-label="Next Exercise" disabled={!isAllSetsCompleted || isLastExercise || activeTimer !== null} title={!isAllSetsCompleted ? "Complete all sets to advance" : activeTimer !== null ? "Timer active" : "Next Exercise"} > <i className="fas fa-arrow-right"></i> </button> {/* Disable if timer running */}
+         {/* Disable if timer/rest running or not all completed */}
+        <button onClick={handleGoNext} className={`p-3 text-xl rounded-full hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed ${isLastExercise ? 'invisible' : 'text-gray-700 bg-gray-200'}`} aria-label="Next Exercise" disabled={!isAllSetsCompleted || isLastExercise || activeTimer !== null || waitingForRestCompletion.current} title={!isAllSetsCompleted ? "Complete all sets to advance" : (activeTimer !== null || waitingForRestCompletion.current) ? "Timer/Rest active" : "Next Exercise"} > <i className="fas fa-arrow-right"></i> </button>
       </div>
     </>
   );
