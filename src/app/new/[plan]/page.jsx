@@ -136,7 +136,7 @@ const exercisesBasedOnDay = dataDay?.find(
   (i) => i?.value === selectededDay
 );
 
-console.log("weekData",weekData)
+
 const weekStructure = weekData?.map(i=>({week:i?.week,weekName:i?.weekName})) || [];
 
 const structuredExercisesBasedOnDay = {dayName:exercisesBasedOnDay?.label,day:exercisesBasedOnDay?.value,exercises:exercisesBasedOnDay?.exercise,weekName:selectedWeek?.weekName,week:selectedWeek?.week}||{};
