@@ -1,4 +1,4 @@
-// app/new/[plan]/page.jsx
+
 "use client";
 import React, { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
