@@ -125,7 +125,7 @@ const PlanDetail = ({ params }) => {
       
       if (weekData && weekData.length > 0 && !selectedWeek) {
         const filteredWeek = weekData?.find(i=>i?.weekName === storedSelectedWeek)
-        console.log("filteredWeek",filteredWeek)
+        
         setSelectedWeek(filteredWeek);
       }
     } catch (error) {
@@ -180,7 +180,7 @@ const PlanDetail = ({ params }) => {
     }
   }, [ weekData, selectedWeek, selectedPlanId]);
   
-  console.log("selectedWeek",transFormWorkoutData)
+  
   
 
   
