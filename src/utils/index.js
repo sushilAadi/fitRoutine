@@ -347,3 +347,74 @@ export const transformData = (data) => {
     return null; // Or throw the error, or return a default object
   }
 };
+
+export const calculateNextDay = (currentWeekIndex, currentDayNumber, weekData, totalWeeksCount) => {
+  // weekData should be the structure like: transFormWorkoutData.weeksExercise
+  if (!weekData || weekData.length === 0 || currentWeekIndex < 0 || currentWeekIndex >= weekData.length) {
+      console.error("Invalid input to calculateNextDay: weekData or currentWeekIndex invalid.", { currentWeekIndex, weekData });
+      return 'error';
+  }
+
+  const currentWeek = weekData[currentWeekIndex];
+  if (!currentWeek || !currentWeek.days || currentWeek.days.length === 0) {
+      console.error("Invalid input to calculateNextDay: current week data invalid.", { currentWeek });
+      return 'error';
+  }
+
+  const dayDataForCurrentWeek = currentWeek.days; // Array of day objects { day: number, dayName: string, ... }
+  const totalDaysInWeek = dayDataForCurrentWeek.length;
+  const currentDayObjIndex = dayDataForCurrentWeek.findIndex(d => d.day === currentDayNumber);
+
+  if (currentDayObjIndex === -1) {
+      console.error("Current day number not found in current week's days data.", { currentDayNumber, dayDataForCurrentWeek });
+      return 'error';
+  }
+
+  let nextWeekIndex = currentWeekIndex;
+  let nextDayNumber;
+  let nextDayObj;
+
+  if (currentDayObjIndex < totalDaysInWeek - 1) {
+      // Advance to next day in the same week
+      nextDayObj = dayDataForCurrentWeek[currentDayObjIndex + 1];
+      nextDayNumber = nextDayObj.day;
+  } else if (currentWeekIndex < totalWeeksCount - 1) {
+      // Advance to the first day of the next week
+      nextWeekIndex = currentWeekIndex + 1;
+      const nextWeek = weekData[nextWeekIndex];
+      if (!nextWeek || !nextWeek.days || nextWeek.days.length === 0) {
+           console.error("Error calculating next step: Next week data is invalid.", { nextWeekIndex, weekData });
+           return 'error';
+      }
+      nextDayObj = nextWeek.days[0];
+      nextDayNumber = nextDayObj.day;
+  } else {
+      // Last day of the last week - plan complete
+      return null;
+  }
+
+  const nextWeekObj = weekData[nextWeekIndex];
+
+  if (!nextWeekObj || !nextDayObj) {
+      console.error("Error calculating next step: Could not find next week or day object.", { nextWeekIndex, nextDayNumber, nextWeekObj, nextDayObj });
+      return 'error';
+  }
+
+  return {
+      nextWeekIndex, // Use numeric index
+      nextDayNumber, // Use numeric day number
+      nextWeekName: nextWeekObj.weekName,
+      nextDayName: nextDayObj.dayName
+  };
+};
+
+export const parseTimeToSeconds = (timeString = "00:00:00") => {
+  if (!timeString || typeof timeString !== 'string') return 0;
+  const parts = timeString.split(':').map(Number);
+  if (parts.length === 3) { // HH:MM:SS
+    return (parts[0] * 3600) + (parts[1] * 60) + parts[2];
+  } else if (parts.length === 2) { // MM:SS
+    return (parts[0] * 60) + parts[1];
+  }
+  return 0; // Default case or invalid format
+};
