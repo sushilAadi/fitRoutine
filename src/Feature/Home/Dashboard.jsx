@@ -113,7 +113,7 @@ export default function FitnessTrackerDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-2xl font-semibold">
-                  Hi, {userName.split(" ")[0]}
+                  Hi, {userName.split(" ")[0]} (Test Mode)
                 </h1>
                 <p className="text-sm text-gray-500">
                   Just a little more to reach today's goals

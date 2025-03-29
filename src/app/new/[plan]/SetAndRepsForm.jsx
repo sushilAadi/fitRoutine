@@ -148,7 +148,6 @@ const SetAndRepsForm = ({
   }, [selectedDay, exerciseId, initialSets]); // Rerun if these core identifiers change
 
 
-  // Save data to localStorage & check completion
   useEffect(() => {
     // Only save if initial load is done and sets array is not empty
     if (initialLoadComplete.current && sets.length > 0) {
