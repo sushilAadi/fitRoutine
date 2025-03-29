@@ -788,7 +788,7 @@ const SetAndRepsForm = ({
           <p className="text-sm text-gray-500">Track your progress</p>
         </div>
         <div className="flex items-center gap-2">
-            {/* Show Skip Day button only if NOT all sets are done (completed/skipped) AND no timer is running */}
+        
             { !isAllSetsCompleted && activeTimer === null && !sets.some(s => s.skipped) && // Also hide if already skipped
                 <RegularButton
                     title="Skip Exercise"
