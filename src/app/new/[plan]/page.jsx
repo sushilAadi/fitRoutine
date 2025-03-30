@@ -312,7 +312,8 @@ const PlanDetail = ({ params }) => {
                 : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
             }`}
             onClick={() => handleWeekSelect(weekItem)}
-            key={weekItem.weekName} // Use unique name or index
+            key={weekItem.weekName} 
+            disabled={selectedWeek?.week !== weekItem.week}
           >
             {weekItem.weekName}
           </button>
