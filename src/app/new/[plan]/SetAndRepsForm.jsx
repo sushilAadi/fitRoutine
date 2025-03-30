@@ -23,7 +23,7 @@ const SetAndRepsForm = ({
 
   // Destructure necessary data with defaults
   const {
-      selectedPlanId = 'default',
+      selectedPlanId,
       userId,
       // current state (passed down for context)
       selectedWeek,       // current week object
@@ -34,15 +34,17 @@ const SetAndRepsForm = ({
       dayData = [],         // day objects for *current* week
       weekStructure = [],   // week objects {week, weekName} for *all* weeks
       totalWeeksCount = 0,
-      allWeeksData = [],     // full weeksExercise array
+      allWeeksData = [],// full weeksExercise array
+      currentWeekIndex     
    } = necessaryData || {};
+   console.log("necessaryData",necessaryData)
 
    // Keys for storage
    const workoutProgressKey = `workout-progress-${selectedPlanId}`;
    const selectedWeekKey = `selectedWeekIndex_${selectedPlanId}`;
    const selectedDayKey = `selectedDayNumber_${selectedPlanId}`;
    const slideIndexKeyBase = `slideIndex-${selectedPlanId || 'default'}`; 
-   const storageKey = `workout-${selectedDay}-${exerciseId}`; // Key for this specific exercise's sets on this day
+   const storageKey = `workout-${currentWeekIndex}-${selectedDay}-${exerciseId}-${selectedPlanId}`; // Key for this specific exercise's sets on this day
 
   // --- State Variables ---
   const [sets, setSets] = useState([]);
@@ -55,6 +57,23 @@ const SetAndRepsForm = ({
   const waitingForRestCompletion = useRef(false);
   const initialLoadComplete = useRef(false);
   const [hasAutoNavigated, setHasAutoNavigated] = useState(false); // Track auto-navigation for this instance
+
+  function getAllLocalStorageData() {
+    let data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        let key = localStorage.key(i);
+        if (key.endsWith(selectedPlanId)) { 
+            let value = localStorage.getItem(key);
+            try {
+                data[key] = JSON.parse(value); 
+            } catch (e) {
+                data[key] = value; 
+            }
+        }
+    }
+    console.log("DataSSS",data)
+    return data;
+}
 
   // --- Effects ---
 
@@ -70,6 +89,7 @@ const SetAndRepsForm = ({
         if (typeof window !== 'undefined') {
           try {
             const savedData = localStorage.getItem(storageKey);
+            console.log("savedData",JSON.parse(savedData))
             if (savedData) {
                const parsedData = JSON.parse(savedData);
                if (Array.isArray(parsedData)) {
@@ -419,10 +439,13 @@ const SetAndRepsForm = ({
             weekName: nextWeekName,
             dayName: nextDayName
       };
+      
       localStorage.setItem(workoutProgressKey, JSON.stringify(newProgress));
       // Also update individual keys (might be redundant but safe)
       localStorage.setItem(selectedWeekKey, nextWeekIndex.toString());
       localStorage.setItem(selectedDayKey, nextDayNumber.toString());
+
+      getAllLocalStorageData()
 
       toast.success(`Day Complete! Progress saved.`, { duration: 3000 });
 

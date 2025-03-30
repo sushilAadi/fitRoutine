@@ -141,7 +141,7 @@ const ExerciseCardSelected = ({
           console.log(`Skipping Day ${currentDayNumber} (Week ${currentWeekIndex}). Updating ${filteredExercises.length} exercises.`);
           filteredExercises.forEach((exercise, index) => {
             const exerciseId = exercise.id || `${currentDayNumber}-${index}`; // Consistent ID
-            const storageKey = `workout-${currentDayNumber}-${exerciseId}`; // Key specific to the day being skipped
+            const storageKey = `workout-${currentWeekIndex}-${currentDayNumber}-${exerciseId}-${selectedPlanId}`; // Key specific to the day being skipped
             const numberOfSets = exercise?.weeklySetConfig?.sets || 1;
 
             try {
@@ -273,7 +273,8 @@ const ExerciseCardSelected = ({
     dayData: dayData, // Day data for *current* week
     weekStructure: weekStructure, // Simplified structure for display/context [{ week, weekName }]
     totalWeeksCount: totalWeeksCount, // Numeric count
-    allWeeksData: allWeeksData // Full data for calculation
+    allWeeksData: allWeeksData, // Full data for calculation
+    currentWeekIndex:currentWeekIndex
   };
 
   // --- JSX Return ---
@@ -349,6 +350,7 @@ const ExerciseCardSelected = ({
                     isLastExercise={isLastExercise}
                     // Pass down necessary data object
                     necessaryData={necessaryDataForSetForm}
+
                   />
                 </div>
               </div>
