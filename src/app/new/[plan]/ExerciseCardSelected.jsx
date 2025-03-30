@@ -294,9 +294,9 @@ const ExerciseCardSelected = ({
   }
 
   return (
-    <div className="w-full px-2 pb-4 md:px-4"> {/* Add some padding */}
+    <div className="w-full pb-4"> {/* Add some padding */}
       {/* Skip Day Button */}
-      <div className="flex justify-end pt-2 mb-2">
+      <div className="flex justify-end p-2 bg-white">
          <button
            className="px-3 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50"
            onClick={handleSkipDay}
@@ -328,7 +328,7 @@ const ExerciseCardSelected = ({
           const exerciseId = exercise.id || `${currentDayNumber}-${index}`; // Consistent ID
 
           return (
-            <SwiperSlide key={`${currentDayNumber}-${exerciseId}`} className="w-full bg-white rounded-lg shadow-sm"> {/* Add slide styling */}
+            <SwiperSlide key={`${currentDayNumber}-${exerciseId}`} className="w-full "> {/* Add slide styling */}
               <div className="w-full pb-10 mb-4"> {/* Increased bottom padding for pagination */}
                 <ExerciseDetailHeader
                   data={exercise}
