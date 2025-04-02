@@ -43,7 +43,7 @@ function TabMT({
                 ? "bg-gray-200 text-gray-900 font-semibold"
                 : "bg-white text-gray-700 hover:bg-gray-200 border border-gray-200"
             } `}
-            // disabled={selectedDay !== value}
+            disabled={selectedDay !== value}
           >
             {label}
           </button>
