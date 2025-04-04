@@ -22,6 +22,7 @@ const PlanDetail = ({ params }) => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [firebaseStoredData,setFirebaseStoredData] = useState(null)
 
+
   const selectedPlanId = decodeURIComponent(params?.plan);
 
   // Define keys consistently
@@ -76,10 +77,31 @@ const PlanDetail = ({ params }) => {
       return null; // Return null or re-throw the error
     }
   }
+  function storeWorkoutDataToLocalStorage(data) {
+    try {
+        Object.keys(data).forEach(key => {
+            if (key.endsWith(selectedPlanId)) {
+                localStorage.setItem(key, JSON.stringify(data[key]));
+            }
+        });
+        console.log("Workout data successfully stored in localStorage.");
+    } catch (error) {
+        console.error("Error storing workout data:", error);
+    }
+}
+
+
 
   useEffect(()=>{
     retrieveWorkoutProgress()
+    
+
   },[])
+  useEffect(()=>{
+
+      storeWorkoutDataToLocalStorage(firebaseStoredData);
+    
+  },[firebaseStoredData])
   console.log("firebaseStoredData",firebaseStoredData)
 
 

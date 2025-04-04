@@ -409,6 +409,32 @@ function removeLocalStorageDataByPlanId() {
     // checkAllSetsCompleted(); // Check completion status after rest finishes
   };
 
+  const storeInDatabase =async()=>{
+    const allDataToSave = getAllLocalStorageData();
+
+      if (Object.keys(allDataToSave).length === 0) {
+         console.warn("No data found in localStorage for this plan to save.");
+         // Decide if you want to proceed with navigation anyway or show a different message
+         // For now, let's proceed to potentially clear any lingering keys and navigate
+      }
+
+      // 3. Define Firestore Document Reference
+      // Saving under collection 'userWorkoutProgress', document ID is userId
+      const userProgressRef = doc(db, "userWorkoutProgress", userId);
+
+      // 4. Prepare data payload for Firestore
+      // We store the collected data under a map field named after the selectedPlanId
+      const firestorePayload = {
+        [selectedPlanId]: allDataToSave // Use computed property name
+      };
+
+      // 5. Save data to Firestore using setDoc with merge: true
+      // This creates the document if it doesn't exist, or updates the specific planId field if it does.
+      await setDoc(userProgressRef, firestorePayload, { merge: true });
+
+      console.log("Successfully saved data to Firestore for plan:", selectedPlanId);
+  }
+
 
   const handleFinishDay = async() => {
     // Check if timer is running (same as before)
@@ -452,6 +478,8 @@ function removeLocalStorageDataByPlanId() {
       // --- Scenario 1: Plan Complete ---
       if (nextStep === null) {
         toast.success("Workout Plan Completed!", { duration: 4000 });
+        storeInDatabase()
+      removeLocalStorageDataByPlanId()
         // Clear progress markers
         localStorage.removeItem(workoutProgressKey);
         localStorage.removeItem(selectedWeekKey);
@@ -479,29 +507,7 @@ function removeLocalStorageDataByPlanId() {
       localStorage.setItem(selectedWeekKey, nextWeekIndex.toString());
       localStorage.setItem(selectedDayKey, nextDayNumber.toString());
 
-      const allDataToSave = getAllLocalStorageData();
-
-      if (Object.keys(allDataToSave).length === 0) {
-         console.warn("No data found in localStorage for this plan to save.");
-         // Decide if you want to proceed with navigation anyway or show a different message
-         // For now, let's proceed to potentially clear any lingering keys and navigate
-      }
-
-      // 3. Define Firestore Document Reference
-      // Saving under collection 'userWorkoutProgress', document ID is userId
-      const userProgressRef = doc(db, "userWorkoutProgress", userId);
-
-      // 4. Prepare data payload for Firestore
-      // We store the collected data under a map field named after the selectedPlanId
-      const firestorePayload = {
-        [selectedPlanId]: allDataToSave // Use computed property name
-      };
-
-      // 5. Save data to Firestore using setDoc with merge: true
-      // This creates the document if it doesn't exist, or updates the specific planId field if it does.
-      await setDoc(userProgressRef, firestorePayload, { merge: true });
-
-      console.log("Successfully saved data to Firestore for plan:", selectedPlanId);
+      storeInDatabase()
       removeLocalStorageDataByPlanId()
       
 
