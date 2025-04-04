@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { calculateNextDay, parseTimeToSeconds } from "@/utils"; // Import helpers
 import ConfirmationToast from "@/components/Toast/ConfirmationToast";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/firebase/firebaseConfig";
 
 const SetAndRepsForm = ({
   sets: initialSets,
@@ -73,6 +75,38 @@ const SetAndRepsForm = ({
     }
     console.log("DataSSS",data)
     return data;
+}
+function removeLocalStorageDataByPlanId() {
+  // Basic validation: Ensure selectedPlanId is a non-empty string
+  if (!selectedPlanId || typeof selectedPlanId !== 'string' || selectedPlanId.trim() === '') {
+      console.error("Invalid selectedPlanId provided. Must be a non-empty string.");
+      return; // Exit if the ID is invalid
+  }
+
+  console.log(`Attempting to remove localStorage items ending with: ${selectedPlanId}`);
+
+  // We need to collect keys first or iterate backwards because removing items
+  // while iterating forwards using index can cause items to be skipped.
+  // Iterating backwards is generally more efficient here.
+  let itemsRemovedCount = 0;
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+      let key = localStorage.key(i);
+
+      // Check if the key exists (should always be true for valid i)
+      // and if it ends with the selectedPlanId
+      if (key && key.endsWith(selectedPlanId)) {
+          try {
+              localStorage.removeItem(key);
+              console.log(`Removed item with key: ${key}`);
+              itemsRemovedCount++;
+          } catch (e) {
+              // Log potential errors during removal (e.g., security restrictions)
+              console.error(`Error removing item with key ${key}:`, e);
+          }
+      }
+  }
+
+  console.log(`Finished removing items. Total items removed: ${itemsRemovedCount}`);
 }
 
   // --- Effects ---
@@ -376,7 +410,7 @@ const SetAndRepsForm = ({
   };
 
 
-  const handleFinishDay = () => {
+  const handleFinishDay = async() => {
     // Check if timer is running (same as before)
     if (activeTimer !== null || waitingForRestCompletion.current) {
       toast.error("Cannot finish day while a timer is active or resting.");
@@ -445,7 +479,31 @@ const SetAndRepsForm = ({
       localStorage.setItem(selectedWeekKey, nextWeekIndex.toString());
       localStorage.setItem(selectedDayKey, nextDayNumber.toString());
 
-      getAllLocalStorageData()
+      const allDataToSave = getAllLocalStorageData();
+
+      if (Object.keys(allDataToSave).length === 0) {
+         console.warn("No data found in localStorage for this plan to save.");
+         // Decide if you want to proceed with navigation anyway or show a different message
+         // For now, let's proceed to potentially clear any lingering keys and navigate
+      }
+
+      // 3. Define Firestore Document Reference
+      // Saving under collection 'userWorkoutProgress', document ID is userId
+      const userProgressRef = doc(db, "userWorkoutProgress", userId);
+
+      // 4. Prepare data payload for Firestore
+      // We store the collected data under a map field named after the selectedPlanId
+      const firestorePayload = {
+        [selectedPlanId]: allDataToSave // Use computed property name
+      };
+
+      // 5. Save data to Firestore using setDoc with merge: true
+      // This creates the document if it doesn't exist, or updates the specific planId field if it does.
+      await setDoc(userProgressRef, firestorePayload, { merge: true });
+
+      console.log("Successfully saved data to Firestore for plan:", selectedPlanId);
+      removeLocalStorageDataByPlanId()
+      
 
       toast.success(`Day Complete! Progress saved.`, { duration: 3000 });
 

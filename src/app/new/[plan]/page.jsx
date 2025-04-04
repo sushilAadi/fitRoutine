@@ -19,7 +19,8 @@ const PlanDetail = ({ params }) => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true); // Start loading true
   const [selectedWeek, setSelectedWeek] = useState(null); // Stores the week *object*
-  const [selectedDay, setSelectedDay] = useState(null); // Stores the numeric *day number*
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [firebaseStoredData,setFirebaseStoredData] = useState(null)
 
   const selectedPlanId = decodeURIComponent(params?.plan);
 
@@ -27,6 +28,60 @@ const PlanDetail = ({ params }) => {
   const workoutProgressKey = `workout-progress-${selectedPlanId || 'default'}`;
   const selectedWeekKey = `selectedWeekIndex_${selectedPlanId || 'default'}`; // Use index
   const selectedDayKey = `selectedDayNumber_${selectedPlanId || 'default'}`;   // Use number
+
+  async function retrieveWorkoutProgress( ) {
+    if (!userId || !selectedPlanId) {
+      console.error("User ID and Selected Plan ID are required.");
+      return null; // Or throw an error, depending on your error handling strategy
+    }
+  
+    try {
+      // 1. Define the Document Reference (same as when saving)
+      // Points to the document holding ALL progress for this specific user.
+      const userProgressRef = doc(db, "userWorkoutProgress", userId);
+  
+      // 2. Fetch the Document Snapshot
+      console.log(`Attempting to fetch document: userWorkoutProgress/${userId}`);
+      const docSnap = await getDoc(userProgressRef);
+  
+      // 3. Check if the Document Exists
+      if (docSnap.exists()) {
+        console.log(`Document found for user ${userId}.`);
+        // 4. Get all data from the document
+        const allUserData = docSnap.data();
+  
+        // 5. Access the specific plan's data using selectedPlanId as the key
+        // This accesses the map field named after your plan ID.
+        const specificPlanData = allUserData[selectedPlanId];
+  
+        if (specificPlanData) {
+          console.log(`Data found for plan ${selectedPlanId}:`, specificPlanData);
+          // This is the data you originally saved from getAllLocalStorageData() for this specific plan
+          console.log("specificPlanData",specificPlanData)
+          setFirebaseStoredData(specificPlanData)
+          
+        } else {
+          setFirebaseStoredData(null)
+          // The user document exists, but there's no data saved under this specific planId key.
+          console.warn(`No data found for plan ID "${selectedPlanId}" within user ${userId}'s document.`);
+          return null;
+        }
+      } else {
+        // The document for this userId doesn't exist at all in the 'userWorkoutProgress' collection.
+        console.warn(`No workout progress document found for user ID: ${userId}`);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error retrieving workout progress from Firestore:", error);
+      return null; // Return null or re-throw the error
+    }
+  }
+
+  useEffect(()=>{
+    retrieveWorkoutProgress()
+  },[])
+  console.log("firebaseStoredData",firebaseStoredData)
+
 
   // --- Fetch Data ---
   useEffect(() => {
