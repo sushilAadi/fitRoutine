@@ -7,10 +7,12 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { calculateNextDay, mergeWorkoutData, parseTimeToSeconds } from "@/utils";
 import ConfirmationToast from "@/components/Toast/ConfirmationToast";
+
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import PreviousHistory from "./PreviousHistory";
 import { calculateDetailedWorkoutProgress } from "@/utils/progress";
+import ProgressRealTime from "./ProgressRealTime";
 // Removed unused import: import { is } from "date-fns/locale";
 
 const SetAndRepsForm = ({
@@ -57,6 +59,7 @@ const SetAndRepsForm = ({
   const waitingForRestCompletion = useRef(false);
   const initialLoadComplete = useRef(false);
   const [hasAutoNavigated, setHasAutoNavigated] = useState(false);
+  const [progressStats, setProgressStats] = useState(null);
 
   // --- Helper functions for Finish Day (remain the same) ---
   function getAllLocalStorageData() {
@@ -103,6 +106,22 @@ const SetAndRepsForm = ({
       toast.error("Error saving workout progress.");
     }
   }
+
+  // --- Calculate and update progress stats ---
+  const updateProgressStats = () => {
+    if (!transFormedData) return;
+    
+    // Get all current localStorage data to include the latest changes
+    const currentLocalData = getAllLocalStorageData();
+    
+    // Merge with Firebase data, prioritizing local changes
+    const mergedData = { ...firebaseStoredData, ...currentLocalData };
+    
+    // Calculate progress using the existing function
+    const progress = calculateDetailedWorkoutProgress(transFormedData, mergedData);
+    
+    setProgressStats(progress);
+  };
 
   // --- Effects ---
 
@@ -273,6 +292,7 @@ const SetAndRepsForm = ({
      const allInitiallyDone = Array.isArray(initialData) && initialData.length > 0 &&
        initialData.every(set => set.isCompleted || set.skipped || set.isDeleted); // Include isDeleted
     setIsAllSetsCompleted(allInitiallyDone);
+    updateProgressStats();
 
   }, [
     selectedDay,
@@ -281,6 +301,7 @@ const SetAndRepsForm = ({
     storageKey,
     currentWeekIndex,
     firebaseStoredData,
+    transFormedData,
   ]);
 
   // Save sets data to LOCAL STORAGE
@@ -288,6 +309,7 @@ const SetAndRepsForm = ({
     if (initialLoadComplete.current && sets.length > 0) {
       localStorage.setItem(storageKey, JSON.stringify(sets));
       checkAllSetsCompleted();
+      updateProgressStats();
     }
   }, [sets, storageKey]);
 
@@ -490,6 +512,7 @@ const SetAndRepsForm = ({
             }
       );
       setSets(updatedSets);
+      updateProgressStats()
       // Don't activate next set yet, wait for rest timer to finish/be skipped
     } else if (activeTimer === "rest") {
         toast.error("Cannot complete set while resting.");
@@ -671,6 +694,8 @@ const SetAndRepsForm = ({
         waitingForRestCompletion.current = false;
         activeSetRef.current = null;
         setIsAllSetsCompleted(true); // Skipping marks all (visible) sets as "done"
+
+        updateProgressStats()
         toast.success("Exercise Skipped.");
 
         // Auto-navigate if not last exercise
@@ -721,6 +746,7 @@ const SetAndRepsForm = ({
       activeSetRef.current = null; // Clear active set reference
       waitingForRestCompletion.current = false;
       setIsAllSetsCompleted(false); // Since we un-completed a set
+      updateProgressStats()
     } else {
         // Maybe allow editing an active/non-completed set too?
         // Currently, only completed sets can be edited. If needed, adjust this logic.
@@ -797,6 +823,7 @@ const SetAndRepsForm = ({
     setSets(updatedSets);
     // checkAllSetsCompleted(); // Let useEffect handle this based on `sets` change
     toast.success("Set marked for deletion.");
+    updateProgressStats()
 
     // Ensure timer state is definitely cleared if the deleted set was somehow involved
     if (activeSetRef.current === setId) {
@@ -856,6 +883,7 @@ const SetAndRepsForm = ({
 
     setSets([...updatedSets, newSet]);
     setIsAllSetsCompleted(false); // Adding a set makes it incomplete
+    updateProgressStats()
   };
 
   const handleInputChange = (setId, field, value) => {
@@ -899,11 +927,14 @@ const SetAndRepsForm = ({
   const visibleSets = sets.filter(set => !set.isDeleted); // Filter for rendering
 
  
-
+console.log("progressStats",progressStats)
 
   return (
     <>
       {/* Header and Action Buttons */}
+      {progressStats && (
+        <ProgressRealTime progressStats={progressStats} />
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div>
           <h3 className="text-lg font-semibold capitalize">{exerciseName}</h3>
