@@ -5,11 +5,12 @@ import React, { useState, useEffect, useRef } from "react";
 import RegularButton from "@/components/Button/RegularButton";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { calculateNextDay, parseTimeToSeconds } from "@/utils";
+import { calculateNextDay, mergeWorkoutData, parseTimeToSeconds } from "@/utils";
 import ConfirmationToast from "@/components/Toast/ConfirmationToast";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import PreviousHistory from "./PreviousHistory";
+import { calculateDetailedWorkoutProgress } from "@/utils/progress";
 // Removed unused import: import { is } from "date-fns/locale";
 
 const SetAndRepsForm = ({
@@ -37,6 +38,7 @@ const SetAndRepsForm = ({
     allWeeksData = [],
     currentWeekIndex,
     firebaseStoredData,
+    transFormedData
   } = necessaryData || {};
 
   const workoutProgressKey = `workout-progress-${selectedPlanId}`;
@@ -895,6 +897,9 @@ const SetAndRepsForm = ({
   // --- RENDER ---
   const isAnySetSkipped = sets.some((s) => s.skipped && !s.isDeleted); // Check non-deleted skipped sets
   const visibleSets = sets.filter(set => !set.isDeleted); // Filter for rendering
+
+ 
+
 
   return (
     <>

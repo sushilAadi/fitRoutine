@@ -29,7 +29,8 @@ const ExerciseCardSelected = ({
   totalWeeksCount,
   allWeeksData,
   // *** ACCEPT FIREBASE DATA ***
-  firebaseStoredData
+  firebaseStoredData,
+  transFormedData
 }) => {
   const router = useRouter();
   const { userId } = useContext(GlobalContext);
@@ -240,7 +241,7 @@ const ExerciseCardSelected = ({
     setSelectedDay, setSelectedWeek, dayData, weekStructure, totalWeeksCount,
     allWeeksData, currentWeekIndex,
     // *** PASS FIREBASE DATA DOWN ***
-    firebaseStoredData
+    firebaseStoredData,transFormedData
   };
 
   // --- JSX Return (No changes needed here) ---

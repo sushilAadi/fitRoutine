@@ -418,3 +418,34 @@ export const parseTimeToSeconds = (timeString = "00:00:00") => {
   }
   return 0; // Default case or invalid format
 };
+
+
+export const mergeWorkoutData = (firebaseStoredData, allDataToSave) => {
+  const isValidObject = (obj) =>
+    obj && typeof obj === 'object' && !Array.isArray(obj);
+
+  const isEmptyObject = (obj) =>
+    isValidObject(obj) && Object.keys(obj).length === 0;
+
+  // Case 1: firebaseStoredData is null, undefined, or empty
+  if (!isValidObject(firebaseStoredData) || isEmptyObject(firebaseStoredData)) {
+    return isValidObject(allDataToSave) ? { ...allDataToSave } : {};
+  }
+
+  // Case 2: allDataToSave is invalid
+  if (!isValidObject(allDataToSave)) {
+    return { ...firebaseStoredData };
+  }
+
+  // Case 3: Both are valid, merge keys that exist in firebaseStoredData
+  const mergedData = { ...firebaseStoredData };
+
+  for (const key in allDataToSave) {
+    if (Object.prototype.hasOwnProperty.call(firebaseStoredData, key)) {
+      mergedData[key] = allDataToSave[key];
+    }
+  }
+
+  return mergedData;
+};
+

@@ -62,6 +62,7 @@ function TabMT({
              allWeeksData={transFormedData?.weeksExercise}
              // *** PASS FIREBASE DATA DOWN ***
              firebaseStoredData={firebaseStoredData}
+             transFormedData={transFormedData}
           />
         </div>
       ) : (
