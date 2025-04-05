@@ -9,6 +9,7 @@ import { calculateNextDay, parseTimeToSeconds } from "@/utils";
 import ConfirmationToast from "@/components/Toast/ConfirmationToast";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
+import PreviousHistory from "./PreviousHistory";
 
 const SetAndRepsForm = ({
   sets: initialSets,
@@ -849,56 +850,7 @@ const SetAndRepsForm = ({
       })
     );
   };
-  const getExerciseHistory = () => {
-    /* ... unchanged ... */
-    // Reads DIRECTLY from localStorage for history - this is acceptable as history is not part of the "resumable state"
-    const history = [];
-    if (typeof window === "undefined") return history;
-    try {
-      const keys = Object.keys(localStorage);
-      const pattern = new RegExp(
-        `^workout-${currentWeekIndex}-(\\d+)-${exerciseId}-${selectedPlanId}$`
-      ); // Match only current week for direct history? Or all? Let's adjust to match ANY week/day for this exercise ID.
-      const historyPattern = new RegExp(
-        `^workout-\\d+-\\d+-${exerciseId}-${selectedPlanId}$`
-      );
-
-      for (const key of keys) {
-        if (historyPattern.test(key) && key !== storageKey) {
-          // Ensure it matches the pattern and is NOT the current key
-          try {
-            const data = JSON.parse(localStorage.getItem(key));
-            if (Array.isArray(data) && data.length > 0) {
-              const validSets = data.filter(
-                (item) =>
-                  item &&
-                  item.isCompleted &&
-                  !item.skipped &&
-                  item.weight &&
-                  item.reps
-              );
-              if (validSets.length > 0 && validSets[0]?.date) {
-                // Extract week/day from the key
-                const match = key.match(/^workout-(\d+)-(\d+)-/);
-                const weekNum = match ? parseInt(match[1], 10) + 1 : "?"; // Display week 1-based
-                const dayNum = match ? match[2] : "?";
-                history.push({
-                  date: validSets[0].date,
-                  day: `W${weekNum} D${dayNum}`,
-                  sets: validSets,
-                });
-              }
-            }
-          } catch (e) {
-            console.error("Error parsing history item:", key, e);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error accessing localStorage for history:", error);
-    }
-    return history.sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date descending
-  };
+  
   const handleGoNext = () => {
     /* ... unchanged ... */
     if (checkAllSetsCompleted() && activeTimer === null) {
@@ -957,44 +909,7 @@ const SetAndRepsForm = ({
       </div>
       {/* History Section */}
       {showHistory && (
-        <div className="mb-4 overflow-y-auto border rounded bg-gray-50 max-h-48">
-          {" "}
-          <h4 className="sticky top-0 p-2 text-sm font-semibold bg-gray-100 border-b">
-            Previous Records
-          </h4>{" "}
-          <div className="p-2 text-xs">
-            {" "}
-            {(() => {
-              const history = getExerciseHistory();
-              return history.length > 0 ? (
-                history.map((record, index) => (
-                  <div
-                    key={`${record.date}-${index}-${record.day}`}
-                    className="py-1.5 border-b last:border-b-0"
-                  >
-                    {" "}
-                    <div className="font-medium">
-                      {record.date} ({record.day})
-                    </div>{" "}
-                    <div className="pl-2 text-[10px] text-gray-700">
-                      {" "}
-                      {record.sets.map((set, i) => (
-                        <span key={`${set.id}-${i}`} className="mr-2">
-                          {" "}
-                          S{set.id}: {set.weight || 0}kg × {set.reps || 0}r{" "}
-                        </span>
-                      ))}{" "}
-                    </div>{" "}
-                  </div>
-                ))
-              ) : (
-                <p className="italic text-gray-500">
-                  No previous records found in localStorage.
-                </p>
-              );
-            })()}{" "}
-          </div>{" "}
-        </div>
+        <PreviousHistory exerciseId={exerciseId} firebaseStoredData={firebaseStoredData}/>
       )}
       {/* Sets Table */}
       <table className="w-full mb-4 border-collapse table-fixed">

@@ -72,7 +72,7 @@ const ExerciseDetailHeader = ({data, toggleOpen, open}) => {
                                 onClick={() => setShowImage(!showImage)} 
                                 className="text-xl font-bold text-gray-900 cursor-pointer"
                             >
-                                {_.capitalize(data?.name)}
+                                {_.capitalize(data?.name)} ({data?.id})
                             </h2>
                             <i 
                                 className="mt-1 ml-4 cursor-pointer fa-duotone fa-solid fa-memo-circle-info" 

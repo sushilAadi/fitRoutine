@@ -319,7 +319,7 @@ const PlanDetail = ({ params }) => {
             }`}
             onClick={() => handleWeekSelect(weekItem)}
             key={weekItem.weekName}
-            disabled={selectedWeek?.week !== weekItem.week}
+            // disabled={selectedWeek?.week !== weekItem.week}
           >
             {weekItem.weekName}
           </button>
