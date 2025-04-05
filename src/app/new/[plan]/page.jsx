@@ -299,7 +299,7 @@ console.log("transFormedData",{transFormedData,firebaseStoredData})
   if (!transFormedData || !selectedWeek || selectedDay === null) return <div className="flex flex-col items-center justify-center h-screen"><div className="p-4 text-center text-gray-500">Workout data not available or incomplete.</div></div>;
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
+    <div className="flex flex-col bg-gray-50">
       {/* Header */}
       
       <div className="p-3 pb-1 bg-white border-b sticky-top">
@@ -350,9 +350,9 @@ console.log("transFormedData",{transFormedData,firebaseStoredData})
         ) : (
           <div className="p-4 text-center text-gray-500">No days found for this week.</div>
         )}
-        
+        <Progress transFormedData={transFormedData} firebaseStoredData={firebaseStoredData}/>
       </div>
-      {/* <Progress transFormedData={transFormedData} firebaseStoredData={firebaseStoredData}/>pplePass032209 */}
+      
     </div>
   );
 };

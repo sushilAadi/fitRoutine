@@ -35,6 +35,8 @@ export const calculateDetailedWorkoutProgress = (transformData, firebaseStoreDat
       let totalSkippedPlannedSets = 0;
       let totalCompletedExtraSets = 0;
       let totalSkippedExtraSets = 0;
+      let totalNewSets = 0;
+      let totalDeletedSets = 0;
   
       // --- Data Processing ---
       // Iterate through the PLAN (transformData)
@@ -72,6 +74,7 @@ export const calculateDetailedWorkoutProgress = (transformData, firebaseStoreDat
   
             let completedInStorage = 0;
             let skippedInStorage = 0;
+            
   
             // Check if data exists and is an array
             if (Array.isArray(actualSetsData)) {
@@ -82,6 +85,8 @@ export const calculateDetailedWorkoutProgress = (transformData, firebaseStoreDat
                   } else if (set.skipped === true) {
                     skippedInStorage++;
                   }
+                  if (set.isNewSet === true) totalNewSets++;
+                  if (set.isDeleted === true) totalDeletedSets++;
                   // Ignore sets that are neither completed nor skipped (e.g., pending, deleted locally but not in store yet)
                 } else {
                    console.warn(`Invalid set item found in ${storageKey}:`, set);
@@ -148,7 +153,10 @@ export const calculateDetailedWorkoutProgress = (transformData, firebaseStoreDat
         progressPlannedOnlyPercent,         // Original metric: % of planned sets completed
         completionRateOfAttemptedPercent, // % of (completed + skipped) planned sets that were completed
         overallAttemptRatePercent,        // % of planned sets that were either completed or skipped
-        progressIncludingExtraPercent,    // % of planned sets completed (incl. extra ones done) - can be > 100%
+        progressIncludingExtraPercent,
+        totalNewSets,
+  totalDeletedSets,
+            // % of planned sets completed (incl. extra ones done) - can be > 100%
       };
   
     } catch (error) {

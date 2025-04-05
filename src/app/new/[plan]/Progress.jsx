@@ -38,16 +38,19 @@ const Progress = ({ transFormedData, firebaseStoredData }) => {
     completionRateOfAttemptedPercent,
     overallAttemptRatePercent,
     progressIncludingExtraPercent,
+    totalNewSets,
+    totalDeletedSets
   } = progressDetails;
 
   // Helper component for consistent metric display
   const MetricCard = ({ title, value, description, note, children }) => (
-    <div className="p-4 mb-4 bg-white border border-gray-200 rounded-lg shadow-sm">
-      <h2 className="mb-1 text-base font-semibold text-gray-800">{title}: <span className="font-bold text-blue-600">{value}</span></h2>
-      {description && <p className="mb-1 text-xs text-gray-600">{description}</p>}
-      {note && <p className="mt-1 text-xs italic text-gray-500">{note}</p>}
-      {children}
-    </div>
+    <div className="p-3 mb-4 transition-all bg-white border border-gray-100 shadow-sm rounded-xl hover:shadow-md">
+  <h2 className="mb-1 text-sm font-medium tracking-wide text-gray-500 uppercase">{title}</h2>
+  <div className="text-2xl font-bold text-blue-700">{value}</div>
+  {description && <p className="mt-1 text-xs text-gray-500">{description}</p>}
+  {note && <p className="mt-1 text-[11px] italic text-gray-400">{note}</p>}
+  {children}
+</div>
   );
 
   // Helper for list items
@@ -116,6 +119,8 @@ const Progress = ({ transFormedData, firebaseStoredData }) => {
           <DetailListItem label="Completed (Planned)" value={totalCompletedPlannedSets} />
           <DetailListItem label="Skipped (Planned)" value={totalSkippedPlannedSets} />
           <DetailListItem label="Unlogged (Planned)" value={totalUnloggedPlannedSets} />
+          <DetailListItem label="New Sets Logged" value={totalNewSets} />
+<DetailListItem label="Deleted Sets" value={totalDeletedSets} />
           <DetailListItem label="Completed (Extra)" value={totalCompletedExtraSets} />
           <DetailListItem label="Skipped (Extra)" value={totalSkippedExtraSets} />
           <li className="flex items-center justify-between py-1 pt-2 mt-2 text-xs border-t border-gray-300 border-dashed">
