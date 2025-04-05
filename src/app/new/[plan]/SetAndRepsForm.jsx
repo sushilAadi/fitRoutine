@@ -10,6 +10,7 @@ import ConfirmationToast from "@/components/Toast/ConfirmationToast";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import PreviousHistory from "./PreviousHistory";
+import { is } from "date-fns/locale";
 
 const SetAndRepsForm = ({
   sets: initialSets,
@@ -86,7 +87,7 @@ const SetAndRepsForm = ({
         }
       }
     }
-    console.log(`Cleared localStorage for plan ${selectedPlanId}`);
+    
   }
   async function storeInDatabase() {
     const allDataToSave = getAllLocalStorageData();
@@ -98,10 +99,7 @@ const SetAndRepsForm = ({
     const firestorePayload = { [selectedPlanId]: allDataToSave };
     try {
       await setDoc(userProgressRef, firestorePayload, { merge: true });
-      console.log(
-        "Successfully saved data to Firestore for plan:",
-        selectedPlanId
-      );
+      
     } catch (error) {
       console.error("Error saving data to Firestore:", error);
       toast.error("Error saving workout progress.");
@@ -130,9 +128,7 @@ const SetAndRepsForm = ({
           if (Array.isArray(dataFromFirebase)) {
             initialData = dataFromFirebase;
             source = "firebase";
-            console.log(
-              `Initializing sets for ${exerciseId} from Firebase data.`
-            );
+            
           } else {
             console.warn(
               `Data for ${storageKey} in Firebase was not an array, ignoring.`
@@ -155,13 +151,9 @@ const SetAndRepsForm = ({
             if (Array.isArray(parsedData)) {
               initialData = parsedData;
               source = "localStorage";
-              console.log(
-                `Initializing sets for ${exerciseId} from localStorage data.`
-              );
+              
             } else {
-              console.warn(
-                `Data for ${storageKey} in localStorage was not an array, ignoring.`
-              );
+              
               localStorage.removeItem(storageKey); // Clean up invalid data
             }
           }
@@ -176,7 +168,7 @@ const SetAndRepsForm = ({
 
       // 3. If still no data, create Defaults
       if (initialData === null) {
-        console.log(`Initializing sets for ${exerciseId} with defaults.`);
+        
         initialData = Array(parseInt(initialSets) || 1)
           .fill()
           .map((_, index) => ({
@@ -297,16 +289,10 @@ const SetAndRepsForm = ({
       }
 
       initialLoadComplete.current = true; // Mark initial load and timer restore as complete
-      console.log(
-        `Timer restore check complete for ${exerciseId}. Timer state: ${
-          activeTimer || "none"
-        }`
-      );
+      
     } else if (!initialLoadComplete.current) {
       initialLoadComplete.current = true; // Mark as complete even if no data/timer
-      console.log(
-        `Initial load complete for ${exerciseId}, no timer to restore.`
-      );
+      
     }
 
     // Check initial completion status after setting data
@@ -315,9 +301,7 @@ const SetAndRepsForm = ({
       initialData.length > 0 &&
       initialData.every((set) => set.isCompleted || set.skipped);
     setIsAllSetsCompleted(allInitiallyDone);
-    console.log(
-      `Initial 'all sets completed' status for ${exerciseId}: ${allInitiallyDone}`
-    );
+    
   }, [
     selectedDay,
     exerciseId,
@@ -332,7 +316,7 @@ const SetAndRepsForm = ({
     // Only save after the initial load is complete to avoid overwriting immediately
     if (initialLoadComplete.current && sets.length > 0) {
       // Add a small delay or check if data actually changed if performance becomes an issue
-      console.log(`Saving sets state to localStorage for ${storageKey}`);
+      
       localStorage.setItem(storageKey, JSON.stringify(sets));
       checkAllSetsCompleted(); // Update completion status after state changes
     }
@@ -370,7 +354,7 @@ const SetAndRepsForm = ({
             activeTimer === null &&
             !sets.some((s) => s.skipped)
           ) {
-            console.log("Auto-navigating to next exercise...");
+            
             setHasAutoNavigated(true);
             goNext();
           }
@@ -477,7 +461,7 @@ const SetAndRepsForm = ({
       (currentSet.isActive || currentSet.isEditing) &&
       !currentSet.isCompleted
     ) {
-      console.log(`Starting workout for set ${setId}.`);
+      
       const updatedSets = sets.map((s, index) => ({
         ...s,
         isDurationRunning: index === setIndex,
@@ -517,7 +501,7 @@ const SetAndRepsForm = ({
         activeTimer === "workout" &&
         activeSetRef.current === setId)
     ) {
-      console.log(`Completing set ${setId}. Starting rest timer.`);
+      
       setActiveTimer("rest");
       setSeconds(0);
       waitingForRestCompletion.current = true;
@@ -557,9 +541,7 @@ const SetAndRepsForm = ({
       (set) => set.id === lastCompletedSetId
     );
     if (lastCompletedSetIndex === -1) return;
-    console.log(
-      `Stopping rest timer for set ${lastCompletedSetId}. Activating next available set.`
-    );
+    
     let nextActiveIndex = -1;
     for (let i = lastCompletedSetIndex + 1; i < sets.length; i++) {
       if (!sets[i].isCompleted && !sets[i].skipped) {
@@ -596,7 +578,7 @@ const SetAndRepsForm = ({
       );
       return;
     }
-    console.log("Finishing Day's Workout...");
+    
     try {
       const currentWeekIdx = selectedWeek?.week;
       const currentDayNum = selectedDay;
@@ -682,7 +664,7 @@ const SetAndRepsForm = ({
     /* ... unchanged ... */
     try {
       const today = new Date().toISOString().split("T")[0];
-      console.log(`Skipping exercise ${exerciseId} on day ${selectedDay}.`);
+      
       const updatedSets = sets.map((set) => {
         const dates = Array.isArray(set.skippedDates)
           ? [...set.skippedDates]
@@ -714,7 +696,7 @@ const SetAndRepsForm = ({
       if (!isLastExercise) {
         goNext();
       } else {
-        console.log("Last exercise skipped, finishing day...");
+        
         handleFinishDay();
       } // Finish day if last exercise
     } catch (error) {
@@ -736,7 +718,6 @@ const SetAndRepsForm = ({
       return;
     }
     if (currentSet.isCompleted) {
-      console.log(`Editing set ${setId}.`);
       const updatedSets = sets.map((set, index) => ({
         ...set,
         isEditing: index === setIndex,
@@ -816,6 +797,7 @@ const SetAndRepsForm = ({
       exerciseId: exerciseId,
       skipped: false,
       skippedDates: [],
+      isNewSet: true,
     };
     const updatedSets = sets.map((set) => ({
       ...set,
@@ -823,7 +805,7 @@ const SetAndRepsForm = ({
     }));
     setSets([...updatedSets, newSet]);
     setIsAllSetsCompleted(false);
-    console.log(`Added set ${newSetId}. Active: ${makeActive}`);
+    
   };
   const handleInputChange = (setId, field, value) => {
     /* ... unchanged ... */

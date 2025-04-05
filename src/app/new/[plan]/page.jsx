@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import TabMT from "@/components/Tabs/TabMT"; // Adjust path if needed
 import { transformData } from "@/utils"; // Adjust path if needed
 import _ from "lodash"; // Make sure lodash is installed
+import Progress from "./Progress";
 
 const PlanDetail = ({ params }) => {
   const { userId } = useContext(GlobalContext);
@@ -289,6 +290,7 @@ const PlanDetail = ({ params }) => {
     dayName: exercisesBasedOnDayObj.label, day: exercisesBasedOnDayObj.value, exercises: exercisesBasedOnDayObj.exercises,
     weekName: selectedWeek?.weekName, week: selectedWeek?.week,
   } : {};
+console.log("transFormedData",{transFormedData,firebaseStoredData})
 
 
   // --- Render Logic (No changes needed, added firebaseStoredData prop pass) ---
@@ -299,6 +301,7 @@ const PlanDetail = ({ params }) => {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-50">
       {/* Header */}
+      
       <div className="p-3 pb-1 bg-white border-b sticky-top">
         <h2 className="text-lg font-semibold capitalize">{_.capitalize(transFormedData?.name)}</h2>
          <p className="text-xs text-gray-500">
@@ -325,7 +328,7 @@ const PlanDetail = ({ params }) => {
           </button>
         ))}
       </div>
-
+     
       {/* Day Tabs and Exercise Content */}
       <div className="flex-1 mb-2 overflow-y-auto exerciseCard no-scrollbar">
        {dayTabsData.length > 0 ? (
@@ -347,7 +350,9 @@ const PlanDetail = ({ params }) => {
         ) : (
           <div className="p-4 text-center text-gray-500">No days found for this week.</div>
         )}
+        
       </div>
+      {/* <Progress transFormedData={transFormedData} firebaseStoredData={firebaseStoredData}/>pplePass032209 */}
     </div>
   );
 };
