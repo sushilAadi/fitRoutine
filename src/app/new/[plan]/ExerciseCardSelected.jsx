@@ -4,32 +4,32 @@
 import _ from "lodash";
 import React, { useState, useRef, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
-import ExerciseDetailHeader from "./ExerciseDetailHeader"; // Adjust path
-import SetAndRepsForm from "./SetAndRepsForm"; // Adjust path
+import ExerciseDetailHeader from "./ExerciseDetailHeader";
+import SetAndRepsForm from "./SetAndRepsForm";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 import { GlobalContext } from "@/context/GloablContext";
 import toast from "react-hot-toast";
-import ConfirmationToast from "@/components/Toast/ConfirmationToast"; // Adjust path
+import ConfirmationToast from "@/components/Toast/ConfirmationToast";
 import { calculateNextDay } from "@/utils";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/firebase/firebaseConfig";
 
-
-// --- Component START ---
 const ExerciseCardSelected = ({
-  exercisesBasedOnDay, // { dayName, day (number), exercises, weekName, week (index) }
+  exercisesBasedOnDay,
   selectedPlanId,
-  // State and Setters from PlanDetail
-  selectedDay,        // numeric day number
-  setSelectedDay,     // function to set PlanDetail's selectedDay
-  selectedWeek,       // week object
-  setSelectedWeek,    // function to set PlanDetail's selectedWeek
-  // Context for calculateNextDay
-  dayData,            // Array of { label, value, day } for the *current* week
-  weekStructure,      // Array of { week (index), weekName } for the *whole plan*
-  totalWeeksCount,    // Numeric total weeks count
-  allWeeksData        // The complete weeksExercise array from transformedData
+  selectedDay,
+  setSelectedDay,
+  selectedWeek,
+  setSelectedWeek,
+  dayData,
+  weekStructure,
+  totalWeeksCount,
+  allWeeksData,
+  // *** ACCEPT FIREBASE DATA ***
+  firebaseStoredData
 }) => {
   const router = useRouter();
   const { userId } = useContext(GlobalContext);
@@ -38,198 +38,147 @@ const ExerciseCardSelected = ({
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const { exercises, dayName, weekName, day: currentDayNumber, week: currentWeekIndex } = exercisesBasedOnDay || {};
 
-  // Filter exercises once
   const filteredExercises = exercises?.filter(
     (exercise) => exercise.name && exercise.bodyPart && exercise.gifUrl
   ) || [];
 
-  // Define keys consistently
   const workoutProgressKey = `workout-progress-${selectedPlanId || 'default'}`;
   const selectedWeekKey = `selectedWeekIndex_${selectedPlanId || 'default'}`;
   const selectedDayKey = `selectedDayNumber_${selectedPlanId || 'default'}`;
-  const slideIndexKeyBase = `slideIndex-${selectedPlanId || 'default'}`; // Add planId scope
+  const slideIndexKeyBase = `slideIndex-${selectedPlanId || 'default'}`;
 
-  // --- useEffect hooks for Swiper ---
+  // --- useEffect hooks for Swiper (No change needed, uses localStorage correctly for slide index) ---
   useEffect(() => {
-    // Reset slide to 0 when the selected day changes
-    setCurrentSlideIndex(0);
-    if (swiperRef.current && swiperRef.current.swiper) {
-      swiperRef.current.swiper.slideTo(0, 0); // Slide immediately without animation
-    }
-    // Clear slide index for the *previous* day if needed (optional)
-    // const prevDay = /* logic to get previous day */;
-    // if (prevDay) localStorage.removeItem(`${slideIndexKeyBase}-${prevDay}`);
-  }, [selectedDay, selectedWeek]); // Reset on day OR week change
+    // Reset slide to 0 when the selected day or week changes
+    const resetSlide = () => {
+        setCurrentSlideIndex(0);
+        if (swiperRef.current?.swiper) {
+            swiperRef.current.swiper.slideTo(0, 0);
+        }
+        // Clear the slide index for the *previous* day from local storage if needed
+        // This depends on how you want state preserved when user navigates back and forth manually
+        // For simplicity, we only load/save based on the *current* day.
+    };
+    resetSlide();
+  }, [selectedDay, selectedWeek?.week]); // Depend on week index specifically if week object identity might change
 
   useEffect(() => {
-    // Load saved slide index for the *current* day when component mounts or day changes
-    if (selectedDay !== null) {
-      const savedSlideIndex = localStorage.getItem(`${slideIndexKeyBase}-${selectedDay}`);
+    // Load saved slide index for the *current* day/week when component mounts or view changes
+    if (selectedDay !== null && selectedWeek?.week !== undefined) {
+      const currentDaySlideKey = `${slideIndexKeyBase}-W${selectedWeek.week}-D${selectedDay}`;
+      const savedSlideIndex = localStorage.getItem(currentDaySlideKey);
       const savedIndexInt = savedSlideIndex ? parseInt(savedSlideIndex, 10) : 0;
-      // Validate index range
       const validIndex = (savedIndexInt >= 0 && savedIndexInt < filteredExercises.length) ? savedIndexInt : 0;
 
-      setCurrentSlideIndex(validIndex);
-      // Use setTimeout to ensure swiper is initialized after potential day change reset
+      // Update state only if it's different to avoid potential loops
+      if (currentSlideIndex !== validIndex) {
+          setCurrentSlideIndex(validIndex);
+      }
+      // Ensure swiper updates, using timeout for safety after potential resets
       setTimeout(() => {
-        if (swiperRef.current?.swiper) {
-          swiperRef.current.swiper.slideTo(validIndex, 0); // Slide without animation
+        if (swiperRef.current?.swiper && swiperRef.current.swiper.activeIndex !== validIndex) {
+          swiperRef.current.swiper.slideTo(validIndex, 0);
         }
       }, 0);
     } else {
-        // If selectedDay is null, reset to 0
-        setCurrentSlideIndex(0);
-        setTimeout(() => {
-            if (swiperRef.current?.swiper) {
-                 swiperRef.current.swiper.slideTo(0, 0);
-            }
-        }, 0);
+       // Reset if day/week become invalid
+       if (currentSlideIndex !== 0) setCurrentSlideIndex(0);
+       setTimeout(() => {
+           if (swiperRef.current?.swiper && swiperRef.current.swiper.activeIndex !== 0) {
+                swiperRef.current.swiper.slideTo(0, 0);
+           }
+       }, 0);
     }
-  }, [selectedDay, selectedWeek, filteredExercises.length]); // Re-run if day/week/exercises change
+  }, [selectedDay, selectedWeek?.week, filteredExercises.length, slideIndexKeyBase, currentSlideIndex]); // Re-run if view changes or exercises load
 
-  // --- Other functions ---
+  // --- Other functions (No changes needed) ---
   const toggleOpen = () => setOpen((cur) => !cur);
-
-  const goNext = () => {
-    if (swiperRef.current?.swiper) {
-      swiperRef.current.swiper.slideNext();
-    }
-  };
-
-  const goPrev = () => {
-    if (swiperRef.current?.swiper) {
-      swiperRef.current.swiper.slidePrev();
-    }
-  };
+  const goNext = () => swiperRef.current?.swiper?.slideNext();
+  const goPrev = () => swiperRef.current?.swiper?.slidePrev();
 
   const handleSlideChange = (swiper) => {
     const newIndex = swiper.activeIndex;
     setCurrentSlideIndex(newIndex);
-    // Save slide index for the *current* selected day
-    if (selectedDay !== null) {
-      localStorage.setItem(`${slideIndexKeyBase}-${selectedDay}`, newIndex.toString());
+    // Save slide index for the *current* selected day/week
+    if (selectedDay !== null && selectedWeek?.week !== undefined) {
+      const currentDaySlideKey = `${slideIndexKeyBase}-W${selectedWeek.week}-D${selectedDay}`;
+      localStorage.setItem(currentDaySlideKey, newIndex.toString());
     }
   };
 
 
-  // --- Skip Day Logic ---
+  // --- Skip Day Logic (No changes needed in this part regarding Firebase data) ---
   const handleSkipDay = () => {
-    // Basic validation checks
-    if (!allWeeksData || allWeeksData.length === 0 || !dayData || dayData.length === 0 || totalWeeksCount <= 0) {
-        console.error("Cannot skip day: Plan structure data missing or invalid.", { allWeeksData, dayData, totalWeeksCount });
-        toast.error("Cannot skip day: Plan structure data missing.");
-        return;
-    }
-    if (typeof currentWeekIndex !== 'number' || currentWeekIndex < 0) {
-        console.error("Cannot skip day: currentWeekIndex is invalid.", { currentWeekIndex });
-        toast.error("Cannot skip day: Current week information missing.");
-        return;
-    }
-    if (typeof currentDayNumber !== 'number' || currentDayNumber <= 0) {
-        console.error("Cannot skip day: currentDayNumber is invalid.", { currentDayNumber });
-        toast.error("Cannot skip day: Current day information missing.");
+    if (!allWeeksData || !dayData || totalWeeksCount <= 0 || typeof currentWeekIndex !== 'number' || typeof currentDayNumber !== 'number') {
+        console.error("Cannot skip day: Plan structure data missing or invalid.");
+        toast.error("Cannot skip day: Plan data missing.");
         return;
     }
 
-    // --- Define the actual skip logic ---
     const proceedWithSkip = () => {
       try {
-        const today = new Date().toISOString().split('T')[0]; // Date of the skip
+        const today = new Date().toISOString().split('T')[0];
 
         // 1. Update localStorage for each exercise on the skipped day
+        // IMPORTANT: Skipping STILL modifies localStorage because that's where the *active* session state is temporarily held.
+        // When "Finish Day" happens (implicitly by skipping the last exercise or explicitly later), this localStorage state gets saved.
         if (filteredExercises && filteredExercises.length > 0) {
-          console.log(`Skipping Day ${currentDayNumber} (Week ${currentWeekIndex}). Updating ${filteredExercises.length} exercises.`);
+          console.log(`Skipping Day ${currentDayNumber} (Week ${currentWeekIndex}). Updating ${filteredExercises.length} exercises in localStorage.`);
           filteredExercises.forEach((exercise, index) => {
-            const exerciseId = exercise.id || `${currentDayNumber}-${index}`; // Consistent ID
-            const storageKey = `workout-${currentWeekIndex}-${currentDayNumber}-${exerciseId}-${selectedPlanId}`; // Key specific to the day being skipped
+            const exerciseId = exercise.id || `${currentDayNumber}-${index}`;
+            const storageKey = `workout-${currentWeekIndex}-${currentDayNumber}-${exerciseId}-${selectedPlanId}`;
             const numberOfSets = exercise?.weeklySetConfig?.sets || 1;
-
             try {
                 let exerciseData = [];
                 const savedData = localStorage.getItem(storageKey);
-                if (savedData) {
-                    try {
-                      exerciseData = JSON.parse(savedData);
-                      if (!Array.isArray(exerciseData)) exerciseData = [];
-                    } catch (parseError){
-                      console.warn(`Failed to parse existing data for ${storageKey}, will overwrite. Error:`, parseError);
-                      exerciseData = [];
-                    }
-                }
+                if (savedData) try { exerciseData = JSON.parse(savedData); if (!Array.isArray(exerciseData)) exerciseData = []; } catch { exerciseData = []; }
 
-                let updatedExerciseData;
-                if (exerciseData.length === 0) {
-                    // Create default sets marked as skipped
-                    updatedExerciseData = Array(numberOfSets).fill().map((_, setIndex) => ({
-                        id: setIndex + 1, weight: "", reps: "", duration: "00:00:00", rest: "00:00",
-                        isCompleted: false, isActive: false, isEditing: false,
-                        isDurationRunning: false, isRestRunning: false,
-                        date: today, exerciseId: exerciseId, skipped: true, skippedDates: [today]
-                    }));
-                } else {
-                    // Modify existing sets
-                    updatedExerciseData = exerciseData.map(set => {
-                        const updatedSkippedDates = Array.isArray(set.skippedDates) ? [...set.skippedDates] : [];
-                        if (!updatedSkippedDates.includes(today)) updatedSkippedDates.push(today);
-                        return {
-                            ...set, isCompleted: false, isActive: false, isEditing: false,
-                            isDurationRunning: false, isRestRunning: false,
-                            skipped: true, skippedDates: updatedSkippedDates
-                        };
-                    });
-                }
+                let updatedExerciseData = exerciseData.length === 0
+                    ? Array(numberOfSets).fill().map((_, setIndex) => ({ id: setIndex + 1, weight: "", reps: "", duration: "00:00:00", rest: "00:00", isCompleted: false, isActive: false, isEditing: false, isDurationRunning: false, isRestRunning: false, date: today, exerciseId: exerciseId, skipped: true, skippedDates: [today] }))
+                    : exerciseData.map(set => { const dates = Array.isArray(set.skippedDates) ? [...set.skippedDates] : []; if (!dates.includes(today)) dates.push(today); return { ...set, isCompleted: false, isActive: false, isEditing: false, isDurationRunning: false, isRestRunning: false, skipped: true, skippedDates: dates }; });
                 localStorage.setItem(storageKey, JSON.stringify(updatedExerciseData));
-
-            } catch (error) {
-              console.error(`Error updating localStorage for exercise ${exerciseId} on skipped day ${currentDayNumber}:`, error);
-            }
+            } catch (error) { console.error(`Error updating localStorage for exercise ${exerciseId} on skipped day ${currentDayNumber}:`, error); }
           });
-        } else {
-             console.warn(`No exercises found for Day ${currentDayNumber} (Week ${currentWeekIndex}) to mark as skipped.`);
-        }
+        } else { console.warn(`No exercises found for Day ${currentDayNumber} (Week ${currentWeekIndex}) to mark as skipped.`); }
 
-        // 2. Calculate the next day using the standardized function
-        // Pass currentWeekIndex, currentDayNumber, the *full* week data, and total weeks count
+        // 2. Calculate the next day
         const nextStep = calculateNextDay(currentWeekIndex, currentDayNumber, allWeeksData, totalWeeksCount);
-
-        if (nextStep === 'error') {
-          toast.error("Error calculating the next day, but current day marked as skipped.");
-          // Potentially redirect or handle recovery - maybe stay on the current view but disable actions?
-          // For now, let's just show the error. User might manually navigate.
-          return;
-        }
+        if (nextStep === 'error') { toast.error("Error calculating the next day, but current day marked as skipped."); return; }
 
         // Clear slide index for the day being skipped
-        localStorage.removeItem(`${slideIndexKeyBase}-${currentDayNumber}`);
+        const skippedDaySlideKey = `${slideIndexKeyBase}-W${currentWeekIndex}-D${currentDayNumber}`;
+        localStorage.removeItem(skippedDaySlideKey);
 
-        if (nextStep === null) { // Plan complete
-          toast.success("Workout Plan Completed!");
+        // --- Handle Plan Completion or Continuation (Saves progress to localStorage for next load/finish) ---
+        if (nextStep === null) {
+          toast.success("Workout Plan Completed! Finishing up...");
+          // !! IMPORTANT: Simulate "Finish Day" to save the skipped state to Firebase !!
+          // Get all current LS data (which now includes the skipped day's flags)
+          const finalLocalStorageData = getAllLocalStorageDataForFinish(); // Need a helper to get all relevant LS keys
+          // Store this final state to DB
+          storeFinalStateToDatabase(finalLocalStorageData); // Need helper
+          // Clear LS for this plan
+          removeLocalStorageDataByPlanIdForFinish(); // Need helper
+          // Clear progress markers
           localStorage.removeItem(workoutProgressKey);
-          localStorage.removeItem(selectedWeekKey); // Clean up individual keys too
+          localStorage.removeItem(selectedWeekKey);
           localStorage.removeItem(selectedDayKey);
-          // Consider clearing all slide indexes for this planId?
-          router.push("/new"); // Navigate to overview or completion page
+          router.push("/new");
           return;
         }
 
         // 3. Plan continues: Get details for the *next* step
         const { nextWeekIndex, nextDayNumber, nextWeekName, nextDayName } = nextStep;
 
-        // PERSIST Global Progress (to the *next* day/week) using numeric identifiers
-        const newProgress = {
-            currentWeekIndex: nextWeekIndex,
-            currentDayNumber: nextDayNumber,
-            weekName: nextWeekName, // Store names for display convenience if needed
-            dayName: nextDayName
-        };
+        // PERSIST Global Progress (to the *next* day/week) using numeric identifiers IN LOCALSTORAGE
+        // This ensures that if the user leaves *now*, the next load will pick up from the correct *next* day.
+        // This progress will eventually be saved to Firebase when the *next* day is finished.
+        const newProgress = { currentWeekIndex: nextWeekIndex, currentDayNumber: nextDayNumber, weekName: nextWeekName, dayName: nextDayName };
         localStorage.setItem(workoutProgressKey, JSON.stringify(newProgress));
-        // Store individual keys as well (using numeric identifiers)
         localStorage.setItem(selectedWeekKey, nextWeekIndex.toString());
         localStorage.setItem(selectedDayKey, nextDayNumber.toString());
 
-
         // UPDATE React state in PlanDetail (to the *next* day/week)
-        // Find the week object corresponding to nextWeekIndex
         const nextWeekObject = allWeeksData.find(w => w.week === nextWeekIndex);
         if(nextWeekObject) {
             setSelectedWeek(nextWeekObject); // Update PlanDetail's week state
@@ -238,10 +187,7 @@ const ExerciseCardSelected = ({
         } else {
             console.error("Could not find next week object after skip calculation.", { nextWeekIndex });
             toast.error("Skipped day, but failed to load next week's data.");
-            // Might need to redirect or show a more critical error
         }
-
-
       } catch (error) {
         console.error("Error encountered in proceedWithSkip:", error);
         toast.error("An unexpected error occurred while skipping the day.");
@@ -249,108 +195,84 @@ const ExerciseCardSelected = ({
     };
 
     // Show confirmation toast
-    toast((t) => (
-      <ConfirmationToast
-        t={t}
-        message="Are you sure you want to skip this entire day's workout?"
-        onConfirm={proceedWithSkip}
-      />
-    ), { duration: Infinity, position: "top-center" });
+    toast((t) => ( <ConfirmationToast t={t} message="Skip this entire day's workout?" onConfirm={proceedWithSkip} /> ), { duration: Infinity, position: "top-center" });
   };
+
+    // --- Helper functions needed for Skip Day -> Finish Flow ---
+    // These should be similar/identical to those in SetAndRepsForm
+    function getAllLocalStorageDataForFinish() {
+      let data = {};
+      for (let i = 0; i < localStorage.length; i++) {
+          let key = localStorage.key(i);
+          if (key && key.endsWith(selectedPlanId)) {
+              try { data[key] = JSON.parse(localStorage.getItem(key)); } catch { data[key] = localStorage.getItem(key); }
+          }
+      } return data;
+    }
+    async function storeFinalStateToDatabase(allDataToSave) {
+        if (!userId || !selectedPlanId || Object.keys(allDataToSave).length === 0) return;
+        const userProgressRef = doc(db, "userWorkoutProgress", userId);
+        const firestorePayload = { [selectedPlanId]: allDataToSave };
+        try {
+            await setDoc(userProgressRef, firestorePayload, { merge: true });
+            console.log("Successfully saved final skipped state to Firestore for plan:", selectedPlanId);
+        } catch (error) {
+            console.error("Error saving final skipped state to Firestore:", error);
+            toast.error("Error saving final workout state.");
+        }
+    }
+    function removeLocalStorageDataByPlanIdForFinish() {
+        if (!selectedPlanId) return;
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+            let key = localStorage.key(i);
+            if (key && key.endsWith(selectedPlanId)) {
+                try { localStorage.removeItem(key); } catch (e) { console.error(`Error removing item ${key}:`, e); }
+            }
+        }
+        console.log(`Cleared localStorage for plan ${selectedPlanId} after skip/finish.`);
+    }
+    // --- End Helpers ---
 
 
   // Data passed down to SetAndRepsForm
   const necessaryDataForSetForm = {
-    selectedPlanId,
-    userId,
-    // Pass current state down
-    selectedDay: currentDayNumber, // Pass numeric day
-    selectedWeek: selectedWeek, // Pass week object
-    // Pass setters down
-    setSelectedDay,
-    setSelectedWeek,
-    // Pass context for calculateNextDay
-    dayData: dayData, // Day data for *current* week
-    weekStructure: weekStructure, // Simplified structure for display/context [{ week, weekName }]
-    totalWeeksCount: totalWeeksCount, // Numeric count
-    allWeeksData: allWeeksData, // Full data for calculation
-    currentWeekIndex:currentWeekIndex
+    selectedPlanId, userId, selectedDay: currentDayNumber, selectedWeek,
+    setSelectedDay, setSelectedWeek, dayData, weekStructure, totalWeeksCount,
+    allWeeksData, currentWeekIndex,
+    // *** PASS FIREBASE DATA DOWN ***
+    firebaseStoredData
   };
 
-  // --- JSX Return ---
+  // --- JSX Return (No changes needed here) ---
   if (!filteredExercises || filteredExercises.length === 0) {
-     return (
-        <div className="p-6 text-center">
-             <p className="text-gray-500">
-                No exercises scheduled for {dayName || `Day ${currentDayNumber}`}, {weekName || `Week ${currentWeekIndex + 1}`}.
-             </p>
-             <button
-               className="block px-4 py-2 mx-auto mt-4 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50"
-               onClick={handleSkipDay}
-             >
-               Skip This Day
-             </button>
-        </div>
-     );
+     return ( <div className="p-6 text-center"> <p className="text-gray-500">No exercises scheduled for {dayName || `Day ${currentDayNumber}`}, {weekName || `Week ${currentWeekIndex + 1}`}.</p> <button className="block px-4 py-2 mx-auto mt-4 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50" onClick={handleSkipDay}>Skip This Day</button> </div> );
   }
-
   return (
-    <div className="w-full pb-4"> {/* Add some padding */}
+    <div className="w-full pb-4">
       {/* Skip Day Button */}
-      <div className="flex justify-end p-2 bg-white">
-         <button
-           className="px-3 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50"
-           onClick={handleSkipDay}
-         >
-           Skip Day
-         </button>
-      </div>
-
+      <div className="flex justify-end p-2 bg-white"> <button className="px-3 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50" onClick={handleSkipDay}>Skip Day</button> </div>
       {/* Swiper */}
       <Swiper
-        ref={swiperRef}
-        slidesPerView={1}
-        spaceBetween={10} // Reduced space
-        pagination={{
-          clickable: true,
-          dynamicBullets: true,
-        }}
-        modules={[Pagination]}
-        className="w-full exercise-swiper" // Add a class for potential styling
-        onSlideChange={handleSlideChange}
-        key={`${selectedWeek?.week}-${selectedDay}`} // Key ensures Swiper remounts/updates on day/week change
-        initialSlide={currentSlideIndex} // Set initial slide based on state
-        observer={true} // Helps update swiper on parent changes
-        observeParents={true} // Helps update swiper on parent changes
+        ref={swiperRef} slidesPerView={1} spaceBetween={10} pagination={{ clickable: true, dynamicBullets: true }} modules={[Pagination]}
+        className="w-full exercise-swiper" onSlideChange={handleSlideChange}
+        // Key ensures Swiper remounts/updates on major context change
+        key={`${selectedWeek?.week}-${selectedDay}`}
+        initialSlide={currentSlideIndex} observer={true} observeParents={true}
       >
         {filteredExercises.map((exercise, index) => {
           const setData = exercise?.weeklySetConfig;
           const isLastExercise = index === filteredExercises.length - 1;
-          const exerciseId = exercise.id || `${currentDayNumber}-${index}`; // Consistent ID
-
+          const exerciseId = exercise.id || `${currentDayNumber}-${index}`; // Use consistent ID generation
           return (
-            <SwiperSlide key={`${currentDayNumber}-${exerciseId}`} className="w-full "> {/* Add slide styling */}
-              <div className="w-full pb-10 mb-4"> {/* Increased bottom padding for pagination */}
-                <ExerciseDetailHeader
-                  data={exercise}
-                  toggleOpen={toggleOpen}
-                  open={open}
-                />
+            <SwiperSlide key={`${currentDayNumber}-${exerciseId}`} className="w-full ">
+              <div className="w-full pb-10 mb-4">
+                <ExerciseDetailHeader data={exercise} toggleOpen={toggleOpen} open={open}/>
                 <div className="p-3">
                   <SetAndRepsForm
-                    // Core exercise data
-                    sets={setData?.sets || 1}
-                    selectedDay={currentDayNumber} // Pass numeric day number
-                    exerciseId={exerciseId}
-                    exerciseName={exercise.name}
-                    // Navigation helpers
-                    goPrev={goPrev}
-                    goNext={goNext}
-                    exerciseIndex={index}
-                    isLastExercise={isLastExercise}
-                    // Pass down necessary data object
-                    necessaryData={necessaryDataForSetForm}
-
+                    sets={setData?.sets || 1} selectedDay={currentDayNumber} exerciseId={exerciseId}
+                    exerciseName={exercise.name} goPrev={goPrev} goNext={goNext}
+                    necessaryData={necessaryDataForSetForm} // Pass the whole object
+                    exerciseIndex={index} isLastExercise={isLastExercise}
                   />
                 </div>
               </div>
