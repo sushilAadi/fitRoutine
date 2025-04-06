@@ -449,3 +449,21 @@ export const mergeWorkoutData = (firebaseStoredData, allDataToSave) => {
   return mergedData;
 };
 
+
+export const repeatInnerArray = (outerArray, n) => {
+  if (!Array.isArray(outerArray) || outerArray.length !== 1 || !Array.isArray(outerArray[0])) {
+    console.error("Error: Input 'outerArray' must be an array containing exactly one inner array.");
+    return [];
+  }
+  if (!Number.isInteger(n) || n <= 0) {
+    console.warn(`Warning: Repetition count 'n' (${n}) is not a positive integer. Returning empty array.`);
+    return [];
+  }
+
+  const arrayToRepeat = outerArray[0];
+  const output = Array(n).fill(arrayToRepeat);
+
+  return output;
+};
+
+

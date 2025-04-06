@@ -2,7 +2,7 @@
 import React, { useContext, useEffect, useState, useRef } from "react";
 import { generateWorkoutPlan, extractPlansFromResponse } from "@/utils/aiService";
 import { GlobalContext } from "@/context/GloablContext";
-import { calculateAge } from "@/utils";
+import { calculateAge, repeatInnerArray } from "@/utils";
 import { useQuery } from "@tanstack/react-query";
 import { getExercises } from "@/service/exercise";
 import ExerciseAiCard from "@/Feature/AiCoach/ExerciseAiCard";
@@ -629,6 +629,8 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     const weekNames = Array.from({ length: totalWeeks }, (_, i) => `Week ${i + 1}`);
     const dayNames = originalPlan.map(day => day.targetMuscle);
 
+    const workPlan = repeatInnerArray(workoutPlan,+totalWeeks)
+
     // Create the final structure
     const transformedWorkoutPlan = {
       userIdCl: userId,
@@ -637,7 +639,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
         name: goal,
         weeks: totalWeeks,
         daysPerWeek: daysPerWeek,
-        workoutPlan: JSON.stringify(workoutPlan),
+        workoutPlan: JSON.stringify(workPlan),
         exerciseHistory: {},
         weekNames: JSON.stringify(weekNames),
         dayNames: JSON.stringify(dayNames),
