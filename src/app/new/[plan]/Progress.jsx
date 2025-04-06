@@ -6,7 +6,8 @@ const Progress = ({ transFormedData, firebaseStoredData }) => {
   if (!transFormedData || !firebaseStoredData) {
     return (
       <div className="max-w-xl p-6 mx-auto text-sm text-center text-blue-600 rounded-lg bg-blue-50">
-        Loading workout data... Please wait.
+        {/* Loading workout data... Please wait. */}
+        In Progress ,Plz Continue with your workout
       </div>
     );
   }
