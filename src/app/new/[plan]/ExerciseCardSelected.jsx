@@ -124,7 +124,7 @@ const ExerciseCardSelected = ({
         // IMPORTANT: Skipping STILL modifies localStorage because that's where the *active* session state is temporarily held.
         // When "Finish Day" happens (implicitly by skipping the last exercise or explicitly later), this localStorage state gets saved.
         if (filteredExercises && filteredExercises.length > 0) {
-          console.log(`Skipping Day ${currentDayNumber} (Week ${currentWeekIndex}). Updating ${filteredExercises.length} exercises in localStorage.`);
+          
           filteredExercises.forEach((exercise, index) => {
             const exerciseId = exercise.id || `${currentDayNumber}-${index}`;
             const storageKey = `workout-${currentWeekIndex}-${currentDayNumber}-${exerciseId}-${selectedPlanId}`;

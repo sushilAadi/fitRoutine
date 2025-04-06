@@ -43,14 +43,14 @@ const PlanDetail = ({ params }) => {
         const specificPlanData = allUserData[selectedPlanId];
         // Check if data exists and is not empty
         if (specificPlanData && Object.keys(specificPlanData).length > 0) {
-          console.log(`Progress data found in Firestore for plan ${selectedPlanId}`);
+          
           return specificPlanData; // Return the data
         } else {
-          console.log(`No specific progress data found in Firestore document for plan ${selectedPlanId}.`);
+          
           return null; // Return null if no data for this plan
         }
       } else {
-        console.log(`No progress document found for user ${userId}.`);
+        
         return null; // Return null if document doesn't exist
       }
     } catch (error) {
@@ -290,7 +290,7 @@ const PlanDetail = ({ params }) => {
     dayName: exercisesBasedOnDayObj.label, day: exercisesBasedOnDayObj.value, exercises: exercisesBasedOnDayObj.exercises,
     weekName: selectedWeek?.weekName, week: selectedWeek?.week,
   } : {};
-console.log("transFormedData",{transFormedData,firebaseStoredData})
+
 
 
   // --- Render Logic (No changes needed, added firebaseStoredData prop pass) ---
