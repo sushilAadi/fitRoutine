@@ -116,7 +116,7 @@ const SetAndRepsForm = ({
     
     // Merge with Firebase data, prioritizing local changes
     const mergedData = { ...firebaseStoredData, ...currentLocalData };
-    
+    console.log("mergedData",{mergedData,firebaseStoredData,currentLocalData})
     // Calculate progress using the existing function
     const progress = calculateDetailedWorkoutProgress(transFormedData, mergedData);
     
@@ -926,8 +926,8 @@ const SetAndRepsForm = ({
   const isAnySetSkipped = sets.some((s) => s.skipped && !s.isDeleted); // Check non-deleted skipped sets
   const visibleSets = sets.filter(set => !set.isDeleted); // Filter for rendering
 
- 
-console.log("progressStats",progressStats)
+ console.log("progressStats",progressStats)
+
 
   return (
     <>

@@ -40,7 +40,8 @@ const Progress = ({ transFormedData, firebaseStoredData }) => {
     overallAttemptRatePercent,
     progressIncludingExtraPercent,
     totalNewSets,
-    totalDeletedSets
+    totalDeletedSets,
+    effectiveCompletionPercent
   } = progressDetails;
 
   // Helper component for consistent metric display
@@ -108,6 +109,12 @@ const Progress = ({ transFormedData, firebaseStoredData }) => {
        <MetricCard
          title="Completion Efficiency (Of Attempted)"
          value={`${completionRateOfAttemptedPercent}%`}
+         description={`(${totalCompletedPlannedSets} completed / ${totalCompletedPlannedSets + totalSkippedPlannedSets} attempted planned sets)`}
+         note="Shows success rate only for sets you marked as completed or skipped."
+       />
+       <MetricCard
+         title="Completion Efficiency (Of completed + skipped + deleted)"
+         value={`${effectiveCompletionPercent}%`}
          description={`(${totalCompletedPlannedSets} completed / ${totalCompletedPlannedSets + totalSkippedPlannedSets} attempted planned sets)`}
          note="Shows success rate only for sets you marked as completed or skipped."
        />
