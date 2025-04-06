@@ -36,6 +36,10 @@ const ProgressRealTime = ({progressStats}) => {
                 <span className="font-medium">Deleted: </span>
                 {progressStats.totalDeletedSets} sets
               </div>
+              <div>
+                <span className="font-medium">Effectively Completed: </span>
+                {progressStats.effectiveCompletionPercent} %
+              </div>
               
             </div>
           </div>

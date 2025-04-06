@@ -13,6 +13,7 @@ import { db } from "@/firebase/firebaseConfig";
 import PreviousHistory from "./PreviousHistory";
 import { calculateDetailedWorkoutProgress } from "@/utils/progress";
 import ProgressRealTime from "./ProgressRealTime";
+import { handleStatus } from "@/service/workoutService";
 // Removed unused import: import { is } from "date-fns/locale";
 
 const SetAndRepsForm = ({
@@ -1245,7 +1246,7 @@ const SetAndRepsForm = ({
           <RegularButton
             title="Finish Day's Workout"
             className="w-full font-semibold text-white bg-green-600 hover:bg-green-700"
-            onClick={handleFinishDay}
+            onClick={()=>{handleFinishDay();handleStatus(selectedPlanId,progressStats)}}
           />
         )}
       </div>
