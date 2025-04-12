@@ -2,13 +2,17 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
 import { GlobalContext } from "@/context/GloablContext";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import toast from "react-hot-toast";
 import TabMT from "@/components/Tabs/TabMT"; // Adjust path if needed
-import { transformData } from "@/utils"; // Adjust path if needed
+import { calculateNextDay, getAllLocalStorageData, transformData } from "@/utils"; // Adjust path if needed
 import _ from "lodash"; // Make sure lodash is installed
 import Progress from "./Progress";
+import ConfirmationToast from "@/components/Toast/ConfirmationToast";
+import { calculateDetailedWorkoutProgress } from "@/utils/progress";
+import ProgressRealTime from "./ProgressRealTime";
+import { ProgressBar } from "react-bootstrap";
 
 const PlanDetail = ({ params }) => {
   const { userId } = useContext(GlobalContext);
@@ -20,12 +24,14 @@ const PlanDetail = ({ params }) => {
   const [selectedWeek, setSelectedWeek] = useState(null);
   const [selectedDay, setSelectedDay] = useState(null);
   const [firebaseStoredData, setFirebaseStoredData] = useState(undefined); // Use undefined initially to distinguish from null (no data found)
+  const [progressStats, setProgressStats] = useState(null);
 
   const selectedPlanId = decodeURIComponent(params?.plan);
 
   const workoutProgressKey = `workout-progress-${selectedPlanId || 'default'}`;
   const selectedWeekKey = `selectedWeekIndex_${selectedPlanId || 'default'}`;
   const selectedDayKey = `selectedDayNumber_${selectedPlanId || 'default'}`;
+  const slideIndexKeyBase = `slideIndex-${selectedPlanId || 'default'}`;
 
   // Function to retrieve progress from Firestore
   async function retrieveWorkoutProgress() {
@@ -279,8 +285,42 @@ const PlanDetail = ({ params }) => {
         setSelectedDay(dayNumber);
    };
 
+   function getAllLocalStorageDataForFinish() {
+    let data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        let key = localStorage.key(i);
+        if (key && key.endsWith(selectedPlanId)) {
+            try { data[key] = JSON.parse(localStorage.getItem(key)); } catch { data[key] = localStorage.getItem(key); }
+        }
+    } return data;
+  }
+
+  async function storeFinalStateToDatabase(allDataToSave) {
+    if (!userId || !selectedPlanId || Object.keys(allDataToSave).length === 0) return;
+    const userProgressRef = doc(db, "userWorkoutProgress", userId);
+    const firestorePayload = { [selectedPlanId]: allDataToSave };
+    try {
+        await setDoc(userProgressRef, firestorePayload, { merge: true });
+        console.log("Successfully saved final skipped state to Firestore for plan:", selectedPlanId);
+    } catch (error) {
+        console.error("Error saving final skipped state to Firestore:", error);
+        toast.error("Error saving final workout state.");
+    }
+}
+function removeLocalStorageDataByPlanIdForFinish() {
+    if (!selectedPlanId) return;
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+        let key = localStorage.key(i);
+        if (key && key.endsWith(selectedPlanId)) {
+            try { localStorage.removeItem(key); } catch (e) { console.error(`Error removing item ${key}:`, e); }
+        }
+    }
+    console.log(`Cleared localStorage for plan ${selectedPlanId} after skip/finish.`);
+}
+
   // --- Derived Data for Rendering (No changes needed) ---
   const weekTabsData = transFormedData?.weeksExercise || [];
+  
   const dayTabsData = selectedWeek?.days?.map(day => ({
     label: day.dayName, value: day.day, day: day.day, exercises: day.exercises,
   })) || [];
@@ -291,6 +331,124 @@ const PlanDetail = ({ params }) => {
     weekName: selectedWeek?.weekName, week: selectedWeek?.week,
   } : {};
 
+  const { exercises, dayName, weekName, day: currentDayNumber, week: currentWeekIndex } = structuredExercisesBasedOnDay || {};
+
+  const dayData = dayTabsData?.map(i => ({
+    label: i.label, value: i.value, day: i.day
+})) || [];
+
+const totalWeeksCount = parseInt(transFormedData?.weeks || '0', 10)
+
+  const filteredExercises = exercises?.filter(
+    (exercise) => exercise.name && exercise.bodyPart && exercise.gifUrl
+  ) || [];
+  const allWeeksData = transFormedData?.weeksExercise || [];
+
+  const handleSkipDay = () => {
+    if (!allWeeksData || !dayData || totalWeeksCount <= 0 || typeof currentWeekIndex !== 'number' || typeof currentDayNumber !== 'number') {
+        console.error("Cannot skip day: Plan structure data missing or invalid.");
+        toast.error("Cannot skip day: Plan data missing.");
+        return;
+    }
+
+    const proceedWithSkip = () => {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+
+        // 1. Update localStorage for each exercise on the skipped day
+        // IMPORTANT: Skipping STILL modifies localStorage because that's where the *active* session state is temporarily held.
+        // When "Finish Day" happens (implicitly by skipping the last exercise or explicitly later), this localStorage state gets saved.
+        if (filteredExercises && filteredExercises.length > 0) {
+          
+          filteredExercises.forEach((exercise, index) => {
+            const exerciseId = exercise.id || `${currentDayNumber}-${index}`;
+            const storageKey = `workout-${currentWeekIndex}-${currentDayNumber}-${exerciseId}-${selectedPlanId}`;
+            const numberOfSets = exercise?.weeklySetConfig?.sets || 1;
+            try {
+                let exerciseData = [];
+                const savedData = localStorage.getItem(storageKey);
+                if (savedData) try { exerciseData = JSON.parse(savedData); if (!Array.isArray(exerciseData)) exerciseData = []; } catch { exerciseData = []; }
+
+                let updatedExerciseData = exerciseData.length === 0
+                    ? Array(numberOfSets).fill().map((_, setIndex) => ({ id: setIndex + 1, weight: "", reps: "", duration: "00:00:00", rest: "00:00", isCompleted: false, isActive: false, isEditing: false, isDurationRunning: false, isRestRunning: false, date: today, exerciseId: exerciseId, skipped: true, skippedDates: [today] }))
+                    : exerciseData.map(set => { const dates = Array.isArray(set.skippedDates) ? [...set.skippedDates] : []; if (!dates.includes(today)) dates.push(today); return { ...set, isCompleted: false, isActive: false, isEditing: false, isDurationRunning: false, isRestRunning: false, skipped: true, skippedDates: dates }; });
+                localStorage.setItem(storageKey, JSON.stringify(updatedExerciseData));
+            } catch (error) { console.error(`Error updating localStorage for exercise ${exerciseId} on skipped day ${currentDayNumber}:`, error); }
+          });
+        } else { console.warn(`No exercises found for Day ${currentDayNumber} (Week ${currentWeekIndex}) to mark as skipped.`); }
+
+        // 2. Calculate the next day
+        const nextStep = calculateNextDay(currentWeekIndex, currentDayNumber, allWeeksData, totalWeeksCount);
+        if (nextStep === 'error') { toast.error("Error calculating the next day, but current day marked as skipped."); return; }
+
+        // Clear slide index for the day being skipped
+        const skippedDaySlideKey = `${slideIndexKeyBase}-W${currentWeekIndex}-D${currentDayNumber}`;
+        localStorage.removeItem(skippedDaySlideKey);
+
+        // --- Handle Plan Completion or Continuation (Saves progress to localStorage for next load/finish) ---
+        if (nextStep === null) {
+          toast.success("Workout Plan Completed! Finishing up...");
+          // !! IMPORTANT: Simulate "Finish Day" to save the skipped state to Firebase !!
+          // Get all current LS data (which now includes the skipped day's flags)
+          const finalLocalStorageData = getAllLocalStorageDataForFinish(); // Need a helper to get all relevant LS keys
+          // Store this final state to DB
+          storeFinalStateToDatabase(finalLocalStorageData); // Need helper
+          // Clear LS for this plan
+          removeLocalStorageDataByPlanIdForFinish(); // Need helper
+          // Clear progress markers
+          localStorage.removeItem(workoutProgressKey);
+          localStorage.removeItem(selectedWeekKey);
+          localStorage.removeItem(selectedDayKey);
+          router.push("/new");
+          return;
+        }
+
+        // 3. Plan continues: Get details for the *next* step
+        const { nextWeekIndex, nextDayNumber, nextWeekName, nextDayName } = nextStep;
+
+        // PERSIST Global Progress (to the *next* day/week) using numeric identifiers IN LOCALSTORAGE
+        // This ensures that if the user leaves *now*, the next load will pick up from the correct *next* day.
+        // This progress will eventually be saved to Firebase when the *next* day is finished.
+        const newProgress = { currentWeekIndex: nextWeekIndex, currentDayNumber: nextDayNumber, weekName: nextWeekName, dayName: nextDayName };
+        localStorage.setItem(workoutProgressKey, JSON.stringify(newProgress));
+        localStorage.setItem(selectedWeekKey, nextWeekIndex.toString());
+        localStorage.setItem(selectedDayKey, nextDayNumber.toString());
+
+        // UPDATE React state in PlanDetail (to the *next* day/week)
+        const nextWeekObject = allWeeksData.find(w => w.week === nextWeekIndex);
+        if(nextWeekObject) {
+            setSelectedWeek(nextWeekObject); // Update PlanDetail's week state
+            setSelectedDay(nextDayNumber);   // Update PlanDetail's day state
+            toast.success(`Skipped to ${nextDayName || `Day ${nextDayNumber}`}, ${nextWeekName || `Week ${nextWeekIndex + 1}`}`);
+        } else {
+            console.error("Could not find next week object after skip calculation.", { nextWeekIndex });
+            toast.error("Skipped day, but failed to load next week's data.");
+        }
+      } catch (error) {
+        console.error("Error encountered in proceedWithSkip:", error);
+        toast.error("An unexpected error occurred while skipping the day.");
+      }
+    };
+
+    // Show confirmation toast
+    toast((t) => ( <ConfirmationToast t={t} message="Skip this entire day's workout?" onConfirm={proceedWithSkip} /> ), { duration: Infinity, position: "top-center" });
+  };
+
+  const updateProgressStats = () => {
+    if (!transFormedData) return;
+    
+    // Get all current localStorage data to include the latest changes
+    const currentLocalData = getAllLocalStorageData(selectedPlanId);
+    
+    // Merge with Firebase data, prioritizing local changes
+    const mergedData = { ...firebaseStoredData, ...currentLocalData };
+    
+    // Calculate progress using the existing function
+    const progress = calculateDetailedWorkoutProgress(transFormedData, mergedData);
+    
+    setProgressStats(progress);
+  };
+
 
 
   // --- Render Logic (No changes needed, added firebaseStoredData prop pass) ---
@@ -299,20 +457,45 @@ const PlanDetail = ({ params }) => {
   if (!transFormedData || !selectedWeek || selectedDay === null) return <div className="flex flex-col items-center justify-center h-screen"><div className="p-4 text-center text-gray-500">Workout data not available or incomplete.</div></div>;
 
   return (
-    <div className="flex flex-col bg-gray-50">
+    <div className="flex flex-col bg-gray-50 hide-scrollbar">
       {/* Header */}
       
       <div className="p-3 pb-1 bg-white border-b sticky-top">
         <h2 className="text-lg font-semibold capitalize">{_.capitalize(transFormedData?.name)}</h2>
-         <p className="text-xs text-gray-500">
+        <div className="flex justify-between">
+        <p className="text-xs text-gray-500">
             {selectedWeek?.weekName || `Week ${selectedWeek?.week !== undefined ? selectedWeek.week + 1 : '?'}`}
             {' / '}
             {dayTabsData.find(d => d.value === selectedDay)?.label || `Day ${selectedDay || '?'}`}
         </p>
+         <button className="text-sm text-red-600" onClick={handleSkipDay}>Skip Day</button> 
+        </div>
+         
       </div>
+      {progressStats && (
+      <ProgressBar animated
+              percentage={progressStats?.progressPlannedOnlyPercent} 
+              label={`Planned Sets Completed ${progressStats?.progressPlannedOnlyPercent}%`} 
+              className="rounded-0"
+              variant="warning"
+              min={0}
+              max={100}
+            />)}
+      {progressStats && (
+      <ProgressBar animated
+              percentage={progressStats.progressIncludingExtraPercent} 
+              label={`Overall Progress (incl. Extra Sets) ${progressStats.progressIncludingExtraPercent}%`} 
+              className="mt-1 rounded-0"
+              variant="success"
+              min={0}
+              max={100}
+            />)}
+      {/* {progressStats && (
+        <ProgressRealTime progressStats={progressStats} />
+      )} */}
 
-      {/* Week Tabs */}
-      <div className="flex gap-2 p-2 overflow-x-auto bg-white border-b no-scrollbar shrink-0">
+      {/* Week Tabs never remove below code */}
+      {/* <div className="flex gap-2 p-2 overflow-x-auto bg-white border-b no-scrollbar shrink-0">
         {weekTabsData.map((weekItem) => (
           <button
             className={`px-3 py-1.5 text-sm font-medium rounded-md border whitespace-nowrap ${
@@ -322,12 +505,12 @@ const PlanDetail = ({ params }) => {
             }`}
             onClick={() => handleWeekSelect(weekItem)}
             key={weekItem.weekName}
-            // disabled={selectedWeek?.week !== weekItem.week}
+            disabled={selectedWeek?.week !== weekItem.week}
           >
             {weekItem.weekName}
           </button>
         ))}
-      </div>
+      </div> */}
      
       {/* Day Tabs and Exercise Content */}
       <div className="flex-1 mb-2 overflow-y-auto exerciseCard no-scrollbar">
@@ -346,12 +529,14 @@ const PlanDetail = ({ params }) => {
             setSelectedWeekDirectly={setSelectedWeek}
             // *** PASS FIREBASE DATA DOWN ***
             firebaseStoredData={firebaseStoredData}
+            updateProgressStats={updateProgressStats}
+            progressStats={progressStats}
           />
         ) : (
           <div className="p-4 text-center text-gray-500">No days found for this week.</div>
         )}
-        <Progress transFormedData={transFormedData} firebaseStoredData={firebaseStoredData}/>
       </div>
+        {/* <Progress transFormedData={transFormedData} firebaseStoredData={firebaseStoredData}/> */}
       
     </div>
   );

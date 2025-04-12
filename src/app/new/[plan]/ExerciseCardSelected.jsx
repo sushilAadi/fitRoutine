@@ -30,7 +30,9 @@ const ExerciseCardSelected = ({
   allWeeksData,
   // *** ACCEPT FIREBASE DATA ***
   firebaseStoredData,
-  transFormedData
+  transFormedData,
+  updateProgressStats,
+  progressStats
 }) => {
   const router = useRouter();
   const { userId } = useContext(GlobalContext);
@@ -241,7 +243,7 @@ const ExerciseCardSelected = ({
     setSelectedDay, setSelectedWeek, dayData, weekStructure, totalWeeksCount,
     allWeeksData, currentWeekIndex,
     // *** PASS FIREBASE DATA DOWN ***
-    firebaseStoredData,transFormedData
+    firebaseStoredData,transFormedData,updateProgressStats,progressStats
   };
 
   // --- JSX Return (No changes needed here) ---
@@ -251,7 +253,7 @@ const ExerciseCardSelected = ({
   return (
     <div className="w-full pb-4">
       {/* Skip Day Button */}
-      <div className="flex justify-end p-2 bg-white"> <button className="px-3 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50" onClick={handleSkipDay}>Skip Day</button> </div>
+      {/* <div className="flex justify-end p-2 bg-white"> <button className="px-3 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50" onClick={handleSkipDay}>Skip Day</button> </div> */}
       {/* Swiper */}
       <Swiper
         ref={swiperRef} slidesPerView={1} spaceBetween={10} pagination={{ clickable: true, dynamicBullets: true }} modules={[Pagination]}

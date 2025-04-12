@@ -15,7 +15,9 @@ function TabMT({
     setSelectedDayDirectly,
     setSelectedWeekDirectly,
     // *** ACCEPT FIREBASE DATA ***
-    firebaseStoredData
+    firebaseStoredData,
+    updateProgressStats,
+    progressStats
  }) {
 
   const handleTabClick = (dayNumber) => {
@@ -28,8 +30,8 @@ function TabMT({
 
   return (
     <div className="sticky top-0 z-10 bg-gray-50">
-      {/* Day Tabs */}
-      <div className="flex px-2 py-2 space-x-2 overflow-x-auto border-b border-blue-gray-50 no-scrollbar">
+      {/* Day Tabs never remove this code */}
+      {/* <div className="flex px-2 py-2 space-x-2 overflow-x-auto border-b border-blue-gray-50 no-scrollbar">
         {tab?.map(({ label, value }) => (
           <button
             key={value}
@@ -39,12 +41,12 @@ function TabMT({
                 ? "bg-black text-white font-semibold"
                 : "bg-white text-gray-700 hover:bg-gray-200 border border-gray-200"
             } `}
-            // disabled={selectedDay !== value}
+            disabled={selectedDay !== value}
           >
             {label}
           </button>
         ))}
-      </div>
+      </div> */}
 
       {/* Exercise Content Area */}
       {selectedDay !== null && exercisesBasedOnDay?.exercises ? (
@@ -63,6 +65,8 @@ function TabMT({
              // *** PASS FIREBASE DATA DOWN ***
              firebaseStoredData={firebaseStoredData}
              transFormedData={transFormedData}
+             updateProgressStats={updateProgressStats}
+             progressStats={progressStats}
           />
         </div>
       ) : (

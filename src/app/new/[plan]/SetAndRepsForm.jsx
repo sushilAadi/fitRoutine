@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from "react";
 import RegularButton from "@/components/Button/RegularButton";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { calculateNextDay, mergeWorkoutData, parseTimeToSeconds } from "@/utils";
+import { calculateNextDay, getAllLocalStorageData, mergeWorkoutData, parseTimeToSeconds } from "@/utils";
 import ConfirmationToast from "@/components/Toast/ConfirmationToast";
 
 import { doc, setDoc } from "firebase/firestore";
@@ -41,7 +41,9 @@ const SetAndRepsForm = ({
     allWeeksData = [],
     currentWeekIndex,
     firebaseStoredData,
-    transFormedData
+    transFormedData,
+    updateProgressStats,
+    progressStats
   } = necessaryData || {};
 
   const workoutProgressKey = `workout-progress-${selectedPlanId}`;
@@ -60,23 +62,10 @@ const SetAndRepsForm = ({
   const waitingForRestCompletion = useRef(false);
   const initialLoadComplete = useRef(false);
   const [hasAutoNavigated, setHasAutoNavigated] = useState(false);
-  const [progressStats, setProgressStats] = useState(null);
+  // const [progressStats, setProgressStats] = useState(null);
 
   // --- Helper functions for Finish Day (remain the same) ---
-  function getAllLocalStorageData() {
-    let data = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      let key = localStorage.key(i);
-      if (key && key.endsWith(selectedPlanId)) {
-        try {
-          data[key] = JSON.parse(localStorage.getItem(key));
-        } catch {
-          data[key] = localStorage.getItem(key);
-        }
-      }
-    }
-    return data;
-  }
+ 
   function removeLocalStorageDataByPlanId() {
     if (!selectedPlanId) return;
     for (let i = localStorage.length - 1; i >= 0; i--) {
@@ -92,7 +81,7 @@ const SetAndRepsForm = ({
 
   }
   async function storeInDatabase() {
-    const allDataToSave = getAllLocalStorageData();
+    const allDataToSave = getAllLocalStorageData(selectedPlanId);
     if (!userId || !selectedPlanId || Object.keys(allDataToSave).length === 0) {
       console.warn("No user/plan ID or no data in localStorage to save to DB.");
       return;
@@ -109,20 +98,20 @@ const SetAndRepsForm = ({
   }
 
   // --- Calculate and update progress stats ---
-  const updateProgressStats = () => {
-    if (!transFormedData) return;
+  // const updateProgressStats = () => {
+  //   if (!transFormedData) return;
     
-    // Get all current localStorage data to include the latest changes
-    const currentLocalData = getAllLocalStorageData();
+  //   // Get all current localStorage data to include the latest changes
+  //   const currentLocalData = getAllLocalStorageData(selectedPlanId);
     
-    // Merge with Firebase data, prioritizing local changes
-    const mergedData = { ...firebaseStoredData, ...currentLocalData };
+  //   // Merge with Firebase data, prioritizing local changes
+  //   const mergedData = { ...firebaseStoredData, ...currentLocalData };
     
-    // Calculate progress using the existing function
-    const progress = calculateDetailedWorkoutProgress(transFormedData, mergedData);
+  //   // Calculate progress using the existing function
+  //   const progress = calculateDetailedWorkoutProgress(transFormedData, mergedData);
     
-    setProgressStats(progress);
-  };
+  //   setProgressStats(progress);
+  // };
 
   // --- Effects ---
 
@@ -933,9 +922,7 @@ const SetAndRepsForm = ({
   return (
     <>
       {/* Header and Action Buttons */}
-      {progressStats && (
-        <ProgressRealTime progressStats={progressStats} />
-      )}
+      
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div>
           <h3 className="text-lg font-semibold capitalize">{exerciseName}</h3>
@@ -1251,7 +1238,7 @@ const SetAndRepsForm = ({
         )}
       </div>
       {/* Navigation Arrows */}
-      <div className="flex items-center justify-between mt-6">
+      <div className="flex items-center justify-between my-6">
         <button
           onClick={goPrev}
           className="flex items-center justify-center p-2 text-lg text-gray-700 bg-gray-200 rounded-full hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed aspect-square w-9 h-9"
@@ -1293,6 +1280,7 @@ const SetAndRepsForm = ({
          {/* Placeholder for alignment when it's the last exercise */}
         {isLastExercise && <div className="w-9 h-9"></div>}
       </div>
+      
     </>
   );
 };

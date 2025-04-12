@@ -466,4 +466,19 @@ export const repeatInnerArray = (outerArray, n) => {
   return output;
 };
 
+export const getAllLocalStorageData = (selectedPlanId) => {
+  let data = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    let key = localStorage.key(i);
+    if (key && key.endsWith(selectedPlanId)) {
+      try {
+        data[key] = JSON.parse(localStorage.getItem(key));
+      } catch {
+        data[key] = localStorage.getItem(key);
+      }
+    }
+  }
+  return data;
+};
+
 
