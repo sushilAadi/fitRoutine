@@ -49,14 +49,14 @@ const PlanDetail = ({ params }) => {
         const specificPlanData = allUserData[selectedPlanId];
         // Check if data exists and is not empty
         if (specificPlanData && Object.keys(specificPlanData).length > 0) {
-          console.log("Retrieved Firebase progress data:", specificPlanData);
+          
           return specificPlanData; // Return the data
         } else {
-          console.log("No specific plan data found in Firebase");
+          
           return null; // Return null if no data for this plan
         }
       } else {
-        console.log("No user progress document exists in Firebase");
+        
         return null; // Return null if document doesn't exist
       }
     } catch (error) {
@@ -194,105 +194,71 @@ const PlanDetail = ({ params }) => {
       let initialWeekIndex = 0;
       let initialDayNumber = 1; // Default
 
-      // --- IMPROVED: Determine starting point with more robust priority ---
-      
-      // FIRST: Check Firebase data for the workoutProgressKey (most accurate source)
+      // --- Determine starting point ---
       if (firebaseStoredData && Object.keys(firebaseStoredData).length > 0) {
-        // Check for the comprehensive progress object first (highest priority)
-        if (firebaseStoredData[workoutProgressKey] && 
-            typeof firebaseStoredData[workoutProgressKey].currentWeekIndex === 'number' && 
-            typeof firebaseStoredData[workoutProgressKey].currentDayNumber === 'number') {
-            
-            initialWeekIndex = firebaseStoredData[workoutProgressKey].currentWeekIndex;
-            initialDayNumber = firebaseStoredData[workoutProgressKey].currentDayNumber;
-            console.log(`Using comprehensive progress from Firebase: Week=${initialWeekIndex}, Day=${initialDayNumber}`);
-        } 
-        // Then check for individual keys (second priority)
-        else if (firebaseStoredData[selectedWeekKey] !== undefined && 
-                 firebaseStoredData[selectedDayKey] !== undefined) {
-            
-            // Ensure we have numeric values
-            const fbWeekIndex = parseInt(firebaseStoredData[selectedWeekKey], 10);
-            const fbDayNumber = parseInt(firebaseStoredData[selectedDayKey], 10);
-            
-            if (!isNaN(fbWeekIndex) && !isNaN(fbDayNumber)) {
-                initialWeekIndex = fbWeekIndex;
-                initialDayNumber = fbDayNumber;
-                console.log(`Using separate key progress from Firebase: Week=${initialWeekIndex}, Day=${initialDayNumber}`);
-            } else {
-                console.warn("Firebase progress keys exist but contain invalid numeric values.");
-            }
-        }
-        // Last case: check if there's any exercise data that indicates progress
-        else {
-            console.log("No direct progress indicators in Firebase, proceeding with defaults.");
+        // Use Firebase data to find the starting point
+        const progressData = firebaseStoredData[workoutProgressKey];
+        if (progressData && typeof progressData.currentWeekIndex === 'number' && typeof progressData.currentDayNumber === 'number') {
+          initialWeekIndex = progressData.currentWeekIndex;
+          initialDayNumber = progressData.currentDayNumber;
+          console.log(`Using progress from Firebase '${workoutProgressKey}': WeekIndex=${initialWeekIndex}, DayNumber=${initialDayNumber}`);
+        } else {
+          const fbWeekIndex = firebaseStoredData[selectedWeekKey];
+          const fbDayNumber = firebaseStoredData[selectedDayKey];
+          if (typeof fbWeekIndex === 'number' && typeof fbDayNumber === 'number') {
+            initialWeekIndex = fbWeekIndex;
+            initialDayNumber = fbDayNumber;
+            console.log(`Using progress from Firebase individual keys: WeekIndex=${initialWeekIndex}, DayNumber=${initialDayNumber}`);
+          } else {
+            console.warn("No valid progress keys found in Firebase data. Defaulting to start.");
+            // Keep defaults: week 0, day 1 (or first available)
+          }
         }
       } else {
-        console.log("No Firebase progress data found. Using defaults: Week 0, Day 1");
+        console.log("No Firebase progress data found or data is empty. Starting from the beginning.");
+        // Use defaults: week 0, day 1 (or first available)
       }
 
-      // --- IMPROVED: Validate the week/day exists in the plan structure ---
+      // --- Find the corresponding Week Object and Day Number ---
       let initialWeek = weekData.find(w => w.week === initialWeekIndex);
       let initialDay = null;
 
-      // If week exists, try to find the day
       if (initialWeek) {
+          // Try to find the exact day number
           const dayExists = initialWeek.days.some(d => d.day === initialDayNumber);
           if (dayExists) {
               initialDay = initialDayNumber;
-              console.log(`Found valid target: Week ${initialWeekIndex}, Day ${initialDayNumber}`);
           } else if (initialWeek.days.length > 0) {
-              // Day not found - default to first day of target week
+              // If specific day not found (e.g., plan structure changed?), default to first day of target week
+              console.warn(`Day number ${initialDayNumber} not found in week index ${initialWeekIndex}. Defaulting to first day (${initialWeek.days[0].day}) of that week.`);
               initialDay = initialWeek.days[0].day;
-              console.warn(`Day ${initialDayNumber} not found in Week ${initialWeekIndex}. Using first day (${initialDay}).`);
           } else {
-              // Week has no days!
-              console.warn(`Week ${initialWeekIndex} has no days. Need to find alternative.`);
-              initialWeek = null; // Force reset below
-          }
-      } else {
-          console.warn(`Week ${initialWeekIndex} not found in plan structure. Using default.`);
-      }
-
-      // Fallback if either week wasn't found or had no days
-      if (!initialWeek) {
-          // Find the first valid week with days
-          for (const weekObj of weekData) {
-              if (weekObj.days && weekObj.days.length > 0) {
-                  initialWeek = weekObj;
-                  initialDay = weekObj.days[0].day;
-                  console.log(`Fallback to first valid week: Week ${initialWeek.week}, Day ${initialDay}`);
-                  break;
-              }
+              // Target week has no days, fall back to overall default
+               console.warn(`Target week index ${initialWeekIndex} has no days. Resetting to plan default.`);
+               initialWeek = null; // Force reset below
           }
       }
 
-      // Final safety check
-      if (!initialWeek || initialDay === null) {
-          setError("Could not determine a valid starting position in the workout plan.");
-          setLoading(false);
-          return;
-      }
+      // Fallback to overall default if target week wasn't found or had no days
+       if (!initialWeek) {
+           console.warn(`Week index ${initialWeekIndex} not found or invalid. Resetting to plan default.`);
+           initialWeek = weekData.length > 0 ? weekData[0] : null;
+           initialDay = initialWeek && initialWeek.days.length > 0 ? initialWeek.days[0].day : null;
+       }
+
+       // Final check for valid state
+       if (!initialWeek || initialDay === null) {
+            setError("Could not determine a valid starting week/day for the plan.");
+            setTransformedData(null); setSelectedWeek(null); setSelectedDay(null); setLoading(false);
+            return;
+       }
 
       // --- Set the initial state ---
       console.log(`Setting initial state: Week ${initialWeek.week}, Day ${initialDay}`);
       setSelectedWeek(initialWeek);
       setSelectedDay(initialDay);
 
-      // --- IMPORTANT: Store the validated state to localStorage ---
-      // This ensures synchronization between Firebase and localStorage
-      // This step is critical to fix the refresh issue with Skip Day
-      const validatedProgress = { 
-          currentWeekIndex: initialWeek.week,
-          currentDayNumber: initialDay,
-          weekName: initialWeek.weekName,
-          dayName: initialWeek.days.find(d => d.day === initialDay)?.dayName || `Day ${initialDay}`
-      };
-      
-      // Synchronize localStorage with our validated state
-      localStorage.setItem(workoutProgressKey, JSON.stringify(validatedProgress));
-      localStorage.setItem(selectedWeekKey, initialWeek.week.toString());
-      localStorage.setItem(selectedDayKey, initialDay.toString());
+      // --- DO NOT POPULATE LOCALSTORAGE HERE ---
 
     } catch (processError) {
       console.error("Error during data transformation or initial state setting:", processError);
@@ -329,28 +295,19 @@ const PlanDetail = ({ params }) => {
     } return data;
   }
 
-  // IMPROVED: Store progress to Firebase after skipping
   async function storeFinalStateToDatabase(allDataToSave) {
-    if (!userId || !selectedPlanId || Object.keys(allDataToSave).length === 0) {
-      console.warn("Missing userId, selectedPlanId, or data when trying to save to Firebase");
-      return false;
-    }
-    
+    if (!userId || !selectedPlanId || Object.keys(allDataToSave).length === 0) return;
     const userProgressRef = doc(db, "userWorkoutProgress", userId);
     const firestorePayload = { [selectedPlanId]: allDataToSave };
-    
     try {
         await setDoc(userProgressRef, firestorePayload, { merge: true });
-        console.log("Successfully saved state to Firestore for plan:", selectedPlanId);
-        return true;
+        console.log("Successfully saved final skipped state to Firestore for plan:", selectedPlanId);
     } catch (error) {
-        console.error("Error saving state to Firestore:", error);
-        toast.error("Error saving workout state to cloud.");
-        return false;
+        console.error("Error saving final skipped state to Firestore:", error);
+        toast.error("Error saving final workout state.");
     }
-  }
-  
-  function removeLocalStorageDataByPlanIdForFinish() {
+}
+function removeLocalStorageDataByPlanIdForFinish() {
     if (!selectedPlanId) return;
     for (let i = localStorage.length - 1; i >= 0; i--) {
         let key = localStorage.key(i);
@@ -359,7 +316,7 @@ const PlanDetail = ({ params }) => {
         }
     }
     console.log(`Cleared localStorage for plan ${selectedPlanId} after skip/finish.`);
-  }
+}
 
   // --- Derived Data for Rendering (No changes needed) ---
   const weekTabsData = transFormedData?.weeksExercise || [];
@@ -378,24 +335,23 @@ const PlanDetail = ({ params }) => {
 
   const dayData = dayTabsData?.map(i => ({
     label: i.label, value: i.value, day: i.day
-  })) || [];
+})) || [];
 
-  const totalWeeksCount = parseInt(transFormedData?.weeks || '0', 10)
+const totalWeeksCount = parseInt(transFormedData?.weeks || '0', 10)
 
   const filteredExercises = exercises?.filter(
     (exercise) => exercise.name && exercise.bodyPart && exercise.gifUrl
   ) || [];
   const allWeeksData = transFormedData?.weeksExercise || [];
 
-  // IMPROVED: handleSkipDay function to properly persist the skipped state
-  const handleSkipDay = async () => {
+  const handleSkipDay = () => {
     if (!allWeeksData || !dayData || totalWeeksCount <= 0 || typeof currentWeekIndex !== 'number' || typeof currentDayNumber !== 'number') {
         console.error("Cannot skip day: Plan structure data missing or invalid.");
         toast.error("Cannot skip day: Plan data missing.");
         return;
     }
 
-    const proceedWithSkip = async () => {
+    const proceedWithSkip = () => {
       try {
         const today = new Date().toISOString().split('T')[0];
 
@@ -436,7 +392,7 @@ const PlanDetail = ({ params }) => {
           // Get all current LS data (which now includes the skipped day's flags)
           const finalLocalStorageData = getAllLocalStorageDataForFinish(); // Need a helper to get all relevant LS keys
           // Store this final state to DB
-          await storeFinalStateToDatabase(finalLocalStorageData); // Need helper
+          storeFinalStateToDatabase(finalLocalStorageData); // Need helper
           // Clear LS for this plan
           removeLocalStorageDataByPlanIdForFinish(); // Need helper
           // Clear progress markers
@@ -450,36 +406,13 @@ const PlanDetail = ({ params }) => {
         // 3. Plan continues: Get details for the *next* step
         const { nextWeekIndex, nextDayNumber, nextWeekName, nextDayName } = nextStep;
 
-        // PERSIST Global Progress (to the *next* day/week) using numeric identifiers
-        // Create comprehensive progress object
-        const newProgress = { 
-          currentWeekIndex: nextWeekIndex, 
-          currentDayNumber: nextDayNumber, 
-          weekName: nextWeekName, 
-          dayName: nextDayName
-        };
-        
-        // Update localStorage first
+        // PERSIST Global Progress (to the *next* day/week) using numeric identifiers IN LOCALSTORAGE
+        // This ensures that if the user leaves *now*, the next load will pick up from the correct *next* day.
+        // This progress will eventually be saved to Firebase when the *next* day is finished.
+        const newProgress = { currentWeekIndex: nextWeekIndex, currentDayNumber: nextDayNumber, weekName: nextWeekName, dayName: nextDayName };
         localStorage.setItem(workoutProgressKey, JSON.stringify(newProgress));
         localStorage.setItem(selectedWeekKey, nextWeekIndex.toString());
         localStorage.setItem(selectedDayKey, nextDayNumber.toString());
-
-        // CRITICAL FIX: Save current state (including all progress keys) to Firebase IMMEDIATELY
-        // This ensures that when user refreshes, the data is already in Firebase
-        const allLocalData = getAllLocalStorageDataForFinish();
-        
-        // Add the latest progress keys to ensure they're saved to Firebase
-        // This is critical - we need to make sure the progress objects are in Firebase
-        allLocalData[workoutProgressKey] = newProgress;
-        allLocalData[selectedWeekKey] = nextWeekIndex;
-        allLocalData[selectedDayKey] = nextDayNumber;
-        
-        // Save to Firebase
-        const savedToFirebase = await storeFinalStateToDatabase(allLocalData);
-        if (!savedToFirebase) {
-          console.warn("Failed to save progress to Firebase after skipping day.");
-          // Continue anyway since localStorage is updated
-        }
 
         // UPDATE React state in PlanDetail (to the *next* day/week)
         const nextWeekObject = allWeeksData.find(w => w.week === nextWeekIndex);
@@ -562,7 +495,7 @@ const PlanDetail = ({ params }) => {
       )} */}
 
       {/* Week Tabs never remove below code */}
-      <div className="flex gap-2 p-2 overflow-x-auto bg-white border-b no-scrollbar shrink-0">
+      {/* <div className="flex gap-2 p-2 overflow-x-auto bg-white border-b no-scrollbar shrink-0">
         {weekTabsData.map((weekItem) => (
           <button
             className={`px-3 py-1.5 text-sm font-medium rounded-md border whitespace-nowrap ${
@@ -572,12 +505,12 @@ const PlanDetail = ({ params }) => {
             }`}
             onClick={() => handleWeekSelect(weekItem)}
             key={weekItem.weekName}
-            // disabled={selectedWeek?.week !== weekItem.week}
+            disabled={selectedWeek?.week !== weekItem.week}
           >
             {weekItem.weekName}
           </button>
         ))}
-      </div>
+      </div> */}
      
       {/* Day Tabs and Exercise Content */}
       <div className="flex-1 mb-2 overflow-y-auto exerciseCard no-scrollbar">
@@ -603,7 +536,7 @@ const PlanDetail = ({ params }) => {
           <div className="p-4 text-center text-gray-500">No days found for this week.</div>
         )}
       </div>
-        <Progress transFormedData={transFormedData} firebaseStoredData={firebaseStoredData}/>
+        {/* <Progress transFormedData={transFormedData} firebaseStoredData={firebaseStoredData}/> */}
       
     </div>
   );
