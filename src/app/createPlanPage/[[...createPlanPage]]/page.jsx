@@ -17,14 +17,60 @@ import { GlobalContext } from "@/context/GloablContext";
 import WorkoutDayAccordion from "./WorkoutDayAccordian";
 import toast from "react-hot-toast";
 import { useUser } from '@clerk/clerk-react';
-import { addDoc, collection, doc,setDoc} from 'firebase/firestore';
+import { addDoc, collection, doc, setDoc } from 'firebase/firestore';
 import { db } from "@/firebase/firebaseConfig";
 
+// Draft loader hook
+const useDraftLoader = ({
+  setPlanName,
+  setWeeks,
+  setDaysPerWeek,
+  setWorkoutPlan,
+  setExerciseHistory,
+  setWeekNames,
+  setDayNames,
+  setIsChecked,
+  setIsDraft,
+  setIsEditingExistingPlan,
+  setIsEditingDraft,
+  setCurrentDraftId,
+  setToggleForm
+}) => {
+  useEffect(() => {
+    const editingDraft = sessionStorage.getItem('editingDraft');
+    
+    if (editingDraft) {
+      try {
+        const draft = JSON.parse(editingDraft);
+        
+        setPlanName(draft.name);
+        setWeeks(draft.weeks);
+        setDaysPerWeek(draft.daysPerWeek);
+        setWorkoutPlan(draft.workoutPlan);
+        setExerciseHistory(draft.exerciseHistory || {});
+        setWeekNames(draft.weekNames || []);
+        setDayNames(draft.dayNames || []);
+        setIsChecked(draft.setUpdate);
+        setIsDraft(true);
+        setIsEditingExistingPlan(false); // Allow adding exercises for drafts
+        setIsEditingDraft(true); // Mark as editing draft
+        setCurrentDraftId(draft.id); // Store draft ID
+        setToggleForm(false);
+        
+        sessionStorage.removeItem('editingDraft');
+        
+      } catch (error) {
+        console.error('Error loading draft:', error);
+        sessionStorage.removeItem('editingDraft');
+      }
+    }
+  }, []);
+};
 
 const createPlanPage = () => {
   const { user } = useUser();
-    const {id} = user || {}
-  const { handleOpenClose: menuOpenClose,plansRefetch } = useContext(GlobalContext);
+  const { id } = user || {}
+  const { handleOpenClose: menuOpenClose, plansRefetch } = useContext(GlobalContext);
 
   const [toggleForm, setToggleForm] = useState(true);
   const [weeks, setWeeks] = useState(3);
@@ -36,7 +82,9 @@ const createPlanPage = () => {
   const [exerciseHistory, setExerciseHistory] = useState({});
   const [savedPlans, setSavedPlans] = useState([]);
   const [isEditingExistingPlan, setIsEditingExistingPlan] = useState(false);
-  ``;
+  const [isDraft, setIsDraft] = useState(false); // New state to track if current plan is a draft
+  const [isEditingDraft, setIsEditingDraft] = useState(false); // New state to differentiate between editing completed plan vs draft
+  const [currentDraftId, setCurrentDraftId] = useState(null); // Store draft ID for updates
   const [weekNames, setWeekNames] = useState([]);
   const [dayNames, setDayNames] = useState([]);
   const [errors, setErrors] = useState({});
@@ -55,20 +103,35 @@ const createPlanPage = () => {
     dayIndex: null,
   });
 
+  // Load draft data if coming from draft plans page
+  useDraftLoader({
+    setPlanName,
+    setWeeks,
+    setDaysPerWeek,
+    setWorkoutPlan,
+    setExerciseHistory,
+    setWeekNames,
+    setDayNames,
+    setIsChecked,
+    setIsDraft,
+    setIsEditingExistingPlan,
+    setIsEditingDraft,
+    setCurrentDraftId,
+    setToggleForm
+  });
+
   const toggleAccordion = (weekIndex, dayIndex) => {
-    // Toggle open/close functionality
     if (
       openAccordion.weekIndex === weekIndex &&
       openAccordion.dayIndex === dayIndex
     ) {
-      setOpenAccordion({ weekIndex: null, dayIndex: null }); // Close if already open
+      setOpenAccordion({ weekIndex: null, dayIndex: null });
     } else {
-      setOpenAccordion({ weekIndex, dayIndex }); // Open the clicked accordion
+      setOpenAccordion({ weekIndex, dayIndex });
     }
   };
 
   const openAccordionWithoutClosing = (weekIndex, dayIndex) => {
-    // Only opens the accordion without closing
     if (
       openAccordion.weekIndex !== weekIndex ||
       openAccordion.dayIndex !== dayIndex
@@ -86,8 +149,6 @@ const createPlanPage = () => {
     workoutPlan,
   };
 
-
-
   const generateWorkoutPlan = (e) => {
     e.preventDefault();
     if (!planName) {
@@ -96,14 +157,14 @@ const createPlanPage = () => {
     }
 
     const existingPlan = savedPlans.find(plan => plan.planName === `workoutPlan_${planName}`);
-    if (existingPlan) {
-        setNameError("A plan with this name already exists");
-        return;
-      }
+    if (existingPlan && !isEditingExistingPlan) {
+      setNameError("A plan with this name already exists");
+      return;
+    }
 
     setToggleForm(!toggleForm);
-
     setNameError("");
+    
     const newWorkoutPlan = [];
     for (let week = 0; week < weeks; week++) {
       const weekPlan = [];
@@ -138,21 +199,18 @@ const createPlanPage = () => {
     const updatedWorkoutPlan = [...workoutPlan];
 
     if (exercise === null && exerciseToRemove) {
-      // Remove the exercise from current and subsequent weeks
       for (let i = weekIndex; i < updatedWorkoutPlan.length; i++) {
         updatedWorkoutPlan[i][dayIndex].exercises = updatedWorkoutPlan[i][
           dayIndex
         ].exercises.filter((e) => e.id !== exerciseToRemove.id);
       }
     } else if (exercise) {
-      // Add the exercise to current and subsequent weeks
       for (let i = weekIndex; i < updatedWorkoutPlan.length; i++) {
         const newExercise = {
           ...exercise,
-          // sets: 0, // Initial sets always 0
           weeklySetConfig: workoutPlan.map((_, index) => ({
-            sets: index < weekIndex ? 0 : 0, // Ensure 0 for all weeks
-            isConfigured: false, // Flag to track if sets have been configured
+            sets: index < weekIndex ? 0 : 0,
+            isConfigured: false,
           })),
         };
         updatedWorkoutPlan[i][dayIndex].exercises.push(newExercise);
@@ -161,7 +219,6 @@ const createPlanPage = () => {
 
     setWorkoutPlan(updatedWorkoutPlan);
 
-    // Clear the error for this day across all weeks
     setErrors((prevErrors) => {
       const newErrors = { ...prevErrors };
       delete newErrors[`day${dayIndex}`];
@@ -171,14 +228,13 @@ const createPlanPage = () => {
 
   const removeExercise = (weekIndex, dayIndex, exerciseIndex) => {
     const updatedWorkoutPlan = [...workoutPlan];
-    // Remove the exercise from the current week and all subsequent weeks
     for (let i = weekIndex; i < updatedWorkoutPlan.length; i++) {
       updatedWorkoutPlan[i][dayIndex].exercises.splice(exerciseIndex, 1);
     }
     setWorkoutPlan(updatedWorkoutPlan);
   };
 
-  const validatePlan = () => {
+  const validatePlan = (isDraftSave = false) => {
     const newErrors = {};
 
     if (!planName.trim()) {
@@ -193,17 +249,20 @@ const createPlanPage = () => {
       newErrors.daysPerWeek = "Days per week must be between 1 and 7";
     }
 
-    for (let dayIndex = 0; dayIndex < daysPerWeek; dayIndex++) {
-      let hasExercises = false;
-      for (let weekIndex = 0; weekIndex < weeks; weekIndex++) {
-        if (workoutPlan[weekIndex][dayIndex].exercises.length > 0) {
-          hasExercises = true;
-          break;
+    // Only validate exercises if it's not a draft save
+    if (!isDraftSave) {
+      for (let dayIndex = 0; dayIndex < daysPerWeek; dayIndex++) {
+        let hasExercises = false;
+        for (let weekIndex = 0; weekIndex < weeks; weekIndex++) {
+          if (workoutPlan[weekIndex][dayIndex].exercises.length > 0) {
+            hasExercises = true;
+            break;
+          }
         }
-      }
-      if (!hasExercises) {
-        newErrors[`day${dayIndex}`] =
-          "Each day must have at least one exercise in any week";
+        if (!hasExercises) {
+          newErrors[`day${dayIndex}`] =
+            "Each day must have at least one exercise in any week";
+        }
       }
     }
 
@@ -211,76 +270,132 @@ const createPlanPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const exercisePlanDetail = async (planName, plan) => {
+  // Save as draft function
+  const saveDraftPlan = async (planName, plan) => {
     try {
-      // Validate required fields
       if (!planName || !plan || !id) {
         throw new Error('Missing required data');
       }
-  
-      // Serialize and prepare the plan data
+
       const planToSave = {
         name: planName,
-        weeks: JSON.stringify(weeks), // Serialize arrays if deeply nested
+        weeks: JSON.stringify(weeks),
         daysPerWeek: JSON.stringify(daysPerWeek),
         workoutPlan: JSON.stringify(plan),
         exerciseHistory: JSON.stringify(exerciseHistory),
         weekNames: JSON.stringify(weekNames),
         dayNames: JSON.stringify(dayNames),
-        date: new Date().toISOString(), // Store date in ISO string format
+        date: new Date().toISOString(),
         setUpdate: isChecked,
+        isDraft: true, // Mark as draft
       };
-  
-      // Add a new document with a generated ID
-      const planDocRef = await addDoc(collection(db, 'workoutPlans'), {
+
+      const planDocRef = await addDoc(collection(db, 'workoutDrafts'), {
         userIdCl: id,
-        planName: `workoutPlan_${planName}`,
+        planName: `draftPlan_${planName}`,
         workoutPlanDB: planToSave,
       });
-  
-      toast.success('Plan Saved Successfully');
+
+      toast.success('Draft Saved Successfully');
       
     } catch (e) {
-      
-      toast.error(`Error saving Plan: ${e.message}`);
+      toast.error(`Error saving Draft: ${e.message}`);
     }
   };
-  
-  
 
-
-  const updatePlanDetail = async (planName, plan) => {
-    // Flatten or serialize data if needed
+  // Update existing draft
+  const updateDraftPlan = async (planName, plan) => {
     const planToSave = {
       name: planName,
-      weeks: JSON.stringify(weeks), // Serialize arrays if deeply nested
+      weeks: JSON.stringify(weeks),
       daysPerWeek: JSON.stringify(daysPerWeek),
       workoutPlan: JSON.stringify(plan),
       exerciseHistory: JSON.stringify(exerciseHistory),
       weekNames: JSON.stringify(weekNames),
       dayNames: JSON.stringify(dayNames),
-      date: new Date().toISOString(), // Store date in ISO string format
+      date: new Date().toISOString(),
       setUpdate: isChecked,
+      isDraft: true,
     };
 
     try {
-      // Use userIdCl (id) as the document ID
-      const planDocRef = doc(db, 'workoutPlans', id); // Set userIdCl as the document ID
+      // Update the specific draft document using the stored draft ID
+      const planDocRef = doc(db, 'workoutDrafts', currentDraftId);
+      await setDoc(planDocRef, {
+        userIdCl: id,
+        planName: `draftPlan_${planName}`,
+        workoutPlanDB: planToSave,
+      }, { merge: true });
+
+      toast.success('Draft updated Successfully');
+    } catch (error) {
+      console.error('Error updating draft: ', error);
+      toast.error('Error updating Draft');
+    }
+  };
+
+  const exercisePlanDetail = async (planName, plan) => {
+    try {
+      if (!planName || !plan || !id) {
+        throw new Error('Missing required data');
+      }
+
+      const planToSave = {
+        name: planName,
+        weeks: JSON.stringify(weeks),
+        daysPerWeek: JSON.stringify(daysPerWeek),
+        workoutPlan: JSON.stringify(plan),
+        exerciseHistory: JSON.stringify(exerciseHistory),
+        weekNames: JSON.stringify(weekNames),
+        dayNames: JSON.stringify(dayNames),
+        date: new Date().toISOString(),
+        setUpdate: isChecked,
+        isDraft: false, // Mark as completed plan
+      };
+
+      const planDocRef = await addDoc(collection(db, 'workoutPlans'), {
+        userIdCl: id,
+        planName: `workoutPlan_${planName}`,
+        workoutPlanDB: planToSave,
+      });
+
+      toast.success('Plan Saved Successfully');
+      
+    } catch (e) {
+      toast.error(`Error saving Plan: ${e.message}`);
+    }
+  };
+
+  const updatePlanDetail = async (planName, plan) => {
+    const planToSave = {
+      name: planName,
+      weeks: JSON.stringify(weeks),
+      daysPerWeek: JSON.stringify(daysPerWeek),
+      workoutPlan: JSON.stringify(plan),
+      exerciseHistory: JSON.stringify(exerciseHistory),
+      weekNames: JSON.stringify(weekNames),
+      dayNames: JSON.stringify(dayNames),
+      date: new Date().toISOString(),
+      setUpdate: isChecked,
+      isDraft: false,
+    };
+
+    try {
+      const planDocRef = doc(db, 'workoutPlans', id);
       await setDoc(planDocRef, {
         workoutPlanDB: planToSave,
-      }, { merge: true }); // Use merge: true to update existing document
+      }, { merge: true });
 
       toast.success('Plan updated Successfully');
-      fetchPlans(); // Call fetchPlans to refresh the data
+      plansRefetch();
     } catch (error) {
       console.error('Error updating document: ', error);
       toast.error('Error updating Plan');
     }
-};
+  };
 
-  
-  const savePlan = () => {
-    if (!validatePlan()) {
+  const savePlan = (isDraftSave = false) => {
+    if (!validatePlan(isDraftSave)) {
       return;
     }
 
@@ -290,27 +405,35 @@ const createPlanPage = () => {
     }
     
     const planToSave = workoutPlan;
-    const storageKey =  planName;
+    const storageKey = planName;
 
-    if (isEditingExistingPlan) {
+    if (isDraftSave) {
+      // Save as draft
+      if (isEditingDraft && currentDraftId) {
+        updateDraftPlan(storageKey, planToSave);
+      } else {
+        saveDraftPlan(storageKey, planToSave);
+      }
+    } else {
+      // Save as completed plan
+      if (isEditingExistingPlan && !isDraft) {
         updatePlanDetail(storageKey, planToSave);
         setSavedPlans((prevPlans) =>
-        prevPlans.map((plan) => (plan.planName === `workoutPlan_${storageKey}` ? {...plan,workoutPlanDB: planToSave} : plan))
-      );
-      
-    } else {
-    const existingPlan = savedPlans.find(plan => plan.planName === `workoutPlan_${planName}`);
+          prevPlans.map((plan) => (plan.planName === `workoutPlan_${storageKey}` ? {...plan, workoutPlanDB: planToSave} : plan))
+        );
+      } else {
+        const existingPlan = savedPlans.find(plan => plan.planName === `workoutPlan_${planName}`);
 
-      if (existingPlan) {
-        setErrors((prev) => ({
-          ...prev,
-          planName: "A plan with this name already exists",
-        }));
-        return;
+        if (existingPlan && !isEditingExistingPlan) {
+          setErrors((prev) => ({
+            ...prev,
+            planName: "A plan with this name already exists",
+          }));
+          return;
+        }
+
+        exercisePlanDetail(storageKey, planToSave);
       }
-
-      exercisePlanDetail(storageKey,planToSave);
-      
     }
   };
 
@@ -334,15 +457,12 @@ const createPlanPage = () => {
   const isExerciseEnabled = (weekIndex, dayIndex, exerciseIndex) => {
     if (!isEditingExistingPlan) return true;
 
-    // Check if it's the first exercise of the first day
     if (weekIndex === 0 && dayIndex === 0 && exerciseIndex === 0) return true;
 
-    // Check if the previous exercise is completed
     if (exerciseIndex > 0) {
       return isExerciseCompleted(weekIndex, dayIndex, exerciseIndex - 1);
     }
 
-    // Check if the last exercise of the previous day is completed
     if (dayIndex > 0) {
       const previousDay = workoutPlan[weekIndex][dayIndex - 1];
       return isExerciseCompleted(
@@ -352,7 +472,6 @@ const createPlanPage = () => {
       );
     }
 
-    // Check if the last exercise of the last day of the previous week is completed
     if (weekIndex > 0) {
       const previousWeek = workoutPlan[weekIndex - 1];
       const lastDay = previousWeek[previousWeek.length - 1];
@@ -388,10 +507,9 @@ const createPlanPage = () => {
     if (missingDays.length > 0) {
       setShowWarning(true);
     } else {
-      savePlan();
+      savePlan(false); // Save as completed plan
 
       // Reset the component state after successful save
-      // toast.success("Workout plan saved successfully!");
       setToggleForm(true);
       setPlanName("");
       setWeeks(3);
@@ -404,8 +522,33 @@ const createPlanPage = () => {
       setErrors({});
       setShowWarning(false);
       setSaveAttempted(false);
-      plansRefetch()
+      setIsDraft(false);
+      setIsEditingDraft(false);
+      setCurrentDraftId(null);
+      plansRefetch();
     }
+  };
+
+  const handleSaveDraft = () => {
+    savePlan(true); // Save as draft
+    
+    // Reset the component state after successful draft save
+    setToggleForm(true);
+    setPlanName("");
+    setWeeks(3);
+    setDaysPerWeek(3);
+    setWorkoutPlan([]);
+    setExerciseDetails({});
+    setExerciseHistory({});
+    setWeekNames([]);
+    setDayNames([]);
+    setErrors({});
+    setShowWarning(false);
+    setSaveAttempted(false);
+    setIsDraft(false);
+    setIsEditingDraft(false);
+    setCurrentDraftId(null);
+    plansRefetch();
   };
 
   const scrollToWeek = (weekIndex) => {
@@ -435,12 +578,10 @@ const createPlanPage = () => {
     const exercise =
       updatedWorkoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
 
-    // Update the specific week and all subsequent weeks
     for (let i = weekIndex; i < updatedWorkoutPlan.length; i++) {
       const weekExercise =
         updatedWorkoutPlan[i][dayIndex].exercises[exerciseIndex];
 
-      // Update sets for this week and mark as configured
       weekExercise.weeklySetConfig[i].sets = newSets;
       weekExercise.weeklySetConfig[i].isConfigured = true;
     }
@@ -461,7 +602,6 @@ const createPlanPage = () => {
       date: new Date(),
       setUpdate: isChecked,
     };
-    // localStorage.setItem(`workoutPlan_${planName}`, JSON.stringify(planToSave));
   };
 
   return (
@@ -493,7 +633,6 @@ const createPlanPage = () => {
                       const newName = e.target.value;
                       setPlanName(newName);
 
-                      // Live validation for existing plan names
                       const existingPlan = savedPlans.find(plan => plan.planName === `workoutPlan_${newName}`);
                       if (existingPlan) {
                         setNameError("A plan with this name already exists");
@@ -575,7 +714,7 @@ const createPlanPage = () => {
                   className="mr-2 text-white fa-duotone fa-solid fa-bars text-[20px]"
                   onClick={menuOpenClose}
                 ></i>
-                <h1 className="text-white">{planName}</h1>
+                <h1 className="text-white">{planName} {isDraft && "(Draft)"}</h1>
               </div>
 
               <p className="my-2 text-gray-400">
@@ -599,7 +738,7 @@ const createPlanPage = () => {
                     )}
                   </ul>
                   <p>
-                    Please add exercises to these days before saving the plan.
+                    You can save this as a draft and complete it later, or add exercises to save as a complete plan.
                   </p>
                 </div>
               )}
@@ -651,6 +790,7 @@ const createPlanPage = () => {
                         weekIndex={weekIndex}
                         dayName={dayNames[dayIndex]}
                         isEditingExistingPlan={isEditingExistingPlan}
+                        isEditingDraft={isEditingDraft} // Pass the draft editing state
                         updateDayName={updateDayName}
                         handleOpenClose={handleOpenClose}
                         setSelectedWeekIndex={setSelectedWeekIndex}
@@ -666,7 +806,6 @@ const createPlanPage = () => {
                         }
                         updateExerciseSets={updateExerciseSets}
                       />
-
                     </>
                   ))}
                 </div>
@@ -674,12 +813,20 @@ const createPlanPage = () => {
             </div>
             <div className="p-3">
               {workoutPlan.length > 0 && (
-                <ButtonCs
-                  onClick={handleSave}
-                  title="Save Plan"
-                  type="submit"
-                  className="mt-[36px] btnStyle"
-                />
+                <div className="flex gap-3">
+                  <ButtonCs
+                    onClick={handleSave}
+                    title="Save Plan"
+                    type="submit"
+                    className="mt-[36px] btnStyle flex-1"
+                  />
+                  <ButtonCs
+                    onClick={handleSaveDraft}
+                    title="Save Draft"
+                    type="button"
+                    className="mt-[36px] bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded flex-1"
+                  />
+                </div>
               )}
               <OffCanvasComp
                 placement="end"

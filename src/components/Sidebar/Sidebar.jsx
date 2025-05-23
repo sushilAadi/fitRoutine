@@ -15,6 +15,7 @@ const Sidebar = () => {
   const menuItems = [
     { name: "Home", path: "/", icon: "fa-house" },
     { name: "Create Plan", path: "/createPlanPage", icon: "fa-layer-plus" },
+    { name: "My Drafts", path: "/draft", icon: "fa-regular fa-folder-open" },
     {
       name: "Saved Plan",
       path: "/SavedPlan",
@@ -23,14 +24,14 @@ const Sidebar = () => {
     },
     { name: "Health Report", path: "/healthReport", icon: "fa-notes-medical" },
     { name: "Profile", path: "/profile", icon: "fa-user-vneck-hair" },
-    { name: "Angle", path: "/angle", icon: "fa-user-vneck-hair" },
-    { name: "Instructor", path: "/mentors", icon: "fa-user-vneck-hair" },
+    { name: "Angle", path: "/angle", icon: "fa-solid fa-angle" },
+    { name: "Instructor", path: "/mentors", icon: "fa-solid fa-person-chalkboard" },
     {
       name: "My Enrollment",
       path: "/myEnrollment",
       icon: "fa-user-vneck-hair",
     },
-    { name: "Join as Instructor", path: "/join", icon: "fa-user-vneck-hair" },
+    { name: "Join as Instructor", path: "/join", icon: "fa-solid fa-chalkboard-user" },
     { name: "Neeed FIT AI", path: "/AICoach", icon: "fa-duotone fa-solid fa-microchip-ai" },
     { name: "My Diet", path: "/diets", icon: "fa-duotone fa-solid fa-pan-food" },
   ];
