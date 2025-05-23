@@ -1,6 +1,6 @@
 // components/Tabs/TabMT.jsx
 import React from "react"; // Removed useEffect, not needed here
-import ExerciseCardSelected from "@/app/new/[plan]/ExerciseCardSelected"; // Adjust path
+import ExerciseCardSelected from "@/app/SavedPlan/[plan]/ExerciseCardSelected"; // Adjust path
 
 function TabMT({
     tab,

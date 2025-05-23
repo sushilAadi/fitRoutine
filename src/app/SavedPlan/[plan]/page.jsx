@@ -1,1630 +1,611 @@
 "use client";
-import React, { useState, useEffect, useRef, useContext, useCallback } from "react";
-import _ from "lodash";
-import OffCanvasComp from "@/components/OffCanvas/OffCanvasComp";
-import ExerciseDeatil from "./ExerciseDeatil";
+import React, { useState, useEffect, useContext } from "react";
 import { useRouter } from "next/navigation";
-import { calculateProgress, handleDate } from "@/utils";
-import Image from "next/image";
 import { GlobalContext } from "@/context/GloablContext";
-import { doc, getDoc, updateDoc } from "firebase/firestore"; 
+import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
-import { getExercisesGif } from "@/service/exercise";
 import toast from "react-hot-toast";
-import ExerciseCanvas from "./ExerciseCanvas";
-import CaloriesBurnt from "./CaloriesBurnt";
-
-const TabButton = ({ active, onClick, children, disabled }) => (
-  <button
-    className={` mx-1 ${
-      active
-        ? " text-white border-b-2 border-red-500"
-        : disabled
-        ? " text-gray-500 cursor-not-allowed"
-        : " "
-    }`}
-    onClick={disabled ? undefined : onClick}
-    disabled={disabled}
-  >
-    {children}
-  </button>
-);
+import TabMT from "@/components/Tabs/TabMT"; // Adjust path if needed
+import { calculateNextDay, getAllLocalStorageData, transformData } from "@/utils"; // Adjust path if needed
+import _ from "lodash"; // Make sure lodash is installed
+import Progress from "./Progress";
+import ConfirmationToast from "@/components/Toast/ConfirmationToast";
+import { calculateDetailedWorkoutProgress } from "@/utils/progress";
+import ProgressRealTime from "./ProgressRealTime";
+import { ProgressBar } from "react-bootstrap";
 
 const PlanDetail = ({ params }) => {
-  const { userId, plansRefetch,latestWeight,handleOpenClose:menuOpenClose } = useContext(GlobalContext);
-  
-  const USER_WEIGHT_KG = latestWeight?.userWeights;
-
+  const { userId } = useContext(GlobalContext);
   const router = useRouter();
-  const initializedRef = useRef(false);
   const [workoutData, setWorkoutData] = useState(null);
-  const [selectedWeek, setSelectedWeek] = useState(0);
-  const [selectedDay, setSelectedDay] = useState(0);
-  const [currentWeek, setCurrentWeek] = useState(0);
-  const [currentDay, setCurrentDay] = useState(0);
-  const [exerciseDetails, setExerciseDetails] = useState({});
-  const [selectedExercise, setSelectedExercise] = useState(null);
-  const [show, setShow] = useState(false);
-  const [warningMessage, setWarningMessage] = useState("");
-  const [lockPreviousTabs, setLockPreviousTabs] = useState(true);
-  const [restTime, setRestTime] = useState(null);
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const [activeExerciseSet, setActiveExerciseSet] = useState(null);
-  const [setWarnings, setSetWarnings] = useState({});
-  const [setTimers, setSetTimers] = useState({});
-  const timerIntervals = useRef({});
-  const [toggleCheck, setToggleCheck] = useState(false);
-  const [EditToggle, setEditToggle] = useState(true);
-  const [editValue, setEditValue] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [transFormedData, setTransformedData] = useState(null);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedWeek, setSelectedWeek] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [firebaseStoredData, setFirebaseStoredData] = useState(undefined); // Use undefined initially to distinguish from null (no data found)
+  const [progressStats, setProgressStats] = useState(null);
 
-  const handleOpenClose = () => setShow(!show);
   const selectedPlanId = decodeURIComponent(params?.plan);
 
-  // Store timer state in localStorage to persist across refreshes
-  useEffect(() => {
-    // Load timer state from localStorage on component mount
-    const savedTimerState = localStorage.getItem(`timerState_${selectedPlanId}`);
-    if (savedTimerState) {
-      const timerState = JSON.parse(savedTimerState);
-      setIsTimerRunning(timerState.isRunning);
-      setElapsedTime(timerState.elapsedTime);
-      setActiveExerciseSet(timerState.activeExerciseSet);
-    }
-  }, [selectedPlanId]);
+  const workoutProgressKey = `workout-progress-${selectedPlanId || 'default'}`;
+  const selectedWeekKey = `selectedWeekIndex_${selectedPlanId || 'default'}`;
+  const selectedDayKey = `selectedDayNumber_${selectedPlanId || 'default'}`;
+  const slideIndexKeyBase = `slideIndex-${selectedPlanId || 'default'}`;
 
-  // Save timer state to localStorage whenever it changes
-  useEffect(() => {
-    if (activeExerciseSet) {
-      localStorage.setItem(`timerState_${selectedPlanId}`, JSON.stringify({
-        isRunning: isTimerRunning,
-        elapsedTime: elapsedTime,
-        activeExerciseSet: activeExerciseSet
-      }));
-    } else if (!isTimerRunning) {
-      // Clear timer state when timer is stopped
-      localStorage.removeItem(`timerState_${selectedPlanId}`);
+  // Function to retrieve progress from Firestore
+  async function retrieveWorkoutProgress() {
+    // No setLoading here, let the calling effect handle it
+    if (!userId || !selectedPlanId) {
+      console.warn("User ID or Selected Plan ID missing for progress retrieval.");
+      return null; // Explicitly return null if prerequisite missing
     }
-  }, [isTimerRunning, elapsedTime, activeExerciseSet, selectedPlanId]);
-
-  const fetchWorkoutPlan = async () => {
-    setError(null);
-  
     try {
+      const userProgressRef = doc(db, "userWorkoutProgress", userId);
+      const docSnap = await getDoc(userProgressRef);
+
+      if (docSnap.exists()) {
+        const allUserData = docSnap.data();
+        const specificPlanData = allUserData[selectedPlanId];
+        // Check if data exists and is not empty
+        if (specificPlanData && Object.keys(specificPlanData).length > 0) {
+          console.log("Retrieved Firebase progress data:", specificPlanData);
+          return specificPlanData; // Return the data
+        } else {
+          console.log("No specific plan data found in Firebase");
+          return null; // Return null if no data for this plan
+        }
+      } else {
+        console.log("No user progress document exists in Firebase");
+        return null; // Return null if document doesn't exist
+      }
+    } catch (error) {
+      console.error("Error retrieving workout progress from Firestore:", error);
+      // Don't set error state here, let the caller handle it based on context
+      // Rethrow or return a specific error indicator if needed downstream
+      throw error; // Rethrow to be caught by the caller
+    }
+  }
+
+  // --- REMOVED storeWorkoutDataToLocalStorage function ---
+
+  // --- Fetch Plan Structure AND Saved Progress ---
+  useEffect(() => {
+    const initializePlan = async () => {
+      setLoading(true); // Start loading indicator
+      setError(null);
+      setWorkoutData(null);
+      setTransformedData(null);
+      setSelectedWeek(null);
+      setSelectedDay(null);
+      setFirebaseStoredData(undefined); // Reset to initial state
+
+      if (!selectedPlanId) {
+        setError("Plan ID is missing.");
+        setLoading(false);
+        return;
+      }
       if (!userId) {
-        setError("Loading...");
+        console.warn("User ID not available yet, waiting...");
+        // Keep loading until userId is available or timeout
         return;
       }
-  
-      const planRef = doc(db, "workoutPlans", selectedPlanId);
-      const planDoc = await getDoc(planRef);
-  
-      if (!planDoc.exists()) {
-        setError("Workout plan not found.");
-        return;
-      }
-  
-      const data = planDoc.data();
-      
-      if (!data || !data.workoutPlanDB) {
-        setError("Workout plan not found.");
-        return;
-      }
-  
-      // Create a deep copy of the data to avoid modifying the original
-      const parsedData = {
-        ...data.workoutPlanDB,
-        id: planDoc.id,
-        name: data.workoutPlanDB.name,
-        progress: 0,
-        workoutPlan: null,
-        exerciseHistory: null,
-      };
-  
-      // Parse the JSON strings if they exist
+
       try {
-        // Check if workoutPlan is a string before parsing
-        if (typeof data.workoutPlanDB.workoutPlan === 'string') {
-          parsedData.workoutPlan = JSON.parse(data.workoutPlanDB.workoutPlan);
-        } else {
-          // If it's already an object, use it as is
-          parsedData.workoutPlan = data.workoutPlanDB.workoutPlan;
-        }
-  
-        // Check if exerciseHistory is a string before parsing
-        if (typeof data.workoutPlanDB.exerciseHistory === 'string') {
-          parsedData.exerciseHistory = JSON.parse(data.workoutPlanDB.exerciseHistory);
-        } else {
-          // If it's already an object, use it as is
-          parsedData.exerciseHistory = data.workoutPlanDB.exerciseHistory;
-        }
-      } catch (err) {
-        console.error("Error parsing workout plan:", err);
-        setError("Failed to parse workout plan.");
-        return;
-      }
-      
-      const progress = calculateProgress(parsedData);
-      parsedData.progress = progress;
-  
-      setWorkoutData(parsedData);
-  
-      // Rest of your initialization code...
-      const initialExerciseDetails = {};
-      if (parsedData.exerciseHistory) {
-        Object.entries(parsedData?.exerciseHistory).forEach(([key, sets]) => {
-          initialExerciseDetails[key] = sets?.map((set) => ({
-            ...set,
-            isCompleted: true,
-            restTime: set?.restTime || null,
-          }));
-        });
-      }
-  
-      // Initialize exercise details...
-      parsedData.workoutPlan.forEach((week, weekIndex) => {
-        week.forEach((day, dayIndex) => {
-          day.exercises.forEach((exercise, exerciseIndex) => {
-            const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-            const configuredSets =
-              exercise?.weeklySetConfig?.find((i) => i?.isConfigured)?.sets || 0;
-            const existingSets = initialExerciseDetails[key]?.length || 0;
-            const setsToAdd = Math.max(configuredSets - existingSets, 0);
-  
-            if (!initialExerciseDetails[key]) {
-              initialExerciseDetails[key] = [];
-            }
-  
-            for (let i = 0; i < setsToAdd; i++) {
-              initialExerciseDetails[key].push({
-                weight: "",
-                reps: "",
-                isCompleted: false,
-              });
-            }
-          });
-        });
-      });
-  
-      setExerciseDetails(initialExerciseDetails);
-  
-      // Handle position setting...
-      const lastPosition = localStorage.getItem(`lastPosition_${parsedData.name}`);
-      if (lastPosition) {
-        const { week, day } = JSON.parse(lastPosition);
-        setSelectedWeek(week);
-        setSelectedDay(day);
-        setCurrentWeek(week);
-        setCurrentDay(day);
-      } else {
-        let foundPosition = false;
-        for (let w = 0; w < parsedData.weeks; w++) {
-          for (let d = 0; d < parsedData.daysPerWeek; d++) {
-            if (!isDayCompleted(w, d, parsedData)) {
-              setSelectedWeek(w);
-              setSelectedDay(d);
-              setCurrentWeek(w);
-              setCurrentDay(d);
-              foundPosition = true;
-              break;
-            }
-          }
-          if (foundPosition) break;
-        }
-      }
-  
-      // Handle rest time...
-      if (progress !== 100) {
-        if (!localStorage.getItem(`restTime_${parsedData.name}`)) {
-          const userRestTime = prompt(
-            "Do you want to set a rest time for each set? If yes, enter the time in seconds:"
-          );
-          if (userRestTime && !isNaN(userRestTime)) {
-            setRestTime(parseInt(userRestTime));
-            localStorage.setItem(`restTime_${parsedData.name}`, userRestTime);
-          }
-        } else {
-          setRestTime(parseInt(localStorage.getItem(`restTime_${parsedData.name}`)));
-        }
-      }
-    } catch (err) {
-      console.error("Unexpected error during fetch:", err);
-      setError("An unexpected error occurred.");
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const checkSetWarnings = (weekIndex, dayIndex, exerciseIndex) => {
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-    const exercise =
-      workoutData?.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
-    const configuredSets =
-      exercise?.weeklySetConfig?.find((i) => i?.isConfigured)?.sets || 0;
-    const currentSets = exerciseDetails[key]?.length || 0;
+        const planRef = doc(db, "workoutPlans", selectedPlanId);
+        // Fetch concurrently
+        const [planDoc, savedProgress] = await Promise.all([
+           getDoc(planRef),
+           retrieveWorkoutProgress().catch(err => {
+               // Handle potential error from retrieveWorkoutProgress specifically
+               console.error("Caught error during progress retrieval:", err);
+               setError("Failed to retrieve saved progress.");
+               return null; // Treat as no saved progress found on error
+           })
+        ]);
 
-    if (currentSets === 0 && configuredSets > 0) {
-      const updatedWarnings = { ...setWarnings };
-      updatedWarnings[
-        key
-      ] = `This exercise is configured for ${configuredSets} sets.`;
-      setSetWarnings(updatedWarnings);
-    } else {
-      const updatedWarnings = { ...setWarnings };
-      delete updatedWarnings[key];
-      setSetWarnings(updatedWarnings);
-    }
-  };
+        // Set the fetched progress data (will be null if not found or error)
+        setFirebaseStoredData(savedProgress);
 
-  const calculateSetVolume = (weight, reps, equipment) => {
-    if (!weight || !reps) return 0;
-
-    const weightInKg = Number(weight);
-    const numberOfReps = Number(reps);
-
-    if (equipment === "body weight") {
-      return USER_WEIGHT_KG * numberOfReps;
-    } else if (equipment === "band") {
-      return numberOfReps;
-    } else {
-      return weightInKg * numberOfReps;
-    }
-  };
-
-  const calculateExerciseTotal = (weekIndex, dayIndex, exerciseIndex) => {
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-    const sets = workoutData?.exerciseHistory[key] || [];
-    const exercise =
-      workoutData?.workoutPlan[weekIndex][dayIndex]?.exercises[exerciseIndex];
-
-    let total = 0;
-    sets.forEach((set) => {
-      if (exercise.equipment === "body weight") {
-        total += calculateSetVolume(
-          USER_WEIGHT_KG,
-          set?.reps,
-          exercise?.equipment
-        );
-      } else {
-        total += calculateSetVolume(
-          set?.weight,
-          set?.reps,
-          exercise?.equipment
-        );
-      }
-    });
-    return total;
-  };
-  
-  const calculateDailyTotal = (weekIndex, dayIndex) => {
-    const exercises =
-      workoutData?.workoutPlan?.[weekIndex]?.[dayIndex]?.exercises || [];
-    let dailyTotal = 0;
-
-    exercises.forEach((exercise, index) => {
-      dailyTotal += calculateExerciseTotal(weekIndex, dayIndex, index);
-    });
-    return dailyTotal;
-  };
-
-  const formatVolume = (volume, equipment) => {
-    if (equipment === "band") {
-      return `${volume} reps`;
-    } else {
-      return `${volume.toLocaleString()} kg`;
-    }
-  };
-
-  const isDayCompleted = (weekIndex, dayIndex, data = workoutData) => {
-    if (!data) return false;
-    const exercises = data?.workoutPlan[weekIndex][dayIndex].exercises || [];
-    return exercises.every((_, index) => {
-      const key = `${weekIndex}-${dayIndex}-${index}`;
-      return data?.exerciseHistory[key] && data.exerciseHistory[key].length > 0;
-    });
-  };
-
-  useEffect(() => {
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-      fetchWorkoutPlan();
-    }
-
-    return () => {
-      initializedRef.current = false;
-    };
-  }, [params?.plan, userId]);
-
-  useEffect(() => {
-    if (workoutData) {
-      workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises?.forEach(
-        (exercise, exerciseIndex) => {
-          addExerciseDetails(selectedWeek, selectedDay, exerciseIndex, true);
-        }
-      );
-    }
-  }, [selectedWeek, selectedDay, workoutData]);
-
-  useEffect(() => {
-    if (workoutData) {
-      localStorage.setItem(
-        `lastPosition_${workoutData.name}`,
-        JSON.stringify({
-          week: currentWeek,
-          day: currentDay,
-        })
-      );
-    }
-  }, [currentWeek, currentDay, workoutData]);
-
-  // Modified timer effect to handle page refreshes
-  useEffect(() => {
-    let timer;
-    if (isTimerRunning) {
-      timer = setInterval(() => {
-        setElapsedTime((prevTime) => {
-          const newTime = prevTime + 1;
-          // Update localStorage with current elapsed time
-          if (activeExerciseSet) {
-            const timerState = JSON.parse(localStorage.getItem(`timerState_${selectedPlanId}`) || '{}');
-            localStorage.setItem(`timerState_${selectedPlanId}`, JSON.stringify({
-              ...timerState,
-              elapsedTime: newTime
-            }));
-          }
-          return newTime;
-        });
-      }, 1000);
-    }
-
-    return () => clearInterval(timer);
-  }, [isTimerRunning, selectedPlanId, activeExerciseSet]);
-
-  const startTimer = (weekIndex, dayIndex, exerciseIndex, setIndex) => {
-    setElapsedTime(0);
-    setIsTimerRunning(true);
-    setActiveExerciseSet({
-      week: weekIndex,
-      day: dayIndex,
-      exercise: exerciseIndex,
-      set: setIndex,
-    });
-  };
-
-  const stopTimer = () => {
-    if (!isTimerRunning || !activeExerciseSet) return;
-
-    const { week, day, exercise, set } = activeExerciseSet;
-    const key = `${week}-${day}-${exercise}`;
-
-    const updatedWorkoutData = { ...workoutData };
-    if (!updatedWorkoutData.exerciseHistory) {
-      updatedWorkoutData.exerciseHistory = {};
-    }
-    if (!updatedWorkoutData.exerciseHistory[key]) {
-      updatedWorkoutData.exerciseHistory[key] = [];
-    }
-    if (!updatedWorkoutData.exerciseHistory[key][set]) {
-      updatedWorkoutData.exerciseHistory[key][set] = {};
-    }
-
-    if (!updatedWorkoutData.exerciseHistory[key][set]?.restTime) {
-      updatedWorkoutData.exerciseHistory[key][set] = {
-        ...updatedWorkoutData.exerciseHistory[key][set],
-        restTime: elapsedTime,
-      };
-      updateWorkoutData(updatedWorkoutData);
-      const updatedExerciseDetails = { ...exerciseDetails };
-      if (!updatedExerciseDetails[key]) {
-        updatedExerciseDetails[key] = [];
-      }
-      if (!updatedExerciseDetails[key][set]) {
-        updatedExerciseDetails[key][set] = {};
-      }
-      updatedExerciseDetails[key][set].restTime = elapsedTime;
-      setExerciseDetails(updatedExerciseDetails);
-    }
-
-    setIsTimerRunning(false);
-    setElapsedTime(0);
-    setActiveExerciseSet(null);
-    setWarningMessage("");
-    setEditToggle(true);
-    
-    // Clear timer state from localStorage
-    localStorage.removeItem(`timerState_${selectedPlanId}`);
-    
-    // Refresh data after stopping timer
-    fetchWorkoutPlan();
-  };
-
-  const areAllSetsValid = (weekIndex, dayIndex, exerciseIndex) => {
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-    const sets = exerciseDetails[key];
-
-    if (!sets || sets.length === 0) return true;
-
-    return sets.every((set) => {
-      if (set.isCompleted) return true;
-
-      const exercise =
-        workoutData?.workoutPlan?.[weekIndex]?.[dayIndex]?.exercises?.[exerciseIndex];
-      const isBodyWeightOrBand =
-        exercise?.equipment === "body weight" || exercise?.equipment === "band";
-
-      if (isBodyWeightOrBand) {
-        return set.reps && set.reps.trim() !== "";
-      }
-
-      return (
-        set.weight &&
-        set.weight.trim() !== "" &&
-        set.reps &&
-        set.reps.trim() !== ""
-      );
-    });
-  };
-  
-  const isAllExercisesInDayCompleted = () => {
-    const exercises =
-      workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises || [];
-    if (exercises?.length === 0) {
-      return false;
-    }
-
-    return exercises.every((_, exerciseIndex) => {
-      const key = `${selectedWeek}-${selectedDay}-${exerciseIndex}`;
-      return (
-        workoutData?.exerciseHistory[key] &&
-        workoutData?.exerciseHistory[key].length > 0 &&
-        exerciseDetails[key]?.every((set) => set.isCompleted)
-      );
-    });
-  };
-
-  const isExerciseCompleted = (weekIndex, dayIndex, exerciseIndex) => {
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-    return (
-      workoutData?.exerciseHistory[key] &&
-      workoutData?.exerciseHistory[key].length > 0
-    );
-  };
-
-  const isExerciseEnabled = (weekIndex, dayIndex, exerciseIndex) => {
-    if (exerciseIndex === 0) return true;
-    for (let i = 0; i < exerciseIndex; i++) {
-      const key = `${weekIndex}-${dayIndex}-${i}`;
-      const exerciseSets = exerciseDetails[key];
-      if (!exerciseSets || exerciseSets.length === 0) return false;
-      const allSetsCompleted = exerciseSets.every((set) => set.isCompleted);
-      if (!allSetsCompleted) return false;
-    }
-    return true;
-  };
-
-  const isWeekCompleted = (weekIndex) => {
-    return Array.from({ length: workoutData?.daysPerWeek || 0 }).every(
-      (_, dayIndex) => isDayCompleted(weekIndex, dayIndex)
-    );
-  };
-
-  const isDayAccessible = (weekIndex, dayIndex) => {
-    if (lockPreviousTabs) {
-      return weekIndex === currentWeek && dayIndex <= currentDay;
-    }
-    if (weekIndex === 0 && dayIndex === 0) return true;
-    if (dayIndex === 0) return isWeekCompleted(weekIndex - 1);
-    return isDayCompleted(weekIndex, dayIndex - 1);
-  };
-
-  const isWeekAccessible = (weekIndex) => {
-    if (lockPreviousTabs) {
-      return weekIndex === currentWeek;
-    }
-    if (weekIndex === 0) return true;
-    return isWeekCompleted(weekIndex - 1);
-  };
-
-  const moveToNextDay = (skip) => {
-    const currentDayExercises =
-      workoutData.workoutPlan[currentWeek][currentDay].exercises;
-      if(!skip){
-        const hasInvalidSets = currentDayExercises.some(
-          (_, index) => !areAllSetsValid(currentWeek, currentDay, index)
-        );
-    
-        if (hasInvalidSets) {
-          setWarningMessage(
-            "Please complete or remove all empty sets before proceeding."
-          );
+        // Process Plan Structure (only if planDoc exists)
+        if (!planDoc.exists()) {
+          setError("Workout plan structure not found.");
+          setLoading(false); // Stop loading if core plan is missing
           return;
         }
-      }
-    setWarningMessage("");
-    let nextWeek = currentWeek;
-    let nextDay = currentDay;
-
-    if (currentDay < workoutData.daysPerWeek - 1) {
-      nextDay = currentDay + 1;
-    } else if (currentWeek < workoutData.weeks - 1) {
-      nextWeek = currentWeek + 1;
-      nextDay = 0;
-    }
-
-    while (isDayCompleted(nextWeek, nextDay)) {
-      if (nextDay < workoutData.daysPerWeek - 1) {
-        nextDay++;
-      } else if (nextWeek < workoutData.weeks - 1) {
-        nextWeek++;
-        nextDay = 0;
-      } else {
-        break;
-      }
-    }
-
-    setCurrentWeek(nextWeek);
-    setCurrentDay(nextDay);
-    setSelectedWeek(nextWeek);
-    setSelectedDay(nextDay);
-
-    localStorage.setItem(
-      `lastPosition_${workoutData.name}`,
-      JSON.stringify({
-        week: nextWeek,
-        day: nextDay,
-      })
-    );
-  };
-
-  const addExerciseDetails = (
-    weekIndex,
-    dayIndex,
-    exerciseIndex,
-    autoAdd = false
-  ) => {
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-    const updatedExerciseDetails = { ...exerciseDetails };
-  
-    if (!updatedExerciseDetails[key]) {
-      updatedExerciseDetails[key] = [];
-    }
-  
-    const exercise =
-      workoutData.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
-    const configuredSets =
-      exercise?.weeklySetConfig?.find((i) => i?.isConfigured)?.sets || 0;
-  
-    let setsAdded = 0; // Keep track of how many sets we are adding
-    if (autoAdd) {
-      const setsToAdd = configuredSets - updatedExerciseDetails[key].length;
-      if (!workoutData?.setUpdate) {
-        for (let i = 0; i < setsToAdd; i++) {
-          updatedExerciseDetails[key].push({
-            weight: "",
-            reps: "",
-            isCompleted: false,
-          });
+        const data = planDoc.data();
+        if (!data || !data.workoutPlanDB) {
+          setError("Workout plan structure is invalid.");
+          setLoading(false);
+          return;
         }
-        setsAdded = setsToAdd; // Keep track of added sets for update
-      }
-    } else {
-      updatedExerciseDetails[key].push({
-        weight: "",
-        reps: "",
-        isCompleted: false,
-      });
-      setsAdded = 1; // Keep track of added sets for update
-    }
-  
-    setExerciseDetails(updatedExerciseDetails);
-  
-    // Update workoutPlan.exercises.weeklySetConfig
-    const updatedWorkoutData = { ...workoutData };
-    let setsChanged = false;
-  
-    if (
-      updatedWorkoutData.workoutPlan &&
-      updatedWorkoutData.workoutPlan[weekIndex] &&
-      updatedWorkoutData.workoutPlan[weekIndex][dayIndex] &&
-      updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises &&
-      updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex]
-    ) {
-      const exerciseToUpdate =
-        updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises[
-          exerciseIndex
-        ];
-      const weeklySetConfig = exerciseToUpdate.weeklySetConfig || [];
-      const currentSets = weeklySetConfig.find((i) => i?.isConfigured)?.sets || 0;
-      const newSetCount = updatedExerciseDetails[key].length;
-  
-      if (currentSets !== newSetCount) {
-        // Update the sets value
-        weeklySetConfig.forEach((config, index) => {
-          config.isConfigured = index === 0; // Ensure only the first one remains configured
-          if (index === 0) {
-            config.sets = newSetCount; // Update the sets count
-          }
+
+        // Parse plan structure (same as before)
+        let parsedWorkoutPlan, parsedExerciseHistory, dayNames, weekNames;
+        try {
+             parsedWorkoutPlan = typeof data.workoutPlanDB.workoutPlan === "string" ? JSON.parse(data.workoutPlanDB.workoutPlan) : data.workoutPlanDB.workoutPlan;
+             parsedExerciseHistory = typeof data.workoutPlanDB.exerciseHistory === "string" ? JSON.parse(data.workoutPlanDB.exerciseHistory) : data.workoutPlanDB.exerciseHistory;
+             dayNames = typeof data.workoutPlanDB.dayNames === "string" ? JSON.parse(data.workoutPlanDB.dayNames) : data.workoutPlanDB.dayNames;
+             weekNames = typeof data.workoutPlanDB.weekNames === "string" ? JSON.parse(data.workoutPlanDB.weekNames) : data.workoutPlanDB.weekNames;
+             if (!Array.isArray(parsedWorkoutPlan)) throw new Error("Parsed workoutPlan is not an array.");
+        } catch (parseError) {
+             console.error("Error parsing plan structure from Firestore:", parseError);
+             setError("Failed to parse workout plan data structure.");
+             setLoading(false); // Stop on parsing error
+             return;
+        }
+
+        // Set raw plan data (same as before)
+        setWorkoutData({
+          id: planDoc.id, name: data.workoutPlanDB.name || "Unnamed Plan", progress: data.workoutPlanDB.progress || 0,
+          workoutPlan: parsedWorkoutPlan, exerciseHistory: parsedExerciseHistory, dayNames: dayNames,
+          daysPerWeek: data.workoutPlanDB.daysPerWeek, weeks: data.workoutPlanDB.weeks, weekNames: weekNames,
+          setUpdate: data.workoutPlanDB.setUpdate, date: data.workoutPlanDB.date,
         });
-  
-        setsChanged = true; // Indicate sets were changed
+
+        // Loading state will be turned off in the next effect after processing
+
+      } catch (fetchError) {
+         // Catch errors not handled by specific catches above
+         console.error("Error during plan initialization:", fetchError);
+         if (!error) { // Avoid overwriting more specific errors
+              setError("Failed to load workout plan details.");
+         }
+         toast.error(error || "Failed to load workout plan details.");
+         setFirebaseStoredData(null); // Ensure it's null on general error
+         setLoading(false); // Stop loading on error
       }
+    };
+
+    if (userId) { // Only run initialization if userId is available
+        initializePlan();
+    } else {
+        setLoading(true); // Ensure loading stays true while waiting for userId
     }
-  
-    if (setsChanged) {
-      updateWorkoutData(updatedWorkoutData);
-    }
-  
-    setWarningMessage("");
-    checkSetWarnings(weekIndex, dayIndex, exerciseIndex);
-  };
-  
-  const isSetEnabledFunc = (weekIndex, dayIndex, exerciseIndex, setIndex) => {
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-    const sets = exerciseDetails[key];
+  }, [selectedPlanId, userId]); // Re-run if planId or userId changes
 
-    if (setIndex === 0) return true;
-
-    const previousSet = sets[setIndex - 1];
-    if (!previousSet?.isCompleted) return false;
-
-    if (
-      isTimerRunning &&
-      activeExerciseSet?.week === weekIndex &&
-      activeExerciseSet?.day === dayIndex &&
-      activeExerciseSet?.exercise === exerciseIndex &&
-      activeExerciseSet?.set === setIndex - 1
-    ) {
-      return false;
-    }
-
-    const previousSetHistory =
-      workoutData?.exerciseHistory[key]?.[setIndex - 1];
-    return previousSetHistory?.restTime !== null;
-  };
-
-  const updateExerciseDetail = (
-    weekIndex,
-    dayIndex,
-    exerciseIndex,
-    detailIndex,
-    field,
-    value
-  ) => {
-    if (!isExerciseEnabled(weekIndex, dayIndex, exerciseIndex)) {
-      setWarningMessage(
-        "Please complete the previous exercise before updating this one."
-      );
+  // --- Transform Data, Determine Initial State from Firebase (if available) ---
+  useEffect(() => {
+    // Wait until workoutData is loaded AND firebaseStoredData fetch attempt is complete (it's not undefined)
+    if (!workoutData || firebaseStoredData === undefined) {
+      // Still loading structure or waiting for Firebase progress check results
+      // Loading state is managed by the previous effect or initial state
+       if (!error && !loading) setLoading(true); // Ensure loading is true if we are waiting
       return;
     }
-
-    const updatedExerciseDetails = { ...exerciseDetails };
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-    if (!updatedExerciseDetails[key]) {
-      updatedExerciseDetails[key] = [];
-    }
-    if (!updatedExerciseDetails[key][detailIndex]) {
-      updatedExerciseDetails[key][detailIndex] = {};
-    }
-    updatedExerciseDetails[key][detailIndex][field] = value;
-    setExerciseDetails(updatedExerciseDetails);
-    setWarningMessage("");
-  };
-  
-  const updateWorkoutData = async (updatedWorkoutData) => {
-    // Create a deep copy to avoid modifying the original data
-    const workoutDataUpdate = {
-      ...updatedWorkoutData,
-      workoutPlan: typeof updatedWorkoutData.workoutPlan === 'string' 
-        ? updatedWorkoutData.workoutPlan 
-        : JSON.stringify(updatedWorkoutData.workoutPlan),
-      exerciseHistory: typeof updatedWorkoutData.exerciseHistory === 'string'
-        ? updatedWorkoutData.exerciseHistory
-        : JSON.stringify(updatedWorkoutData.exerciseHistory)
-    };
-  
-    try {
-      const workoutPlanRef = doc(db, "workoutPlans", updatedWorkoutData.id);
-      await updateDoc(workoutPlanRef, {
-        workoutPlanDB: workoutDataUpdate,
-      });
-  
-      // Update local state with the original object (not stringified)
-      setWorkoutData(updatedWorkoutData);
-    } catch (err) {
-      console.error("Error during update:", err);
-      setError("Failed to update workout plan.");
-    }
-  };
-
-  const removeExerciseDetail = async (
-    weekIndex,
-    dayIndex,
-    exerciseIndex,
-    detailIndex
-  ) => {
-    await new Promise((resolve) => {
-      setSetTimers((prevSetTimers) => {
-        const updatedTimers = { ...prevSetTimers };
-        const timerKey = `${weekIndex}-${dayIndex}-${exerciseIndex}-${detailIndex}`;
-        delete updatedTimers[timerKey];
-        
-        resolve(updatedTimers);
-        return updatedTimers;
-      });
-    });
-
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-    const updatedExerciseDetails = { ...exerciseDetails };
-    if (updatedExerciseDetails[key]) {
-      updatedExerciseDetails[key].splice(detailIndex, 1);
-    }
-    setExerciseDetails(updatedExerciseDetails);
-
-    const updatedWorkoutData = { ...workoutData };
-    if (!updatedWorkoutData.exerciseHistory) {
-      updatedWorkoutData.exerciseHistory = {};
+    // If there was an error during initialization, stop processing
+    if (error) {
+        setLoading(false);
+        return;
     }
 
-    if (updatedWorkoutData.exerciseHistory[key]) {
-      // Remove the entry from exerciseHistory
-      const updatedHistory = [...updatedWorkoutData.exerciseHistory[key]]; // Create a copy
-      updatedHistory.splice(detailIndex, 1);
-
-      if (updatedHistory.length === 0) {
-        delete updatedWorkoutData.exerciseHistory[key];
-      } else {
-        updatedWorkoutData.exerciseHistory[key] = updatedHistory;
-      }
-    }
-
-    // Update weeklySetConfig.sets here
-    if (
-      updatedWorkoutData.workoutPlan &&
-      updatedWorkoutData.workoutPlan[weekIndex] &&
-      updatedWorkoutData.workoutPlan[weekIndex][dayIndex] &&
-      updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises &&
-      updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises[
-        exerciseIndex
-      ] &&
-      updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises[
-        exerciseIndex
-      ].weeklySetConfig &&
-      updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises[
-        exerciseIndex
-      ].weeklySetConfig[0]
-    ) {
-      const currentSets =
-        updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises[
-          exerciseIndex
-        ].weeklySetConfig[0].sets;
-      updatedWorkoutData.workoutPlan[weekIndex][dayIndex].exercises[
-        exerciseIndex
-      ].weeklySetConfig[0].sets = Math.max(0, currentSets - 1); // Ensure sets don't go below 0
-    }
-    updateWorkoutData(updatedWorkoutData);
-
-    setWarningMessage("");
-    checkSetWarnings(weekIndex, dayIndex, exerciseIndex);
-  };
-
-  useEffect(() => {
-    if (workoutData && selectedWeek !== null && selectedDay !== null) {
-      workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises?.forEach(
-        (_, exerciseIndex) => {
-          checkSetWarnings(selectedWeek, selectedDay, exerciseIndex);
-        }
-      );
-    }
-  }, [exerciseDetails, selectedWeek, selectedDay, workoutData]);
-
-  const saveExerciseSet = async (
-    weekIndex,
-    dayIndex,
-    exerciseIndex,
-    detailIndex
-  ) => {
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-    const details = exerciseDetails[key];
-    const exercise =
-      workoutData?.workoutPlan?.[weekIndex]?.[dayIndex]?.exercises?.[exerciseIndex];
-
-    const isBodyWeightOrBand =
-      exercise?.equipment === "body weight" || exercise?.equipment === "band";
-    const isValidSet =
-      details?.[detailIndex]?.reps &&
-      (isBodyWeightOrBand || details?.[detailIndex]?.weight);
-
-    if (isValidSet) {
-      const currentDate = new Date();
-
-      const updatedWorkoutData = { ...workoutData };
-      let updatedHistory = updatedWorkoutData?.exerciseHistory || {};
-      if (!updatedHistory[key]) {
-        updatedHistory[key] = [];
-      }
-      if (!updatedHistory[key][detailIndex]) {
-        updatedHistory[key][detailIndex] = {};
-      }
-      const existingDuration = updatedHistory[key][detailIndex]?.duration || 0;
-      updatedHistory[key][detailIndex] = {
-        weight: details[detailIndex].weight,
-        reps: details[detailIndex].reps,
-        restTime: null,
-        duration: existingDuration,
-        date: {
-          fullDate: currentDate.toISOString(),
-          dayOfWeek: currentDate.toLocaleDateString("en-US", {
-            weekday: "long",
-          }),
-          dayOfMonth: currentDate.getDate(),
-          month: currentDate.toLocaleDateString("en-US", { month: "long" }),
-          year: currentDate.getFullYear(),
-          timestamp: currentDate.getTime(),
-        },
-      };
-
-      if (editValue === "edit") {
-        await updateWorkoutData(updatedWorkoutData);
-      } else {
-        stopSetTimer(weekIndex, dayIndex, exerciseIndex, detailIndex);
-        await updateWorkoutData(updatedWorkoutData);
-        startTimer(weekIndex, dayIndex, exerciseIndex, detailIndex);
-      }
-
-      const updatedExerciseDetails = { ...exerciseDetails };
-      if (!updatedExerciseDetails[key]) {
-        updatedExerciseDetails[key] = [];
-      }
-      if (!updatedExerciseDetails[key][detailIndex]) {
-        updatedExerciseDetails[key][detailIndex] = {};
-      }
-      updatedExerciseDetails[key][detailIndex].isCompleted = true;
-      setExerciseDetails(updatedExerciseDetails);
-
-      setWorkoutData(updatedWorkoutData);
-
-      setWarningMessage("");
-    } else {
-      setWarningMessage(
-        "Please fill in all required fields before saving the set."
-      );
-    }
-    setEditValue("");
-  };
-
-  useEffect(() => {
-    return () => {
-      Object.values(timerIntervals.current).forEach(clearInterval);
-    };
-  }, []);
-  
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
+    setLoading(true); // Indicate processing starts
 
     try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch (error) {
-      console.error("Date formatting error:", error);
-      return "N/A";
-    }
-  };
-
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  const editExerciseSet = (weekIndex, dayIndex, exerciseIndex, detailIndex) => {
-    const updatedExerciseDetails = { ...exerciseDetails };
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-    if (!updatedExerciseDetails[key]) {
-      updatedExerciseDetails[key] = [];
-    }
-    if (!updatedExerciseDetails[key][detailIndex]) {
-      updatedExerciseDetails[key][detailIndex] = {};
-    }
-    updatedExerciseDetails[key][detailIndex].isCompleted = false;
-    setExerciseDetails(updatedExerciseDetails);
-  };
-
-  const getPreviousRecord = (weekIndex, dayIndex, exerciseIndex) => {
-    if (!workoutData || weekIndex === 0) return null;
-
-    const currentExercise =
-      workoutData.workoutPlan[weekIndex][dayIndex].exercises[exerciseIndex];
-
-    for (let i = weekIndex - 1; i >= 0; i--) {
-      if (
-        workoutData.workoutPlan[i]?.[dayIndex]?.exercises[exerciseIndex]
-          ?.name === currentExercise.name
-      ) {
-        const key = `${i}-${dayIndex}-${exerciseIndex}`;
-        const records = workoutData?.exerciseHistory[key];
-        if (records?.length > 0) return records;
-      }
-    }
-    return null;
-  };
-  
-  const isEntirePlanCompleted = () => {
-    if (!workoutData) return false;
-
-    for (let week = 0; week < workoutData.weeks; week++) {
-      for (let day = 0; day < workoutData.daysPerWeek; day++) {
-        if (!isDayCompleted(week, day)) {
-          return false;
-        }
-      }
-    }
-    return true;
-  };
-
-  const toggleLockPreviousTabs = () => {
-    setLockPreviousTabs((prev) => !prev);
-    if (!lockPreviousTabs) {
-      setSelectedWeek(currentWeek);
-      setSelectedDay(currentDay);
-    } else {
-      let foundPosition = false;
-      for (let w = 0; w < workoutData.weeks; w++) {
-        for (let d = 0; d < workoutData.daysPerWeek; d++) {
-          if (!isDayCompleted(w, d)) {
-            setSelectedWeek(w);
-            setSelectedDay(d);
-            foundPosition = true;
-            break;
-          }
-        }
-        if (foundPosition) break;
-      }
-    }
-  };
-
-  const finishPlan = async () => {
-    try {
-      const workoutDataUpdate = {
-        ...workoutData,
-        workoutPlan: typeof workoutData.workoutPlan === 'string' 
-          ? workoutData.workoutPlan 
-          : JSON.stringify(workoutData.workoutPlan),
-        exerciseHistory: typeof workoutData.exerciseHistory === 'string'
-          ? workoutData.exerciseHistory
-          : JSON.stringify(workoutData.exerciseHistory)
-      };
-
-      const workoutPlanRef = doc(db, "workoutPlans", workoutData.id);
-      await updateDoc(workoutPlanRef, {
-        workoutPlanDB: workoutDataUpdate,
-      });
-
-      localStorage.removeItem(`lastPosition_${workoutData.name}`);
-      localStorage.removeItem(`restTime_${workoutData.name}`);
-      localStorage.removeItem(`timerState_${selectedPlanId}`);
-      router.push("/createPlanPage");
-    } catch (error) {
-      console.error("Error finishing plan:", error);
-      setError("Failed to finish workout plan.");
-    }
-  };
-  
-  const startSetTimer = (weekIndex, dayIndex, exerciseIndex, setIndex) => {
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}-${setIndex}`;
-
-    setSetTimers((prev) => ({
-      ...prev,
-      [key]: prev[key] || 0,
-    }));
-
-    timerIntervals.current[key] = setInterval(() => {
-      setSetTimers((prev) => ({
-        ...prev,
-        [key]: (prev[key] || 0) + 1,
-      }));
-    }, 1000);
-  };
-
-  const stopSetTimer = (weekIndex, dayIndex, exerciseIndex, setIndex) => {
-    const key = `${weekIndex}-${dayIndex}-${exerciseIndex}-${setIndex}`;
-    const historyKey = `${weekIndex}-${dayIndex}-${exerciseIndex}`;
-
-    if (timerIntervals.current[key]) {
-      clearInterval(timerIntervals.current[key]);
-      delete timerIntervals.current[key];
-    }
-
-    setSetTimers((prev) => {
-      const setTimerDuration = prev[key] || 0;
-
-      setWorkoutData((prevWorkoutData) => {
-        const updatedWorkoutData = { ...prevWorkoutData };
-        if (!updatedWorkoutData.exerciseHistory) {
-          updatedWorkoutData.exerciseHistory = {};
-        }
-        if (!updatedWorkoutData.exerciseHistory[historyKey]) {
-          updatedWorkoutData.exerciseHistory[historyKey] = [];
-        }
-        if (!updatedWorkoutData.exerciseHistory[historyKey][setIndex]) {
-          updatedWorkoutData.exerciseHistory[historyKey][setIndex] = {};
-        }
-
-        updatedWorkoutData.exerciseHistory[historyKey][setIndex] = {
-          ...updatedWorkoutData.exerciseHistory[historyKey][setIndex],
-          duration: setTimerDuration,
-        };
-        return updatedWorkoutData;
-      });
-
-      return prev;
-    });
-  };
-
-  useEffect(() => {
-    if (isEntirePlanCompleted()) {
-      setLockPreviousTabs(false);
-    }
-  }, [isEntirePlanCompleted()]);
-
-  const formatSetTimer = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
-
-  const [imageUrls, setImageUrls] = useState({});
-  const [brokenImages, setBrokenImages] = useState({});
-  const processedIds = useRef(new Set());
-
-  const getImage = async (id) => {
-    try {
-      const response = await getExercisesGif(id);
-      return response;
-    } catch (error) {
-      console.error(`Error fetching image for ID ${id}:`, error);
-      throw error;
-    }
-  };
-
-  const fetchImages = async () => {
-    try {
-      const exercises =
-        workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises;
-  
-      if (!Array.isArray(exercises)) {
-        console.error("Exercises is not a valid array:", exercises);
+      const transformed = transformData(workoutData);
+      if (!transformed || !transformed.weeksExercise || transformed.weeksExercise.length === 0) {
+        setError("Workout data is empty or invalid after transformation.");
+        setTransformedData(null); setSelectedWeek(null); setSelectedDay(null); setLoading(false);
         return;
       }
-  
-      const urls = { ...imageUrls };
-  
-      for (const exercise of exercises) {
-        if (
-          exercise?.id &&
-          !processedIds.current.has(exercise.id) &&
-          !brokenImages[exercise.id]
-        ) {
-          try {
-            const formattedId = exercise.id.toString().padStart(4, "0"); // Ensure 4-digit ID
-  
-            const image = await getImage(formattedId);
-            urls[exercise.id] = image;
-            processedIds.current.add(exercise.id); // Mark as processed
-          } catch (error) {
-            console.error(
-              `Error fetching image for exercise ID ${exercise.id}:`,
-              error
-            );
-          }
+      setTransformedData(transformed);
+
+      const weekData = transformed.weeksExercise;
+      let initialWeekIndex = 0;
+      let initialDayNumber = 1; // Default
+
+      // --- IMPROVED: Determine starting point with more robust priority ---
+      
+      // FIRST: Check Firebase data for the workoutProgressKey (most accurate source)
+      if (firebaseStoredData && Object.keys(firebaseStoredData).length > 0) {
+        // Check for the comprehensive progress object first (highest priority)
+        if (firebaseStoredData[workoutProgressKey] && 
+            typeof firebaseStoredData[workoutProgressKey].currentWeekIndex === 'number' && 
+            typeof firebaseStoredData[workoutProgressKey].currentDayNumber === 'number') {
+            
+            initialWeekIndex = firebaseStoredData[workoutProgressKey].currentWeekIndex;
+            initialDayNumber = firebaseStoredData[workoutProgressKey].currentDayNumber;
+            console.log(`Using comprehensive progress from Firebase: Week=${initialWeekIndex}, Day=${initialDayNumber}`);
+        } 
+        // Then check for individual keys (second priority)
+        else if (firebaseStoredData[selectedWeekKey] !== undefined && 
+                 firebaseStoredData[selectedDayKey] !== undefined) {
+            
+            // Ensure we have numeric values
+            const fbWeekIndex = parseInt(firebaseStoredData[selectedWeekKey], 10);
+            const fbDayNumber = parseInt(firebaseStoredData[selectedDayKey], 10);
+            
+            if (!isNaN(fbWeekIndex) && !isNaN(fbDayNumber)) {
+                initialWeekIndex = fbWeekIndex;
+                initialDayNumber = fbDayNumber;
+                console.log(`Using separate key progress from Firebase: Week=${initialWeekIndex}, Day=${initialDayNumber}`);
+            } else {
+                console.warn("Firebase progress keys exist but contain invalid numeric values.");
+            }
         }
+        // Last case: check if there's any exercise data that indicates progress
+        else {
+            console.log("No direct progress indicators in Firebase, proceeding with defaults.");
+        }
+      } else {
+        console.log("No Firebase progress data found. Using defaults: Week 0, Day 1");
       }
-  
-      setImageUrls(urls); // Batch update the state
-    } catch (error) {
-      console.error("Error in fetchImages function:", error);
-    }
-  };
-  
 
-  useEffect(() => {
-    if (workoutData) {
-      fetchImages();
-    }
-  }, [workoutData, selectedWeek, selectedDay]);
+      // --- IMPROVED: Validate the week/day exists in the plan structure ---
+      let initialWeek = weekData.find(w => w.week === initialWeekIndex);
+      let initialDay = null;
 
-  // Handle broken images
-  const handleImageError = (exerciseId) => {
-    setBrokenImages((prev) => ({ ...prev, [exerciseId]: true }));
-  };
+      // If week exists, try to find the day
+      if (initialWeek) {
+          const dayExists = initialWeek.days.some(d => d.day === initialDayNumber);
+          if (dayExists) {
+              initialDay = initialDayNumber;
+              console.log(`Found valid target: Week ${initialWeekIndex}, Day ${initialDayNumber}`);
+          } else if (initialWeek.days.length > 0) {
+              // Day not found - default to first day of target week
+              initialDay = initialWeek.days[0].day;
+              console.warn(`Day ${initialDayNumber} not found in Week ${initialWeekIndex}. Using first day (${initialDay}).`);
+          } else {
+              // Week has no days!
+              console.warn(`Week ${initialWeekIndex} has no days. Need to find alternative.`);
+              initialWeek = null; // Force reset below
+          }
+      } else {
+          console.warn(`Week ${initialWeekIndex} not found in plan structure. Using default.`);
+      }
 
-  const skipSet = () => {
-    toast((t) => (
-      <div className="">
-        Are you sure you want to skip this set for the day?
-        <div className="flex justify-between mt-2">
-        <button className="px-2 py-1 w-[50%] text-white border-none bg-red-500" onClick={() => {toast.dismiss(t.id);moveToNextDay(true)}}>
-          Yes, Skip
-        </button>
-        <button className="px-2 py-1 w-[50%] text-white border-none bg-tprimary" onClick={() => {toast.dismiss(t.id)}}>
-          Cancel
-        </button>
-        </div>
-        
-      </div>
-    ),{
-      duration:999999999,
-      autoClose: false,
-      hideProgressBar: true,
-    });
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen text-white">
-        Loading...
-      </div>
-    );
-  }
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="p-4 text-red-700 bg-red-100 border border-red-400 rounded-md">
-           {error}
-        </div>
-      </div>
-    );
-  }
-  if (!workoutData)
-    return (
-      <div className="flex items-center justify-center h-screen text-white">
-        No data found
-      </div>
-    );
-  return (
-    <>
-      <div className="flex flex-col h-screen overflow-hidden bg-tprimary">
-        <div className="top-0 p-3 pb-1 bg-black sticky-top">
-          <div className="flex items-center justify-between my-2">
-            <h1 onClick={menuOpenClose} className="mb-6 text-2xl font-bold text-white">
-              {workoutData?.name}
-            </h1>
-            <p onClick={()=>skipSet()} className="text-red-500 cursor-pointer ">Skip Week {currentWeek + 1}, Day {currentDay + 1}</p>
-          </div>
-
-          <CaloriesBurnt
-            exerciseDetails={exerciseDetails}
-            workoutData={workoutData}
-            selectedWeek={selectedWeek}
-            selectedDay={selectedDay}
-            userWeight={latestWeight?.userWeights}
-            selectedPlanId={selectedPlanId}
-          />
-
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <span className="text-sm font-semibold text-white">
-              Current Progress: Week {currentWeek + 1}, Day {currentDay + 1}
-            </span>
-            <span className="text-base text-gray-400">
-              Daily Volume:
-              {formatVolume(calculateDailyTotal(selectedWeek, selectedDay))}
-            </span>
-          </div>
-        </div>
-
-        <div className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">
-          {warningMessage && (
-            <div className="relative px-4 py-3 mb-4 text-red-700 bg-red-100 border border-red-400 rounded">
-              {warningMessage}
-            </div>
-          )}
-          
-          <div className="space-y-4">
-            {workoutData?.workoutPlan?.[selectedWeek]?.[selectedDay]?.exercises?.map(
-              (exercise, exerciseIndex) => {
-                const isEnabled = isExerciseEnabled(
-                  selectedWeek,
-                  selectedDay,
-                  exerciseIndex
-                );
-                const key = `${selectedWeek}-${selectedDay}-${exerciseIndex}`;
-                const warning = setWarnings[key];
-                const imageUrl = imageUrls[exercise?.id] || "";
-                
-                return (
-                  <div key={exerciseIndex}>
-                    <div className={`p-3 my-3 bg-gray-800 rounded-xl`}>
-                      <div
-                        className={`flex p-2 "bg-gray-900 gap-x-4 rounded-xl`}
-                      >
-                        <div className="min-w-[50px] min-h-[50px] max-h-[50px] max-w-[50px] overflow-hidden">
-                        {imageUrl && 
-                          <Image
-                            src={imageUrl || "/placeholder.svg"}
-                            alt={exercise.name}
-                            width={50}
-                            height={50}
-                            className="object-cover rounded-full max-w-[50px] max-h-50px] cursor-pointer"
-                            onError={() => handleImageError(exercise.id)}
-                    onClick={() => {
-                      setSelectedExercise(exercise);
-                      handleOpenClose();
-                    }}
-                          />}
-                        </div>
-                        <div className="text-conatiner w-100">
-                          <p
-                            className={`text-gray-400`}
-                            onClick={() => {
-                              setSelectedExercise(exercise);
-                              handleOpenClose();
-                            }}
-                          >
-                            {_.upperFirst(exercise.name)}
-                          </p>
-                          <div className="flex items-center justify-between ">
-                            <div
-                              className={`flex items-center gap-x-4 text-white`}
-                            >
-                              <p className="text-sm font-semibold ">
-                                Target: {_.upperFirst(exercise.target)}
-                              </p>
-                              <p className="text-sm font-semibold">
-                                {" "}
-                                Sets :{" "}
-                                {exercise?.weeklySetConfig?.find(
-                                  (i) => i?.isConfigured
-                                )?.sets ?? 0}
-                              </p>
-                            </div>
-                            {
-                              <i
-                                className="text-xl text-white cursor-pointer fa-solid fa-circle-plus"
-                                onClick={() => {
-                                  addExerciseDetails(
-                                    selectedWeek,
-                                    selectedDay,
-                                    exerciseIndex
-                                  );
-                                }}
-                              />
-                            }
-                          </div>
-                        </div>
-                      </div>
-                      {warning && (
-                        <div className="text-sm text-amber-600">{warning}</div>
-                      )}
-                      {exerciseDetails[
-                        `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                      ]?.map((detail, detailIndex) => {
-                        const timerKey = `${selectedWeek}-${selectedDay}-${exerciseIndex}-${detailIndex}`;
-
-                        const isSetEnabled =
-                          isEnabled &&
-                          isSetEnabledFunc(
-                            selectedWeek,
-                            selectedDay,
-                            exerciseIndex,
-                            detailIndex
-                          );
-                        const setVolume = detail.isCompleted
-                          ? calculateSetVolume(
-                              exercise.equipment === "body weight"
-                                ? USER_WEIGHT_KG
-                                : detail.weight,
-                              detail.reps,
-                              exercise.equipment
-                            )
-                          : 0;
-
-                        return (
-                          <div key={detailIndex}>
-                            <div className="flex items-center justify-between mt-3 mb-1 overflow-hidden gap-x-3">
-                              <div className="flex gap-x-1 w-100">
-                                {exercise.equipment !== "body weight" &&
-                                  exercise.equipment !== "band" && (
-                                    <input
-                                      type="number"
-                                      placeholder="weight"
-                                      className="px-3 py-2 text-white bg-gray-700 outline-none rounded-xl w-100"
-                                      disabled={
-                                        detail.isCompleted || !isSetEnabled
-                                      }
-                                      value={detail.weight}
-                                      onChange={(e) =>
-                                        updateExerciseDetail(
-                                          selectedWeek,
-                                          selectedDay,
-                                          exerciseIndex,
-                                          detailIndex,
-                                          "weight",
-                                          e.target.value
-                                        )
-                                      }
-                                      min={1}
-                                    />
-                                  )}
-                                <input
-                                  type="number"
-                                  placeholder="reps"
-                                  className="px-3 py-2 text-white bg-gray-700 outline-none rounded-xl w-100"
-                                  value={detail.reps}
-                                  onChange={(e) =>
-                                    updateExerciseDetail(
-                                      selectedWeek,
-                                      selectedDay,
-                                      exerciseIndex,
-                                      detailIndex,
-                                      "reps",
-                                      e.target.value
-                                    )
-                                  }
-                                  disabled={detail.isCompleted || !isSetEnabled}
-                                  min={1}
-                                />
-                              </div>
-                              {
-                                <div className="flex items-center gap-x-3">
-                                  {!detail?.isCompleted && detail.reps && (
-                                    <>
-                                      {timerIntervals.current[timerKey] ===
-                                        undefined && (
-                                        <>
-                                          {
-                                            <i
-                                              className="p-2 px-3 text-red-500   cursor-pointer fa-solid fa-play text-[20px] bg-[#61616154] rounded-lg"
-                                              disabled={!isSetEnabled}
-                                              onClick={() => {
-                                                startSetTimer(
-                                                  selectedWeek,
-                                                  selectedDay,
-                                                  exerciseIndex,
-                                                  detailIndex
-                                                );
-                                                setToggleCheck(true);
-                                              }}
-                                            />
-                                          }
-                                        </>
-                                      )}
-                                    </>
-                                  )}
-                                  {!detail.isCompleted ? (
-                                    <>
-                                      {isSetEnabled && toggleCheck && (
-                                        <i
-                                          className={`text-white cursor-pointer  p-2 px-3 fa-solid fa-check text-[20px] bg-[#61616154] rounded-lg`}
-                                          onClick={() => {
-                                            saveExerciseSet(
-                                              selectedWeek,
-                                              selectedDay,
-                                              exerciseIndex,
-                                              detailIndex
-                                            );
-                                            setToggleCheck(false);
-                                            setEditToggle(true);
-                                          }}
-                                          disabled={!isSetEnabled}
-                                        />
-                                      )}
-                                    </>
-                                  ) : (
-                                    
-                                      <i className="p-2 px-3 text-white  cursor-pointer fa-solid fa-pencil text-[20px] bg-[#61616154] rounded-lg" onClick={() => {
-                                        editExerciseSet(
-                                          selectedWeek,
-                                          selectedDay,
-                                          exerciseIndex,
-                                          detailIndex
-                                        );
-
-                                        setToggleCheck(true);
-                                        setEditToggle(false);
-                                      }} />
-                                  )}
-
-                                  {workoutData?.setUpdate && (
-                                    <>
-                                      {!detail?.isCompleted &&
-                                        editValue !== "edit" && (
-                                          <i
-                                            className="p-2 px-3 text-red-500 cursor-pointer fa-solid fa-circle-xmark text-[20px] bg-[#61616154] rounded-lg"
-                                            onClick={async () => {
-                                              await removeExerciseDetail(
-                                                selectedWeek,
-                                                selectedDay,
-                                                exerciseIndex,
-                                                detailIndex
-                                              );
-                                              stopSetTimer(
-                                                selectedWeek,
-                                                selectedDay,
-                                                exerciseIndex,
-                                                detailIndex
-                                              );
-                                            }}
-                                          />
-                                        )}
-                                    </>
-                                  )}
-                                </div>
-                              }
-                            </div>
-                            <div
-                              className={`flex items-center pb-2 text-white cursor-pointer`}
-                            >
-                              {setTimers[timerKey] !== undefined &&
-                                !detail.isCompleted && (
-                                  <>
-                                    <p>
-                                      <i className="mr-2 font-semibold fa-duotone fa-solid fa-timer "></i>
-                                    </p>
-                                    <p className="pr-3 text-xs whitespace-nowrap">
-                                      {formatSetTimer(setTimers[timerKey])} sec
-                                    </p>
-                                  </>
-                                )}
-
-                              {detail.isCompleted && (
-                                <>
-                                  <p>
-                                    <i className="mr-2 font-semibold text-white fa-duotone fa-solid fa-timer "></i>
-                                  </p>
-
-                                  <p className="pr-3 text-xs text-gray-300 whitespace-nowrap">
-                                    {formatSetTimer(
-                                      workoutData?.exerciseHistory[
-                                        `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                                      ]?.[detailIndex]?.duration || 0
-                                    )}{" "}
-                                    Sec
-                                  </p>
-                                </>
-                              )}
-
-                              {detail?.isCompleted && (
-                                <>
-                                  {workoutData?.exerciseHistory[
-                                    `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                                  ][detailIndex]?.restTime && (
-                                    <>
-                                      {" "}
-                                      <p>
-                                        <i className="pr-2 font-semibold text-white fa-solid fa-person-seat"></i>
-                                      </p>
-                                      <p className="pr-3 text-xs text-gray-300 whitespace-nowrap">
-                                        {formatTime(
-                                          workoutData.exerciseHistory[
-                                            `${selectedWeek}-${selectedDay}-${exerciseIndex}`
-                                          ][detailIndex].restTime
-                                        )}{" "}
-                                        sec
-                                      </p>
-                                    </>
-                                  )}
-                                </>
-                              )}
-
-                              {detail.isCompleted && (
-                                <>
-                                  <p>
-                                    <i className="pr-2 font-semibold text-white fa-duotone fa-solid fa-weight-hanging whitespace-nowrap"></i>
-                                  </p>
-                                  <p className="text-xs text-gray-300 whitespace-nowrap">
-                                    {formatVolume(
-                                      setVolume,
-                                      exercise.equipment
-                                    )}
-                                  </p>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {selectedWeek > 0 &&
-                        getPreviousRecord(
-                          selectedWeek,
-                          selectedDay,
-                          exerciseIndex
-                        ) && (
-                          <div className="mt-2 text-sm text-gray-300">
-                            Previous:{" "}
-                            {getPreviousRecord(
-                              selectedWeek,
-                              selectedDay,
-                              exerciseIndex
-                            ).map((set, index) => (
-                              <span key={index}>
-                                {set.weight && `${set.weight} kg x `}
-                                {set.reps} reps
-                                {index <
-                                getPreviousRecord(
-                                  selectedWeek,
-                                  selectedDay,
-                                  exerciseIndex
-                                ).length -
-                                  1
-                                  ? ", "
-                                  : ""}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-
-                      {isTimerRunning &&
-                        activeExerciseSet?.exercise === exerciseIndex && (
-                          <div className="flex items-center justify-center gap-x-4">
-                            <button
-                              onClick={stopTimer}
-                              className="px-3 py-2 mt-3 text-sm font-semibold text-white bg-red-500 rounded-full w-100"
-                              disabled={!EditToggle}
-                            >
-                              <i className="mr-3 fa-solid fa-circle-stop"></i>
-                              Stop  ({formatTime(elapsedTime)})
-                            </button>
-                          </div>
-                        )}
-                    </div>
-                  </div>
-                );
+      // Fallback if either week wasn't found or had no days
+      if (!initialWeek) {
+          // Find the first valid week with days
+          for (const weekObj of weekData) {
+              if (weekObj.days && weekObj.days.length > 0) {
+                  initialWeek = weekObj;
+                  initialDay = weekObj.days[0].day;
+                  console.log(`Fallback to first valid week: Week ${initialWeek.week}, Day ${initialDay}`);
+                  break;
               }
-            )}
-          </div>
+          }
+      }
 
-          {!isTimerRunning && (
-            <>
-              {!isEntirePlanCompleted() && (
-                <>
-                  {isAllExercisesInDayCompleted() &&
-                    (selectedDay < workoutData.daysPerWeek - 1 ||
-                      selectedWeek < workoutData.weeks - 1) && (
-                      <button
-                        onClick={() => {
-                          lockPreviousTabs && moveToNextDay();
+      // Final safety check
+      if (!initialWeek || initialDay === null) {
+          setError("Could not determine a valid starting position in the workout plan.");
+          setLoading(false);
+          return;
+      }
 
-                          router.push("/SavedPlan");
-                          plansRefetch();
-                          fetchWorkoutPlan();
-                        }}
-                        className="float-right px-6 py-2 mt-4 mb-2 text-white bg-black rounded-lg"
-                      >
-                        Complete Workout
-                      </button>
-                    )}
-                </>
-              )}
-            </>
-          )}
-          {!isTimerRunning && (
-            <>
-              {isEntirePlanCompleted() && (
-                <>
-                  {isAllExercisesInDayCompleted() && (
-                    <button
-                      onClick={() => finishPlan()}
-                      className="px-6 py-2 text-white bg-green-600 rounded-lg hover:bg-green-700"
-                    >
-                      Finish Plan
-                    </button>
-                  )}
-                </>
-              )}
-            </>
-          )}
+      // --- Set the initial state ---
+      console.log(`Setting initial state: Week ${initialWeek.week}, Day ${initialDay}`);
+      setSelectedWeek(initialWeek);
+      setSelectedDay(initialDay);
 
-          <ExerciseCanvas show={show} handleOpenClose={handleOpenClose} selectedExercise={selectedExercise}/>
+      // --- IMPORTANT: Store the validated state to localStorage ---
+      // This ensures synchronization between Firebase and localStorage
+      // This step is critical to fix the refresh issue with Skip Day
+      const validatedProgress = { 
+          currentWeekIndex: initialWeek.week,
+          currentDayNumber: initialDay,
+          weekName: initialWeek.weekName,
+          dayName: initialWeek.days.find(d => d.day === initialDay)?.dayName || `Day ${initialDay}`
+      };
+      
+      // Synchronize localStorage with our validated state
+      localStorage.setItem(workoutProgressKey, JSON.stringify(validatedProgress));
+      localStorage.setItem(selectedWeekKey, initialWeek.week.toString());
+      localStorage.setItem(selectedDayKey, initialDay.toString());
+
+    } catch (processError) {
+      console.error("Error during data transformation or initial state setting:", processError);
+      setError("Failed to process workout data.");
+      setTransformedData(null); setSelectedWeek(null); setSelectedDay(null);
+    } finally {
+      setLoading(false); // Processing complete
+    }
+
+  }, [workoutData, firebaseStoredData]); // Re-run when structure or FB data is ready
+
+  // --- Event Handlers (No changes needed) ---
+   const handleWeekSelect = (weekObject) => {
+      if (weekObject && weekObject.days && weekObject.days.length > 0) {
+          console.log("Manual week selection:", weekObject.weekName);
+          setSelectedWeek(weekObject);
+          setSelectedDay(weekObject.days[0].day);
+      } else {
+          console.warn("Selected week has no days, cannot switch.", weekObject);
+      }
+   };
+   const handleDaySelect = (dayNumber) => {
+        console.log("Manual day selection:", dayNumber);
+        setSelectedDay(dayNumber);
+   };
+
+   function getAllLocalStorageDataForFinish() {
+    let data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        let key = localStorage.key(i);
+        if (key && key.endsWith(selectedPlanId)) {
+            try { data[key] = JSON.parse(localStorage.getItem(key)); } catch { data[key] = localStorage.getItem(key); }
+        }
+    } return data;
+  }
+
+  // IMPROVED: Store progress to Firebase after skipping
+  async function storeFinalStateToDatabase(allDataToSave) {
+    if (!userId || !selectedPlanId || Object.keys(allDataToSave).length === 0) {
+      console.warn("Missing userId, selectedPlanId, or data when trying to save to Firebase");
+      return false;
+    }
+    
+    const userProgressRef = doc(db, "userWorkoutProgress", userId);
+    const firestorePayload = { [selectedPlanId]: allDataToSave };
+    
+    try {
+        await setDoc(userProgressRef, firestorePayload, { merge: true });
+        console.log("Successfully saved state to Firestore for plan:", selectedPlanId);
+        return true;
+    } catch (error) {
+        console.error("Error saving state to Firestore:", error);
+        toast.error("Error saving workout state to cloud.");
+        return false;
+    }
+  }
+  
+  function removeLocalStorageDataByPlanIdForFinish() {
+    if (!selectedPlanId) return;
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+        let key = localStorage.key(i);
+        if (key && key.endsWith(selectedPlanId)) {
+            try { localStorage.removeItem(key); } catch (e) { console.error(`Error removing item ${key}:`, e); }
+        }
+    }
+    console.log(`Cleared localStorage for plan ${selectedPlanId} after skip/finish.`);
+  }
+
+  // --- Derived Data for Rendering (No changes needed) ---
+  const weekTabsData = transFormedData?.weeksExercise || [];
+  
+  const dayTabsData = selectedWeek?.days?.map(day => ({
+    label: day.dayName, value: day.day, day: day.day, exercises: day.exercises,
+  })) || [];
+  const exercisesBasedOnDayObj = dayTabsData.find(d => d.value === selectedDay);
+  const weekStructureForPassing = weekTabsData.map(w => ({ week: w.week, weekName: w.weekName })) || [];
+  const structuredExercisesBasedOnDay = exercisesBasedOnDayObj ? {
+    dayName: exercisesBasedOnDayObj.label, day: exercisesBasedOnDayObj.value, exercises: exercisesBasedOnDayObj.exercises,
+    weekName: selectedWeek?.weekName, week: selectedWeek?.week,
+  } : {};
+
+  const { exercises, dayName, weekName, day: currentDayNumber, week: currentWeekIndex } = structuredExercisesBasedOnDay || {};
+
+  const dayData = dayTabsData?.map(i => ({
+    label: i.label, value: i.value, day: i.day
+  })) || [];
+
+  const totalWeeksCount = parseInt(transFormedData?.weeks || '0', 10)
+
+  const filteredExercises = exercises?.filter(
+    (exercise) => exercise.name && exercise.bodyPart && exercise.gifUrl
+  ) || [];
+  const allWeeksData = transFormedData?.weeksExercise || [];
+
+  // IMPROVED: handleSkipDay function to properly persist the skipped state
+  const handleSkipDay = async () => {
+    if (!allWeeksData || !dayData || totalWeeksCount <= 0 || typeof currentWeekIndex !== 'number' || typeof currentDayNumber !== 'number') {
+        console.error("Cannot skip day: Plan structure data missing or invalid.");
+        toast.error("Cannot skip day: Plan data missing.");
+        return;
+    }
+
+    const proceedWithSkip = async () => {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+
+        // 1. Update localStorage for each exercise on the skipped day
+        // IMPORTANT: Skipping STILL modifies localStorage because that's where the *active* session state is temporarily held.
+        // When "Finish Day" happens (implicitly by skipping the last exercise or explicitly later), this localStorage state gets saved.
+        if (filteredExercises && filteredExercises.length > 0) {
+          
+          filteredExercises.forEach((exercise, index) => {
+            const exerciseId = exercise.id || `${currentDayNumber}-${index}`;
+            const storageKey = `workout-${currentWeekIndex}-${currentDayNumber}-${exerciseId}-${selectedPlanId}`;
+            const numberOfSets = exercise?.weeklySetConfig?.sets || 1;
+            try {
+                let exerciseData = [];
+                const savedData = localStorage.getItem(storageKey);
+                if (savedData) try { exerciseData = JSON.parse(savedData); if (!Array.isArray(exerciseData)) exerciseData = []; } catch { exerciseData = []; }
+
+                let updatedExerciseData = exerciseData.length === 0
+                    ? Array(numberOfSets).fill().map((_, setIndex) => ({ id: setIndex + 1, weight: "", reps: "", duration: "00:00:00", rest: "00:00", isCompleted: false, isActive: false, isEditing: false, isDurationRunning: false, isRestRunning: false, date: today, exerciseId: exerciseId, skipped: true, skippedDates: [today] }))
+                    : exerciseData.map(set => { const dates = Array.isArray(set.skippedDates) ? [...set.skippedDates] : []; if (!dates.includes(today)) dates.push(today); return { ...set, isCompleted: false, isActive: false, isEditing: false, isDurationRunning: false, isRestRunning: false, skipped: true, skippedDates: dates }; });
+                localStorage.setItem(storageKey, JSON.stringify(updatedExerciseData));
+            } catch (error) { console.error(`Error updating localStorage for exercise ${exerciseId} on skipped day ${currentDayNumber}:`, error); }
+          });
+        } else { console.warn(`No exercises found for Day ${currentDayNumber} (Week ${currentWeekIndex}) to mark as skipped.`); }
+
+        // 2. Calculate the next day
+        const nextStep = calculateNextDay(currentWeekIndex, currentDayNumber, allWeeksData, totalWeeksCount);
+        if (nextStep === 'error') { toast.error("Error calculating the next day, but current day marked as skipped."); return; }
+
+        // Clear slide index for the day being skipped
+        const skippedDaySlideKey = `${slideIndexKeyBase}-W${currentWeekIndex}-D${currentDayNumber}`;
+        localStorage.removeItem(skippedDaySlideKey);
+
+        // --- Handle Plan Completion or Continuation (Saves progress to localStorage for next load/finish) ---
+        if (nextStep === null) {
+          toast.success("Workout Plan Completed! Finishing up...");
+          // !! IMPORTANT: Simulate "Finish Day" to save the skipped state to Firebase !!
+          // Get all current LS data (which now includes the skipped day's flags)
+          const finalLocalStorageData = getAllLocalStorageDataForFinish(); // Need a helper to get all relevant LS keys
+          // Store this final state to DB
+          await storeFinalStateToDatabase(finalLocalStorageData); // Need helper
+          // Clear LS for this plan
+          removeLocalStorageDataByPlanIdForFinish(); // Need helper
+          // Clear progress markers
+          localStorage.removeItem(workoutProgressKey);
+          localStorage.removeItem(selectedWeekKey);
+          localStorage.removeItem(selectedDayKey);
+          router.push("/SavedPlan");
+          return;
+        }
+
+        // 3. Plan continues: Get details for the *next* step
+        const { nextWeekIndex, nextDayNumber, nextWeekName, nextDayName } = nextStep;
+
+        // PERSIST Global Progress (to the *next* day/week) using numeric identifiers
+        // Create comprehensive progress object
+        const newProgress = { 
+          currentWeekIndex: nextWeekIndex, 
+          currentDayNumber: nextDayNumber, 
+          weekName: nextWeekName, 
+          dayName: nextDayName
+        };
+        
+        // Update localStorage first
+        localStorage.setItem(workoutProgressKey, JSON.stringify(newProgress));
+        localStorage.setItem(selectedWeekKey, nextWeekIndex.toString());
+        localStorage.setItem(selectedDayKey, nextDayNumber.toString());
+
+        // CRITICAL FIX: Save current state (including all progress keys) to Firebase IMMEDIATELY
+        // This ensures that when user refreshes, the data is already in Firebase
+        const allLocalData = getAllLocalStorageDataForFinish();
+        
+        // Add the latest progress keys to ensure they're saved to Firebase
+        // This is critical - we need to make sure the progress objects are in Firebase
+        allLocalData[workoutProgressKey] = newProgress;
+        allLocalData[selectedWeekKey] = nextWeekIndex;
+        allLocalData[selectedDayKey] = nextDayNumber;
+        
+        // Save to Firebase
+        const savedToFirebase = await storeFinalStateToDatabase(allLocalData);
+        if (!savedToFirebase) {
+          console.warn("Failed to save progress to Firebase after skipping day.");
+          // Continue anyway since localStorage is updated
+        }
+
+        // UPDATE React state in PlanDetail (to the *next* day/week)
+        const nextWeekObject = allWeeksData.find(w => w.week === nextWeekIndex);
+        if(nextWeekObject) {
+            setSelectedWeek(nextWeekObject); // Update PlanDetail's week state
+            setSelectedDay(nextDayNumber);   // Update PlanDetail's day state
+            toast.success(`Skipped to ${nextDayName || `Day ${nextDayNumber}`}, ${nextWeekName || `Week ${nextWeekIndex + 1}`}`);
+        } else {
+            console.error("Could not find next week object after skip calculation.", { nextWeekIndex });
+            toast.error("Skipped day, but failed to load next week's data.");
+        }
+      } catch (error) {
+        console.error("Error encountered in proceedWithSkip:", error);
+        toast.error("An unexpected error occurred while skipping the day.");
+      }
+    };
+
+    // Show confirmation toast
+    toast((t) => ( <ConfirmationToast t={t} message="Skip this entire day's workout?" onConfirm={proceedWithSkip} /> ), { duration: Infinity, position: "top-center" });
+  };
+
+  const updateProgressStats = () => {
+    if (!transFormedData) return;
+    
+    // Get all current localStorage data to include the latest changes
+    const currentLocalData = getAllLocalStorageData(selectedPlanId);
+    
+    // Merge with Firebase data, prioritizing local changes
+    const mergedData = { ...firebaseStoredData, ...currentLocalData };
+    
+    // Calculate progress using the existing function
+    const progress = calculateDetailedWorkoutProgress(transFormedData, mergedData);
+    
+    setProgressStats(progress);
+  };
+
+
+
+  // --- Render Logic (No changes needed, added firebaseStoredData prop pass) ---
+  if (loading) return <div className="flex items-center justify-center h-screen"><div className="p-4 text-center">Loading workout plan...</div></div>;
+  if (error) return <div className="flex flex-col items-center justify-center h-screen"><div className="p-4 text-red-500">Error: {error}</div></div>;
+  if (!transFormedData || !selectedWeek || selectedDay === null) return <div className="flex flex-col items-center justify-center h-screen"><div className="p-4 text-center text-gray-500">Workout data not available or incomplete.</div></div>;
+
+  return (
+    <div className="flex flex-col bg-gray-50 hide-scrollbar">
+      {/* Header */}
+      
+      <div className="p-3 pb-1 bg-white border-b sticky-top">
+        <h2 className="text-lg font-semibold capitalize">{_.capitalize(transFormedData?.name)}</h2>
+        <div className="flex justify-between">
+        <p className="text-xs text-gray-500">
+            {selectedWeek?.weekName || `Week ${selectedWeek?.week !== undefined ? selectedWeek.week + 1 : '?'}`}
+            {' / '}
+            {dayTabsData.find(d => d.value === selectedDay)?.label || `Day ${selectedDay || '?'}`}
+        </p>
+         <button className="text-sm text-red-600" onClick={handleSkipDay}>Skip Day</button> 
         </div>
+         
       </div>
-    </>
+      {progressStats && (
+      <ProgressBar animated
+              percentage={progressStats?.progressPlannedOnlyPercent} 
+              label={`Planned Sets Completed ${progressStats?.progressPlannedOnlyPercent}%`} 
+              className="rounded-0"
+              variant="warning"
+              min={0}
+              max={100}
+            />)}
+      {progressStats && (
+      <ProgressBar animated
+              percentage={progressStats.progressIncludingExtraPercent} 
+              label={`Overall Progress (incl. Extra Sets) ${progressStats.progressIncludingExtraPercent}%`} 
+              className="mt-1 rounded-0"
+              variant="success"
+              min={0}
+              max={100}
+            />)}
+      {/* {progressStats && (
+        <ProgressRealTime progressStats={progressStats} />
+      )} */}
+
+      {/* Week Tabs never remove below code */}
+      <div className="flex gap-2 p-2 overflow-x-auto bg-white border-b no-scrollbar shrink-0">
+        {weekTabsData.map((weekItem) => (
+          <button
+            className={`px-3 py-1.5 text-sm font-medium rounded-md border whitespace-nowrap ${
+              selectedWeek?.week === weekItem.week
+                ? "bg-black text-white border-black"
+                : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
+            }`}
+            onClick={() => handleWeekSelect(weekItem)}
+            key={weekItem.weekName}
+            // disabled={selectedWeek?.week !== weekItem.week}
+          >
+            {weekItem.weekName}
+          </button>
+        ))}
+      </div>
+     
+      {/* Day Tabs and Exercise Content */}
+      <div className="flex-1 mb-2 overflow-y-auto exerciseCard no-scrollbar">
+       {dayTabsData.length > 0 ? (
+         <TabMT
+            tab={dayTabsData}
+            selectedDay={selectedDay}
+            setSelectedDay={handleDaySelect}
+            exercisesBasedOnDay={structuredExercisesBasedOnDay}
+            selectedPlanId={selectedPlanId}
+            transFormedData={transFormedData}
+            selectedWeek={selectedWeek}
+            setSelectedWeek={handleWeekSelect}
+            weekStructure={weekStructureForPassing}
+            setSelectedDayDirectly={setSelectedDay}
+            setSelectedWeekDirectly={setSelectedWeek}
+            // *** PASS FIREBASE DATA DOWN ***
+            firebaseStoredData={firebaseStoredData}
+            updateProgressStats={updateProgressStats}
+            progressStats={progressStats}
+          />
+        ) : (
+          <div className="p-4 text-center text-gray-500">No days found for this week.</div>
+        )}
+      </div>
+        <Progress transFormedData={transFormedData} firebaseStoredData={firebaseStoredData}/>
+      
+    </div>
   );
 };
 

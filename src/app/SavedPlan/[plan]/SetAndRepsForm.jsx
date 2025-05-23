@@ -591,7 +591,7 @@ const SetAndRepsForm = ({
             localStorage.removeItem(workoutProgressKey);
             localStorage.removeItem(selectedWeekKey);
             localStorage.removeItem(selectedDayKey);
-            router.push("/new"); // Redirect
+            router.push("/SavedPlan"); // Redirect
             return;
         }
 
@@ -616,7 +616,7 @@ const SetAndRepsForm = ({
         removeLocalStorageDataByPlanId();
 
         toast.success(`Day Complete! Progress saved.`, { duration: 3000 });
-        router.push("/new"); // Redirect
+        router.push("/SavedPlan"); // Redirect
 
     } catch (error) {
         console.error("Error in handleFinishDay:", error);

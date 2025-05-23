@@ -166,7 +166,7 @@ const ExerciseCardSelected = ({
           localStorage.removeItem(workoutProgressKey);
           localStorage.removeItem(selectedWeekKey);
           localStorage.removeItem(selectedDayKey);
-          router.push("/new");
+          router.push("/SavedPlan");
           return;
         }
 

@@ -162,7 +162,7 @@ const CustomPlanPage = () => {
 
     setSavedPlans(updatedPlans);
 
-    router.push(`/new/${planId}`);
+    router.push(`/SavedPlan/${planId}`);
   };
 
   const hasActivePlan = savedPlans.some(
@@ -242,7 +242,7 @@ const CustomPlanPage = () => {
             </div>
           )} */}
 
-          <div className="flex flex-wrap justify-center p-2 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar h-100 md:justify-between">
+          <div className="flex flex-wrap justify-between p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar h-100">
           {savedPlans.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {savedPlans.map((plan, index) => (
@@ -251,7 +251,7 @@ const CustomPlanPage = () => {
                       plan={plan}
                       onClick={() => {
                         if (plan.progress === 100 || plan.status === "active") {
-                          router.push(`/new/${plan.id}`);
+                          router.push(`/SavedPlan/${plan.id}`);
                         } else {
                           startPlan(plan.id, plan.planName);
                         }
