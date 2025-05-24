@@ -17,7 +17,7 @@ const DraftPlansPage = () => {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
 
-  // Fetch draft plans from Firebase
+  
   const fetchDraftPlans = async () => {
     if (!id) return;
     

@@ -11,7 +11,6 @@ const Sidebar = () => {
   const { handleOpenClose, fullName, user, plansRefetch } =
     useContext(GlobalContext);
   const userRole = user?.publicMetadata?.role;
-
   const menuItems = [
     { name: "Home", path: "/", icon: "fa-house" },
     { name: "Create Plan", path: "/createPlanPage", icon: "fa-layer-plus" },
