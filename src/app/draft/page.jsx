@@ -159,11 +159,7 @@ const DraftPlansPage = () => {
               </div>
               <h3 className="mb-2 text-xl font-semibold text-gray-700">No Draft Plans</h3>
               <p className="mb-6 text-gray-500">You haven't saved any draft plans yet.</p>
-              <ButtonCs
-                title="Create New Plan"
-                onClick={() =>                 router.push('/createPlanPage')}
-                className="btnStyle"
-              />
+              
             </div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
