@@ -14,7 +14,6 @@ import PreviousHistory from "./PreviousHistory";
 import { calculateDetailedWorkoutProgress } from "@/utils/progress";
 import ProgressRealTime from "./ProgressRealTime";
 import { handleStatus } from "@/service/workoutService";
-// Removed unused import: import { is } from "date-fns/locale";
 
 const SetAndRepsForm = ({
   sets: initialSets,
@@ -51,18 +50,23 @@ const SetAndRepsForm = ({
   const selectedDayKey = `selectedDayNumber_${selectedPlanId}`;
   const slideIndexKeyBase = `slideIndex-${selectedPlanId || "default"}`;
   const storageKey = `workout-${currentWeekIndex}-${selectedDay}-${exerciseId}-${selectedPlanId}`;
+  // Add active timer storage key
+  const activeTimerKey = `activeTimer-${selectedPlanId}-${currentWeekIndex}-${selectedDay}`;
 
   const [sets, setSets] = useState([]);
   const [activeTimer, setActiveTimer] = useState(null);
   const [seconds, setSeconds] = useState(0);
   const [isAllSetsCompleted, setIsAllSetsCompleted] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  // *** NEW STATE: Track completion status for entire day ***
+  const [isDayCompleted, setIsDayCompleted] = useState(false);
+  const [incompleteExercises, setIncompleteExercises] = useState([]);
+  
   const timerRef = useRef(null);
   const activeSetRef = useRef(null);
   const waitingForRestCompletion = useRef(false);
   const initialLoadComplete = useRef(false);
   const [hasAutoNavigated, setHasAutoNavigated] = useState(false);
-  // const [progressStats, setProgressStats] = useState(null);
 
   // --- Helper functions for Finish Day (remain the same) ---
  
@@ -78,8 +82,8 @@ const SetAndRepsForm = ({
         }
       }
     }
-
   }
+
   async function storeInDatabase() {
     const allDataToSave = getAllLocalStorageData(selectedPlanId);
     if (!userId || !selectedPlanId || Object.keys(allDataToSave).length === 0) {
@@ -90,28 +94,72 @@ const SetAndRepsForm = ({
     const firestorePayload = { [selectedPlanId]: allDataToSave };
     try {
       await setDoc(userProgressRef, firestorePayload, { merge: true });
-
     } catch (error) {
       console.error("Error saving data to Firestore:", error);
       toast.error("Error saving workout progress.");
     }
   }
 
-  // --- Calculate and update progress stats ---
-  // const updateProgressStats = () => {
-  //   if (!transFormedData) return;
+  // *** NEW FUNCTION: Check if entire day is completed ***
+  const checkDayCompletion = () => {
+    if (!transFormedData?.weeksExercise || !selectedWeek) return false;
+
+    const currentWeekData = transFormedData.weeksExercise.find(w => w.week === selectedWeek.week);
+    if (!currentWeekData) return false;
+
+    const currentDayData = currentWeekData.days.find(d => d.day === selectedDay);
+    if (!currentDayData || !currentDayData.exercises) return false;
+
+    const allExercisesForDay = currentDayData.exercises.filter(
+      (exercise) => exercise.name && exercise.bodyPart && exercise.gifUrl
+    );
+
+    const incomplete = [];
+    let allDayExercisesComplete = true;
+
+    // Check each exercise's completion status
+    for (const exercise of allExercisesForDay) {
+      const exerciseId = exercise.id || `${selectedDay}-${allExercisesForDay.indexOf(exercise)}`;
+      const storageKey = `workout-${currentWeekIndex}-${selectedDay}-${exerciseId}-${selectedPlanId}`;
+      
+      let exerciseComplete = false;
+      
+      // Check Firebase data first, then localStorage
+      let exerciseData = null;
+      if (firebaseStoredData && firebaseStoredData[storageKey]) {
+        exerciseData = firebaseStoredData[storageKey];
+      } else if (typeof window !== "undefined") {
+        try {
+          const savedData = localStorage.getItem(storageKey);
+          if (savedData) {
+            exerciseData = JSON.parse(savedData);
+          }
+        } catch (error) {
+          console.error(`Error parsing data for ${storageKey}:`, error);
+        }
+      }
+
+      if (exerciseData && Array.isArray(exerciseData) && exerciseData.length > 0) {
+        // Check if all visible sets are completed or skipped
+        const visibleSets = exerciseData.filter(set => !set.isDeleted);
+        exerciseComplete = visibleSets.length > 0 && visibleSets.every(set => set.isCompleted || set.skipped);
+      }
+
+      if (!exerciseComplete) {
+        incomplete.push({
+          name: exercise.name,
+          exerciseId: exerciseId,
+          index: allExercisesForDay.indexOf(exercise)
+        });
+        allDayExercisesComplete = false;
+      }
+    }
+
+    setIsDayCompleted(allDayExercisesComplete);
+    setIncompleteExercises(incomplete);
     
-  //   // Get all current localStorage data to include the latest changes
-  //   const currentLocalData = getAllLocalStorageData(selectedPlanId);
-    
-  //   // Merge with Firebase data, prioritizing local changes
-  //   const mergedData = { ...firebaseStoredData, ...currentLocalData };
-    
-  //   // Calculate progress using the existing function
-  //   const progress = calculateDetailedWorkoutProgress(transFormedData, mergedData);
-    
-  //   setProgressStats(progress);
-  // };
+    return allDayExercisesComplete;
+  };
 
   // --- Effects ---
 
@@ -168,7 +216,7 @@ const SetAndRepsForm = ({
             duration: "00:00:00",
             rest: "00:00",
             isCompleted: false,
-            isActive: index === 0, // Only first default set is active
+            isActive: index === 0,
             isEditing: false,
             isDurationRunning: false,
             isRestRunning: false,
@@ -176,7 +224,7 @@ const SetAndRepsForm = ({
             exerciseId: exerciseId,
             skipped: false,
             skippedDates: [],
-            isDeleted: false, // Add default isDeleted flag
+            isDeleted: false,
           }));
         source = "default";
       }
@@ -186,10 +234,9 @@ const SetAndRepsForm = ({
       const processedData = initialData.map((set, index) => {
         const isSetCompleted = set.isCompleted || false;
         const isSetSkipped = set.skipped || false;
-        const isSetDeleted = set.isDeleted || false; // Ensure isDeleted exists
+        const isSetDeleted = set.isDeleted || false;
         let isActive = false;
 
-        // Make the first non-completed, non-skipped, non-deleted set active
         if (!isSetCompleted && !isSetSkipped && !isSetDeleted && !firstActiveSetFound) {
           isActive = true;
           firstActiveSetFound = true;
@@ -202,7 +249,7 @@ const SetAndRepsForm = ({
           duration: set.duration ?? "00:00:00",
           rest: set.rest ?? "00:00",
           isCompleted: isSetCompleted,
-          isActive: isActive, // Use calculated isActive state
+          isActive: isActive,
           isEditing: set.isEditing || false,
           isDurationRunning: set.isDurationRunning || false,
           isRestRunning: set.isRestRunning || false,
@@ -210,31 +257,25 @@ const SetAndRepsForm = ({
           exerciseId: set.exerciseId || exerciseId,
           skipped: isSetSkipped,
           skippedDates: set.skippedDates || [],
-          isDeleted: isSetDeleted, // Ensure flag is present
+          isDeleted: isSetDeleted,
         };
       });
 
-       // If after processing, no set is active (e.g., all loaded sets were completed/skipped/deleted)
       if (!firstActiveSetFound && processedData.length > 0 && source !== 'default') {
          const allDoneOrSkippedOrDeleted = processedData.every(s => s.isCompleted || s.skipped || s.isDeleted);
-         // If not all done/skipped/deleted, maybe activate the first *available* one?
-         // Let's reconsider if we need to auto-activate here. Maybe better not to.
          if (!allDoneOrSkippedOrDeleted) {
-             // Find first non-completed, non-skipped, non-deleted and make it active
              const firstAvailableIndex = processedData.findIndex(s => !s.isCompleted && !s.skipped && !s.isDeleted);
              if (firstAvailableIndex !== -1) {
                  processedData[firstAvailableIndex].isActive = true;
-                 firstActiveSetFound = true; // Mark that we found one
+                 firstActiveSetFound = true;
              }
          }
       } else if (!firstActiveSetFound && processedData.length > 0 && source === 'default') {
-          // Ensure default sets always have an active one if available
           const firstAvailableIndex = processedData.findIndex(s => !s.isCompleted && !s.skipped && !s.isDeleted);
             if (firstAvailableIndex !== -1) {
                 processedData[firstAvailableIndex].isActive = true;
             }
       }
-
 
       return processedData;
     };
@@ -243,44 +284,102 @@ const SetAndRepsForm = ({
     const initialData = getInitialSets();
     setSets(initialData);
 
-    if (!initialLoadComplete.current && initialData.length > 0) {
-      let restored = false;
-      for (const set of initialData) {
-        if (set.isDurationRunning && !set.skipped && !set.isDeleted) { // Check isDeleted
-          setActiveTimer("workout");
-          setSeconds(parseTimeToSeconds(set.duration));
-          activeSetRef.current = set.id;
+    // ADDED: Check for active timer info in localStorage
+    const savedTimerInfo = localStorage.getItem(activeTimerKey);
+    if (savedTimerInfo) {
+      try {
+        const timerInfo = JSON.parse(savedTimerInfo);
+        if (timerInfo.exerciseId === exerciseId) {
+          // This is the correct exercise, restore timer
+          if (!initialLoadComplete.current && initialData.length > 0) {
+            let restored = false;
+            for (const set of initialData) {
+              if (set.isDurationRunning && !set.skipped && !set.isDeleted) {
+                setActiveTimer("workout");
+                setSeconds(parseTimeToSeconds(set.duration));
+                activeSetRef.current = set.id;
+                waitingForRestCompletion.current = false;
+                restored = true;
+                break;
+              }
+            }
+            if (!restored) {
+              for (const set of initialData) {
+                if (set.isRestRunning && !set.skipped && !set.isDeleted) {
+                  setActiveTimer("rest");
+                  setSeconds(parseTimeToSeconds(set.rest));
+                  activeSetRef.current = set.id;
+                  waitingForRestCompletion.current = true;
+                  restored = true;
+                  break;
+                }
+              }
+            }
+            if (!restored) {
+              setActiveTimer(null);
+              setSeconds(0);
+              activeSetRef.current = null;
+              waitingForRestCompletion.current = false;
+              localStorage.removeItem(activeTimerKey);
+            }
+            initialLoadComplete.current = true;
+          } else if (!initialLoadComplete.current) {
+            initialLoadComplete.current = true;
+          }
+        } else {
+          // Different exercise, clear timer info
+          localStorage.removeItem(activeTimerKey);
+          setActiveTimer(null);
+          setSeconds(0);
+          activeSetRef.current = null;
           waitingForRestCompletion.current = false;
-          restored = true;
-          break;
+          initialLoadComplete.current = true;
         }
+      } catch (error) {
+        console.error("Error restoring timer info:", error);
+        localStorage.removeItem(activeTimerKey);
+        initialLoadComplete.current = true;
       }
-      if (!restored) {
+    } else {
+      // No saved timer info, proceed with normal initialization
+      if (!initialLoadComplete.current && initialData.length > 0) {
+        let restored = false;
         for (const set of initialData) {
-          if (set.isRestRunning && !set.skipped && !set.isDeleted) { // Check isDeleted
-            setActiveTimer("rest");
-            setSeconds(parseTimeToSeconds(set.rest));
+          if (set.isDurationRunning && !set.skipped && !set.isDeleted) {
+            setActiveTimer("workout");
+            setSeconds(parseTimeToSeconds(set.duration));
             activeSetRef.current = set.id;
-            waitingForRestCompletion.current = true;
+            waitingForRestCompletion.current = false;
             restored = true;
             break;
           }
         }
-      }
-      if (!restored) {
-        setActiveTimer(null);
-        setSeconds(0);
-        activeSetRef.current = null;
-        waitingForRestCompletion.current = false;
-      }
-      initialLoadComplete.current = true;
-    } else if (!initialLoadComplete.current) {
+        if (!restored) {
+          for (const set of initialData) {
+            if (set.isRestRunning && !set.skipped && !set.isDeleted) {
+              setActiveTimer("rest");
+              setSeconds(parseTimeToSeconds(set.rest));
+              activeSetRef.current = set.id;
+              waitingForRestCompletion.current = true;
+              restored = true;
+              break;
+            }
+          }
+        }
+        if (!restored) {
+          setActiveTimer(null);
+          setSeconds(0);
+          activeSetRef.current = null;
+          waitingForRestCompletion.current = false;
+        }
         initialLoadComplete.current = true;
+      } else if (!initialLoadComplete.current) {
+          initialLoadComplete.current = true;
+      }
     }
 
-    // Check initial completion status after setting data
-     const allInitiallyDone = Array.isArray(initialData) && initialData.length > 0 &&
-       initialData.every(set => set.isCompleted || set.skipped || set.isDeleted); // Include isDeleted
+    const allInitiallyDone = Array.isArray(initialData) && initialData.length > 0 &&
+       initialData.every(set => set.isCompleted || set.skipped || set.isDeleted);
     setIsAllSetsCompleted(allInitiallyDone);
     updateProgressStats();
 
@@ -292,23 +391,90 @@ const SetAndRepsForm = ({
     currentWeekIndex,
     firebaseStoredData,
     transFormedData,
+    activeTimerKey,
   ]);
 
-  // Save sets data to LOCAL STORAGE
+  // Save timer state when it changes
+  useEffect(() => {
+    if (activeTimer && activeSetRef.current !== null) {
+      const timerInfo = {
+        exerciseId: exerciseId,
+        timerType: activeTimer,
+        setId: activeSetRef.current,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(activeTimerKey, JSON.stringify(timerInfo));
+    } else {
+      localStorage.removeItem(activeTimerKey);
+    }
+  }, [activeTimer, exerciseId, activeTimerKey]);
+
+  // Save sets data to LOCAL STORAGE and check day completion
   useEffect(() => {
     if (initialLoadComplete.current && sets.length > 0) {
       localStorage.setItem(storageKey, JSON.stringify(sets));
       checkAllSetsCompleted();
       updateProgressStats();
+      // *** CHECK DAY COMPLETION WHENEVER SETS CHANGE ***
+      checkDayCompletion();
     }
   }, [sets, storageKey]);
+
+  // *** FIXED: Enhanced effect for checking day completion ***
+  useEffect(() => {
+    // Check day completion immediately when component mounts or key data changes
+    const checkCompletion = () => {
+      checkDayCompletion();
+    };
+    
+    checkCompletion();
+    
+    // Also check when localStorage changes (for cross-tab updates)
+    const handleStorageChange = (e) => {
+      if (e.key && e.key.includes(selectedPlanId)) {
+        checkCompletion();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Check completion after a small delay to ensure all data is loaded
+    const timeoutId = setTimeout(checkCompletion, 100);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearTimeout(timeoutId);
+    };
+  }, [
+    firebaseStoredData, 
+    selectedDay, 
+    selectedWeek, 
+    currentWeekIndex, 
+    transFormedData,
+    exerciseId, // Add exerciseId to dependencies
+    isLastExercise // Add isLastExercise to dependencies
+  ]);
+
+  // *** NEW: Add focus event listener to recheck when tab/window regains focus ***
+  useEffect(() => {
+    const handleFocus = () => {
+      if (isLastExercise) {
+        checkDayCompletion();
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [isLastExercise]);
 
   // *** MODIFIED: Check completion state function ***
   const checkAllSetsCompleted = () => {
     const allDone =
       Array.isArray(sets) &&
       sets.length > 0 &&
-      // A set is considered "done" if completed, skipped, OR deleted
       sets.every((set) => set.isCompleted || set.skipped || set.isDeleted) &&
       !waitingForRestCompletion.current &&
       activeTimer !== "rest";
@@ -316,17 +482,17 @@ const SetAndRepsForm = ({
     return allDone;
   };
 
-
-  // Auto-navigation effect (no change needed, relies on isAllSetsCompleted)
+  // FIXED: Auto-navigation effect - prevent navigation when timer is active
   useEffect(() => {
     if (
       isAllSetsCompleted &&
       !isLastExercise &&
       !waitingForRestCompletion.current &&
       !hasAutoNavigated &&
-      activeTimer === null
+      activeTimer === null && // Ensure no timer is active
+      initialLoadComplete.current // Ensure initial load is complete
     ) {
-      const isAnySkipped = sets.some((s) => s.skipped && !s.isDeleted); // Only consider non-deleted skipped sets for this check maybe? Or keep as is? Let's keep as is for now.
+      const isAnySkipped = sets.some((s) => s.skipped && !s.isDeleted);
       if (!isAnySkipped) {
         const moveToNextTimeout = setTimeout(() => {
           if (
@@ -335,7 +501,7 @@ const SetAndRepsForm = ({
             !waitingForRestCompletion.current &&
             !hasAutoNavigated &&
             activeTimer === null &&
-            !sets.some((s) => s.skipped && !s.isDeleted) // Check again
+            !sets.some((s) => s.skipped && !s.isDeleted)
           ) {
             setHasAutoNavigated(true);
             goNext();
@@ -347,13 +513,13 @@ const SetAndRepsForm = ({
   }, [
     isAllSetsCompleted,
     isLastExercise,
-    waitingForRestCompletion.current, // Note: useRef values don't trigger effects, but logic inside uses the current value
+    waitingForRestCompletion.current,
     hasAutoNavigated,
     activeTimer,
     goNext,
     sets,
+    initialLoadComplete.current,
   ]);
-
 
   // Timer interval logic (no change)
   useEffect(() => {
@@ -372,24 +538,20 @@ const SetAndRepsForm = ({
    useEffect(() => {
     if (!activeTimer || activeSetRef.current === null) return;
     setSets((prevSets) => {
-        // Find the set, ensuring it's not deleted
         const activeSetIndex = prevSets.findIndex(
             (set) => set.id === activeSetRef.current && !set.isDeleted
         );
-        // If set not found, or it's skipped/deleted, stop timer and clear state
         if (activeSetIndex === -1 || prevSets[activeSetIndex].skipped || prevSets[activeSetIndex].isDeleted) {
             if (prevSets[activeSetIndex]?.skipped || prevSets[activeSetIndex]?.isDeleted) {
                 setActiveTimer(null);
                 setSeconds(0);
                 waitingForRestCompletion.current = false;
                 activeSetRef.current = null;
-                // Optionally, reset the running flags on the specific set if needed
                  return prevSets.map((s, idx) => idx === activeSetIndex ? { ...s, isDurationRunning: false, isRestRunning: false } : s);
             }
-            return prevSets; // Set not found, return previous state
+            return prevSets;
         }
 
-        // Format time
         const hours = Math.floor(seconds / 3600).toString().padStart(2, "0");
         const minutes = Math.floor((seconds % 3600) / 60).toString().padStart(2, "0");
         const secs = (seconds % 60).toString().padStart(2, "0");
@@ -426,13 +588,12 @@ const SetAndRepsForm = ({
     });
 }, [seconds, activeTimer]);
 
-
   // =========================================
   // == HANDLER FUNCTIONS ==
   // =========================================
 
   const startWorkout = (setId) => {
-    const setIndex = sets.findIndex((set) => set.id === setId && !set.isDeleted); // Check isDeleted
+    const setIndex = sets.findIndex((set) => set.id === setId && !set.isDeleted);
     if (setIndex === -1) return;
     const currentSet = sets[setIndex];
     if (currentSet.skipped) {
@@ -446,12 +607,11 @@ const SetAndRepsForm = ({
     if ((currentSet.isActive || currentSet.isEditing) && !currentSet.isCompleted) {
       const updatedSets = sets.map((s, index) => ({
         ...s,
-        // Only update the target set if it's not deleted
         isDurationRunning: index === setIndex && !s.isDeleted,
         isRestRunning: false,
         duration: index === setIndex && !s.isDeleted ? "00:00:00" : s.duration,
-        isActive: index === setIndex && !s.isDeleted, // Ensure only the non-deleted target set is active
-        isEditing: false, // Stop editing when starting timer
+        isActive: index === setIndex && !s.isDeleted,
+        isEditing: false,
       }));
       setSets(updatedSets);
       setActiveTimer("workout");
@@ -463,15 +623,15 @@ const SetAndRepsForm = ({
     }
   };
 
+  // *** FIXED: completeSet with storage event dispatch ***
   const completeSet = (setId) => {
-    const setIndex = sets.findIndex((set) => set.id === setId && !set.isDeleted); // Check isDeleted
+    const setIndex = sets.findIndex((set) => set.id === setId && !set.isDeleted);
     if (setIndex === -1) return;
     const currentSet = sets[setIndex];
     if (currentSet.skipped) {
       toast.error("Cannot complete a skipped set.");
       return;
     }
-    // Allow completing even if weight/reps are empty when editing/re-completing? Let's keep validation
     if (!currentSet.weight || !currentSet.reps) {
         toast.error("Please enter weight and reps.");
         return;
@@ -481,19 +641,19 @@ const SetAndRepsForm = ({
       setActiveTimer("rest");
       setSeconds(0);
       waitingForRestCompletion.current = true;
-      activeSetRef.current = setId; // Rest timer belongs to the set just completed
+      activeSetRef.current = setId;
 
       const updatedSets = sets.map((s, index) =>
-        index === setIndex && !s.isDeleted // Ensure it's the correct, non-deleted set
+        index === setIndex && !s.isDeleted
           ? {
               ...s,
               isCompleted: true,
               isEditing: false,
               isActive: false,
               isDurationRunning: false,
-              isRestRunning: true, // Start rest timer flag
+              isRestRunning: true,
             }
-          : { // Reset flags for others
+          : {
               ...s,
               isDurationRunning: false,
               isRestRunning: false,
@@ -502,8 +662,14 @@ const SetAndRepsForm = ({
             }
       );
       setSets(updatedSets);
-      updateProgressStats()
-      // Don't activate next set yet, wait for rest timer to finish/be skipped
+      updateProgressStats();
+      
+      // Dispatch storage event to notify other components
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: storageKey,
+        newValue: JSON.stringify(updatedSets),
+        url: window.location.href
+      }));
     } else if (activeTimer === "rest") {
         toast.error("Cannot complete set while resting.");
     } else if (activeTimer === "workout" && activeSetRef.current !== setId) {
@@ -516,13 +682,11 @@ const SetAndRepsForm = ({
   const stopRestTimer = () => {
     if (activeTimer !== "rest" || activeSetRef.current === null) return;
     const lastCompletedSetId = activeSetRef.current;
-    const lastCompletedSetIndex = sets.findIndex((set) => set.id === lastCompletedSetId); // No need to check isDeleted here, it wouldn't be resting if deleted
+    const lastCompletedSetIndex = sets.findIndex((set) => set.id === lastCompletedSetId);
 
     if (lastCompletedSetIndex === -1) return;
 
-
     let nextActiveIndex = -1;
-    // Find the *first* set that is NOT completed, NOT skipped, and NOT deleted
     for (let i = 0; i < sets.length; i++) {
         if (!sets[i].isCompleted && !sets[i].skipped && !sets[i].isDeleted) {
             nextActiveIndex = i;
@@ -532,8 +696,8 @@ const SetAndRepsForm = ({
 
     const updatedSets = sets.map((set, index) => ({
       ...set,
-      isActive: index === nextActiveIndex, // Activate the next available set
-      isRestRunning: false, // Stop rest timer flag for all
+      isActive: index === nextActiveIndex,
+      isRestRunning: false,
     }));
 
     setSets(updatedSets);
@@ -541,21 +705,24 @@ const SetAndRepsForm = ({
     setSeconds(0);
     waitingForRestCompletion.current = false;
     activeSetRef.current = null;
-     // checkAllSetsCompleted(); // Let useEffect handle this
   };
 
+  // *** MODIFIED: handleFinishDay with better validation ***
   const handleFinishDay = async () => {
     if (activeTimer !== null || waitingForRestCompletion.current) {
       toast.error("Cannot finish day while a timer is active or resting.");
       return;
     }
-    // Check if all VISIBLE sets are done/skipped
-    const allCurrentExerciseSetsDone = sets.filter(s => !s.isDeleted) // Only consider non-deleted sets
-                                           .every(set => set.isCompleted || set.skipped);
 
-    if (!allCurrentExerciseSetsDone) {
-      console.warn("Finish Day clicked, but not all *visible* sets are marked completed/skipped for this exercise.");
-      toast.error("Please ensure all sets for this exercise are completed or skipped.");
+    // *** ENHANCED VALIDATION: Check if entire day is completed ***
+    const dayComplete = checkDayCompletion();
+    
+    if (!dayComplete) {
+      // Show specific incomplete exercises
+      const incompleteList = incompleteExercises.map(ex => ex.name).join(", ");
+      toast.error(`Cannot finish day. Incomplete exercises: ${incompleteList}`, {
+        duration: 5000,
+      });
       return;
     }
 
@@ -581,21 +748,19 @@ const SetAndRepsForm = ({
         }
 
         const currentDaySlideKey = `${slideIndexKeyBase}-W${currentWeekIdx}-D${currentDayNum}`;
-        localStorage.removeItem(currentDaySlideKey); // Remove slide index for the completed day
+        localStorage.removeItem(currentDaySlideKey);
 
-        if (nextStep === null) { // Plan finished
+        if (nextStep === null) {
             toast.success("Workout Plan Completed!", { duration: 4000 });
-            await storeInDatabase(); // Save the final state
-            removeLocalStorageDataByPlanId(); // Clean up local storage for this plan
-            // Also remove progress keys
+            await storeInDatabase();
+            removeLocalStorageDataByPlanId();
             localStorage.removeItem(workoutProgressKey);
             localStorage.removeItem(selectedWeekKey);
             localStorage.removeItem(selectedDayKey);
-            router.push("/SavedPlan"); // Redirect
+            router.push("/SavedPlan");
             return;
         }
 
-        // Plan continues
         const { nextWeekIndex, nextDayNumber, nextWeekName, nextDayName } = nextStep;
         const newProgress = {
             currentWeekIndex: nextWeekIndex,
@@ -604,33 +769,27 @@ const SetAndRepsForm = ({
             dayName: nextDayName,
         };
 
-        // Save next step pointers to LS (they'll be read next time or saved to DB now)
         localStorage.setItem(workoutProgressKey, JSON.stringify(newProgress));
         localStorage.setItem(selectedWeekKey, nextWeekIndex.toString());
         localStorage.setItem(selectedDayKey, nextDayNumber.toString());
 
-        // Save current state (including next step pointers) to DB
         await storeInDatabase();
-
-        // Clear LS *after* successful DB save (removes individual exercise keys etc)
         removeLocalStorageDataByPlanId();
 
         toast.success(`Day Complete! Progress saved.`, { duration: 3000 });
-        router.push("/SavedPlan"); // Redirect
+        router.push("/SavedPlan");
 
     } catch (error) {
         console.error("Error in handleFinishDay:", error);
         toast.error("An error occurred while finishing the workout day.");
     }
-};
-
+  };
 
   const handleSkipExercise = () => {
     if (activeTimer !== null || waitingForRestCompletion.current) {
       toast.error("Cannot skip exercise while a timer is active or resting.");
       return;
     }
-    // Check if any non-deleted set is already skipped
     const isAnySetSkipped = sets.some((s) => s.skipped && !s.isDeleted);
     if (isAnySetSkipped) {
       toast.error("This exercise has already been skipped.");
@@ -648,12 +807,12 @@ const SetAndRepsForm = ({
     );
   };
 
+  // *** FIXED: proceedWithSkipExercise with immediate updates ***
   const proceedWithSkipExercise = () => {
     try {
         const today = new Date().toISOString().split("T")[0];
 
         const updatedSets = sets.map((set) => {
-            // Only modify sets that are not already deleted
             if (set.isDeleted) return set;
 
             const dates = Array.isArray(set.skippedDates) ? [...set.skippedDates] : [];
@@ -661,7 +820,7 @@ const SetAndRepsForm = ({
 
             return {
                 ...set,
-                isCompleted: false, // Ensure not completed
+                isCompleted: false,
                 isActive: false,
                 isEditing: false,
                 isDurationRunning: false,
@@ -670,40 +829,45 @@ const SetAndRepsForm = ({
                 reps: set.reps || "",
                 duration: set.duration || "00:00:00",
                 rest: set.rest || "00:00",
-                skipped: true, // Mark as skipped
+                skipped: true,
                 skippedDates: dates,
             };
         });
 
-        // Save skipped state to LS immediately
         localStorage.setItem(storageKey, JSON.stringify(updatedSets));
 
         setSets(updatedSets);
-        setActiveTimer(null); // Ensure timer is stopped
+        setActiveTimer(null);
         setSeconds(0);
         waitingForRestCompletion.current = false;
         activeSetRef.current = null;
-        setIsAllSetsCompleted(true); // Skipping marks all (visible) sets as "done"
+        setIsAllSetsCompleted(true);
 
-        updateProgressStats()
+        updateProgressStats();
+        
+        // Force immediate day completion check
+        checkDayCompletion();
+        
+        // Also trigger a storage event to update other components
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: storageKey,
+          newValue: JSON.stringify(updatedSets),
+          url: window.location.href
+        }));
+        
         toast.success("Exercise Skipped.");
 
-        // Auto-navigate if not last exercise
         if (!isLastExercise) {
             goNext();
-        } else {
-            // If it's the last exercise, skipping it should finish the day
-             handleFinishDay(); // Call finish day handler
         }
     } catch (error) {
         console.error("Error skipping exercise:", error);
         toast.error("An error occurred while skipping the exercise.");
     }
-};
-
+  };
 
   const editSet = (setId) => {
-    const setIndex = sets.findIndex((set) => set.id === setId && !set.isDeleted); // Check isDeleted
+    const setIndex = sets.findIndex((set) => set.id === setId && !set.isDeleted);
     if (setIndex === -1) return;
     const currentSet = sets[setIndex];
     if (currentSet.skipped) {
@@ -715,61 +879,48 @@ const SetAndRepsForm = ({
       return;
     }
 
-    // Allow editing only if the set is completed (and not deleted/skipped)
     if (currentSet.isCompleted) {
       const updatedSets = sets.map((set, index) => ({
         ...set,
-        // If this is the set to edit (and not deleted)
         isEditing: index === setIndex && !set.isDeleted,
-        isActive: index === setIndex && !set.isDeleted, // Make it active again
-        isCompleted: index === setIndex && !set.isDeleted ? false : set.isCompleted, // Un-complete it
-        // Reset timer flags for safety, although activeTimer check should prevent issues
+        isActive: index === setIndex && !set.isDeleted,
+        isCompleted: index === setIndex && !set.isDeleted ? false : set.isCompleted,
         isDurationRunning: false,
         isRestRunning: false,
-        // Ensure other sets are not active/editing
         ...(index !== setIndex && { isActive: false, isEditing: false }),
       }));
       setSets(updatedSets);
-      // Reset global timer state
       setActiveTimer(null);
       setSeconds(0);
-      activeSetRef.current = null; // Clear active set reference
+      activeSetRef.current = null;
       waitingForRestCompletion.current = false;
-      setIsAllSetsCompleted(false); // Since we un-completed a set
+      setIsAllSetsCompleted(false);
       updateProgressStats()
     } else {
-        // Maybe allow editing an active/non-completed set too?
-        // Currently, only completed sets can be edited. If needed, adjust this logic.
-         toast.info("Set must be completed to edit."); // Or remove this restriction
+         toast.info("Set must be completed to edit.");
     }
   };
 
-  // *** MODIFIED: deleteSet function ***
   const deleteSet = (setId) => {
-    // Check if timer active
     if (activeTimer !== null) {
         toast.error("Cannot delete set while a timer is active.");
         return;
     }
 
     const setIndexToDelete = sets.findIndex((s) => s.id === setId);
-    if (setIndexToDelete === -1) return; // Set not found
+    if (setIndexToDelete === -1) return;
 
     const setToDelete = sets[setIndexToDelete];
 
-    // Check if already deleted or part of skipped exercise
     if (setToDelete.isDeleted) {
         toast.error("Set already deleted.");
         return;
     }
      if (setToDelete.skipped) {
-        // Although we generally hide the delete button for skipped, double check
         toast.error("Cannot delete sets from a skipped exercise.");
         return;
     }
 
-
-    // Check if it's the last *visible* set
     const visibleSetsCount = sets.filter(s => !s.isDeleted).length;
     if (visibleSetsCount <= 1) {
          toast.error("Cannot delete the last visible set.");
@@ -780,7 +931,6 @@ const SetAndRepsForm = ({
 
     const updatedSets = sets.map((set, index) => {
         if (index === setIndexToDelete) {
-            // Mark as deleted and reset state flags
             return {
                 ...set,
                 isDeleted: true,
@@ -788,11 +938,8 @@ const SetAndRepsForm = ({
                 isEditing: false,
                 isDurationRunning: false,
                 isRestRunning: false,
-                // Keep weight/reps/etc for potential future undelete or history
             };
         }
-        // For other sets, just ensure isActive/isEditing is false for now
-        // We will find the correct next active set below
         return {
              ...set,
              isActive: false,
@@ -800,22 +947,18 @@ const SetAndRepsForm = ({
         };
     });
 
-    // Find the first available (non-deleted, non-completed, non-skipped) set to make active
      for (let i = 0; i < updatedSets.length; i++) {
          if (!updatedSets[i].isDeleted && !updatedSets[i].isCompleted && !updatedSets[i].skipped) {
              updatedSets[i].isActive = true;
              nextActiveSetFound = true;
-             break; // Found the first available one
+             break;
          }
      }
 
-
     setSets(updatedSets);
-    // checkAllSetsCompleted(); // Let useEffect handle this based on `sets` change
     toast.success("Set marked for deletion.");
     updateProgressStats()
 
-    // Ensure timer state is definitely cleared if the deleted set was somehow involved
     if (activeSetRef.current === setId) {
         setActiveTimer(null);
         setSeconds(0);
@@ -824,25 +967,20 @@ const SetAndRepsForm = ({
     }
   };
 
-
   const addSet = () => {
     if (activeTimer !== null) {
       toast.error("Cannot add set while timer is active.");
       return;
     }
-    // Check if exercise is skipped (based on non-deleted sets)
     if (sets.some((s) => s.skipped && !s.isDeleted)) {
       toast.error("Cannot add sets to a skipped exercise.");
       return;
     }
 
-    // Find the highest existing ID (including deleted ones) to ensure uniqueness
     const newSetId = sets.length > 0 ? Math.max(...sets.map(s => s.id)) + 1 : 1;
 
-    // Determine if the new set should be active:
-    // It should be active if all *visible* existing sets are completed or skipped.
     const allVisibleSetsDone = sets
-                                .filter(s => !s.isDeleted) // Only consider visible sets
+                                .filter(s => !s.isDeleted)
                                 .every(set => set.isCompleted || set.skipped);
     const makeActive = sets.filter(s => !s.isDeleted).length === 0 || allVisibleSetsDone;
 
@@ -853,7 +991,7 @@ const SetAndRepsForm = ({
       duration: "00:00:00",
       rest: "00:00",
       isCompleted: false,
-      isActive: makeActive, // Set isActive based on calculation
+      isActive: makeActive,
       isEditing: false,
       isDurationRunning: false,
       isRestRunning: false,
@@ -861,18 +999,17 @@ const SetAndRepsForm = ({
       exerciseId: exerciseId,
       skipped: false,
       skippedDates: [],
-      isDeleted: false, // New sets are not deleted
-      isNewSet: true, // Keep this flag if useful elsewhere
+      isDeleted: false,
+      isNewSet: true,
     };
 
-    // Deactivate other sets only if the new one is being made active
     const updatedSets = sets.map((set) => ({
         ...set,
-        isActive: makeActive ? false : set.isActive, // Deactivate others if new one is active
+        isActive: makeActive ? false : set.isActive,
     }));
 
     setSets([...updatedSets, newSet]);
-    setIsAllSetsCompleted(false); // Adding a set makes it incomplete
+    setIsAllSetsCompleted(false);
     updateProgressStats()
   };
 
@@ -880,27 +1017,22 @@ const SetAndRepsForm = ({
     setSets((prevSets) =>
       prevSets.map((set) => {
         if (set.id === setId) {
-          // Cannot edit deleted or skipped sets through input
           if (set.isDeleted || set.skipped) return set;
 
-          // Can edit if it's the active set OR being explicitly edited,
-          // AND it's not currently in the rest phase (unless editing)
           if ((set.isActive || set.isEditing) && !(activeTimer === "rest" && !set.isEditing)) {
-             // Input validation for weight/reps
             if ((field === "weight" || field === "reps") && value && !/^\d*\.?\d*$/.test(value)) {
               toast.error("Please enter only numbers.");
-              return set; // Return original set on validation failure
+              return set;
             }
             return { ...set, [field]: value };
           }
         }
-        return set; // Return unchanged set if conditions not met
+        return set;
       })
     );
   };
 
   const handleGoNext = () => {
-     // Use the check function which now includes isDeleted check
     if (checkAllSetsCompleted() && activeTimer === null) {
       goNext();
     } else if (activeTimer !== null) {
@@ -913,11 +1045,19 @@ const SetAndRepsForm = ({
   const toggleHistory = () => setShowHistory(!showHistory);
 
   // --- RENDER ---
-  const isAnySetSkipped = sets.some((s) => s.skipped && !s.isDeleted); // Check non-deleted skipped sets
-  const visibleSets = sets.filter(set => !set.isDeleted); // Filter for rendering
+  const isAnySetSkipped = sets.some((s) => s.skipped && !s.isDeleted);
+  const visibleSets = sets.filter(set => !set.isDeleted);
 
- 
-
+  // FIXED: Better logic for showing warnings
+  const shouldShowIncompleteWarning = () => {
+    if (!isLastExercise) return false;
+    
+    // Check if all visible sets for current exercise are done
+    const currentExerciseComplete = visibleSets.every(set => set.isCompleted || set.skipped);
+    
+    // Only show warning if current exercise is complete and no timers are running
+    return currentExerciseComplete && activeTimer === null && !isDayCompleted && incompleteExercises.length > 0;
+  };
 
   return (
     <>
@@ -954,16 +1094,18 @@ const SetAndRepsForm = ({
               title="+ Add Set"
               className="px-2 py-1 text-xs min-w-[90px]"
               onClick={addSet}
-              disabled={activeTimer !== null || isAnySetSkipped} // Also disable if exercise skipped
+              disabled={activeTimer !== null || isAnySetSkipped}
               aria-disabled={activeTimer !== null || isAnySetSkipped}
             />
           )}
         </div>
       </div>
+
       {/* History Section */}
       {showHistory && (
         <PreviousHistory exerciseId={exerciseId} firebaseStoredData={firebaseStoredData}/>
       )}
+
       {/* Sets Table */}
       <table className="w-full mb-4 border-collapse table-fixed">
         <thead>
@@ -983,9 +1125,7 @@ const SetAndRepsForm = ({
           </tr>
         </thead>
         <tbody>
-          {/* *** MODIFIED: Filter out deleted sets before mapping *** */}
-          {visibleSets.map((set, displayIndex) => { // Use filtered array and get displayIndex
-            // isDeleted check is no longer needed inside the loop as we filtered above
+          {visibleSets.map((set, displayIndex) => {
             const isSkipped = set.skipped;
             const isThisSetDurationRunning =
               !isSkipped &&
@@ -998,43 +1138,37 @@ const SetAndRepsForm = ({
             const isAnyRestRunning = activeTimer === "rest";
             const isCompletedNotEditing =
               !isSkipped && set.isCompleted && !set.isEditing;
-             // Can edit completed sets if no timer is running
             const isEditable =
                !isSkipped && isCompletedNotEditing && activeTimer === null;
             const isActiveOrEditing =
               !isSkipped && (set.isActive || set.isEditing) && !set.isCompleted;
-            // Locked if not active, not completed, not editing, and no rest timer running globally
             const isLocked =
               !isSkipped &&
               !set.isActive &&
               !set.isCompleted &&
               !set.isEditing &&
               !isAnyRestRunning;
-             // Input disabled if skipped, locked, completed+notEditing, or any rest timer running (unless explicitly editing)
             const isInputDisabled =
               isSkipped ||
               isLocked ||
               isCompletedNotEditing ||
-              (isAnyRestRunning && !set.isEditing); // Allow input if editing during rest
+              (isAnyRestRunning && !set.isEditing);
 
-             // Determine row class based on state
             const rowClass = isSkipped
-              ? "opacity-40 bg-gray-100 italic" // Skipped style
+              ? "opacity-40 bg-gray-100 italic"
               : isLocked
-              ? "opacity-60 bg-gray-50" // Locked style
-              : isAnyRestRunning && !isThisSetRestRunning && !set.isEditing // Dim if another set is resting (and this one isn't being edited)
+              ? "opacity-60 bg-gray-50"
+              : isAnyRestRunning && !isThisSetRestRunning && !set.isEditing
               ? "opacity-70 bg-gray-50"
               : set.isEditing
-              ? "bg-yellow-50" // Editing style
-              : "bg-white"; // Default style
+              ? "bg-yellow-50"
+              : "bg-white";
 
             return (
-              // Use the stable `set.id` as the key
               <tr
                 key={set.id}
                 className={`${rowClass} border transition-opacity duration-200 text-sm`}
               >
-                 {/* Use displayIndex + 1 for the visual set number */}
                 <td className="p-1 font-medium text-center border">{displayIndex + 1}</td>
                 <td className="p-1 border">
                   <input
@@ -1059,7 +1193,7 @@ const SetAndRepsForm = ({
                       isThisSetDurationRunning
                         ? "text-blue-600 font-medium animate-pulse"
                         : isSkipped
-                        ? "text-gray-900" // Keep skipped text normal color
+                        ? "text-gray-900"
                         : "text-gray-500"
                     }`}
                   >
@@ -1089,66 +1223,54 @@ const SetAndRepsForm = ({
                       isThisSetRestRunning
                         ? "text-orange-600 font-medium animate-pulse"
                         : isSkipped
-                        ? "text-gray-900" // Keep skipped text normal color
+                        ? "text-gray-900"
                         : "text-gray-500"
                     }`}
                   >
                     {isSkipped
-                      // Show last skipped date if available
                       ? `(${set.skippedDates?.[set.skippedDates.length - 1] || 'Skipped'})`
                       : `Rest: ${set.rest}`}
                   </span>
                 </td>
                 <td className="p-1 text-center align-middle border">
                   <div className="flex flex-wrap items-center justify-center gap-1 text-base md:gap-2">
-                    {/* Actions based on set state */}
                     {isSkipped ? (
-                       // Show ban icon for skipped sets
                       <i
                         className="text-gray-400 fas fa-ban"
                         title={`Skipped on ${set.skippedDates?.join(", ") || ''}`}
                       ></i>
                     ) : isThisSetDurationRunning ? (
-                       // Show check mark to complete running workout timer
                       <i
                         className="text-green-500 cursor-pointer fas fa-check hover:text-green-700"
                         onClick={() => completeSet(set.id)}
                         title="Complete Set"
                       ></i>
                     ) : isAnyRestRunning ? (
-                      // Show hourglass if resting
                       isThisSetRestRunning ? (
-                         // Pulsing hourglass for the set currently resting
                         <i
                           className="text-orange-400 fas fa-hourglass-half animate-pulse"
                           title="Resting"
                         ></i>
                       ) : (
-                         // Dimmed hourglass if another set is resting
                         <i
                           className="text-gray-400 opacity-50 fas fa-hourglass-half"
                           title="Another set resting"
                         ></i>
                       )
                     ) : isLocked ? (
-                       // Show lock icon if previous set needs completion
                       <i
                         className="text-gray-400 fas fa-lock"
                         title="Complete previous set"
                       ></i>
                     ) : (
-                       // Actions for non-running, non-locked states
                       <>
                         {set.isEditing && (
-                           // Actions when editing a set
                           <>
-                            {/* Restart timer */}
                             <i
                               className="text-blue-500 cursor-pointer fas fa-play hover:text-blue-700"
                               onClick={() => startWorkout(set.id)}
                               title="Restart Workout Timer"
                             ></i>
-                             {/* Save & Complete (Skip Timer) */}
                             <i
                               className="mx-3 text-green-500 cursor-pointer fas fa-check hover:text-green-700"
                               onClick={() => completeSet(set.id)}
@@ -1156,7 +1278,6 @@ const SetAndRepsForm = ({
                             ></i>
                           </>
                         )}
-                         {/* Show Play button only if Active, not Editing, and not Completed */}
                         {set.isActive && !set.isEditing && !set.isCompleted && (
                           <i
                             className="text-blue-500 cursor-pointer fas fa-play hover:text-blue-700"
@@ -1164,7 +1285,6 @@ const SetAndRepsForm = ({
                             title="Start Workout Timer"
                           ></i>
                         )}
-                        {/* Show Edit button only if Completed, not Editing, no timer running */}
                         {isEditable && (
                           <i
                             className="text-orange-500 cursor-pointer fas fa-pencil-alt hover:text-orange-700"
@@ -1172,37 +1292,27 @@ const SetAndRepsForm = ({
                             title="Edit Set"
                           ></i>
                         )}
-                        {/* *** MODIFIED: Delete Button Logic *** */}
-                        {/* Show Delete button if:
-                            - Set is Editing OR (Active and not Editing) OR Editable (Completed+NoTimer)
-                            - AND Set is NOT Completed (allow deleting active/editing sets)
-                            - AND Set is NOT Skipped
-                            - AND Global Timer is null */}
                         {(set.isEditing || (set.isActive && !set.isEditing) || isEditable) &&
-                         !set.isCompleted && // Can delete active/editing/editable sets BEFORE completion
+                         !set.isCompleted &&
                          !isSkipped &&
                          activeTimer === null && (
                             <i
                                 className={`cursor-pointer fas fa-trash-alt ${
-                                // Disable if it's the last VISIBLE set
                                 visibleSets.length <= 1
                                     ? "text-gray-300 cursor-not-allowed"
                                     : "text-red-500 hover:text-red-700"
                                 }`}
                                 onClick={() => {
-                                // Re-check conditions just before calling deleteSet
                                 if (visibleSets.length > 1 && activeTimer === null && !isSkipped) {
-                                    deleteSet(set.id); // Call the updated soft delete function
+                                    deleteSet(set.id);
                                 } else if (visibleSets.length <= 1) {
                                     toast.error("Cannot delete the last visible set.");
                                 }
-                                // activeTimer check is redundant due to outer condition, but safe
-                                // isSkipped check is redundant due to outer condition, but safe
                                 }}
                                 title={
                                 visibleSets.length <= 1
                                     ? "Cannot delete last visible set"
-                                    : "Delete Set" // Simplified title as other conditions are implicitly met
+                                    : "Delete Set"
                                 }
                             ></i>
                         )}
@@ -1215,6 +1325,7 @@ const SetAndRepsForm = ({
           })}
         </tbody>
       </table>
+
       {/* Rest Timer Button */}
       {activeTimer === "rest" && (
         <RegularButton
@@ -1227,16 +1338,62 @@ const SetAndRepsForm = ({
           onClick={stopRestTimer}
         />
       )}
-      {/* Finish Day Button */}
+
+      {/* *** FIXED: Enhanced Finish Day Section *** */}
       <div className="mt-4">
-        {isLastExercise && isAllSetsCompleted && activeTimer === null && (
-          <RegularButton
-            title="Finish Day's Workout"
-            className="w-full font-semibold text-white bg-green-600 hover:bg-green-700"
-            onClick={()=>{handleFinishDay();handleStatus(selectedPlanId,progressStats)}}
-          />
+        {isLastExercise && (
+          <>
+            {/* Only show warning when appropriate */}
+            {shouldShowIncompleteWarning() && (
+              <div className="p-3 mb-3 border border-yellow-200 rounded-lg bg-yellow-50">
+                {/* <h4 className="mb-2 text-sm font-semibold text-yellow-800">
+                  <i className="mr-2 fas fa-exclamation-triangle"></i>
+                  Day Not Complete
+                </h4> */}
+                <p className="mb-2 text-xs text-yellow-700">
+                <i className="mr-2 fas fa-exclamation-triangle"></i> You still have incomplete exercises:
+                </p>
+                <ul className="text-xs text-yellow-700 list-disc list-inside">
+                  {incompleteExercises.map((exercise, index) => (
+                    <li key={index}>{exercise.name}</li>
+                  ))}
+                </ul>
+                <p className="mt-2 text-xs text-yellow-600">
+                  Complete or skip these exercises to finish the day.
+                </p>
+              </div>
+            )}
+
+            {/* Finish Day Button - only show when day is complete */}
+            {isDayCompleted && isAllSetsCompleted && activeTimer === null ? (
+              <RegularButton
+                title="Finish Day's Workout"
+                className="w-full font-semibold text-white bg-green-600 hover:bg-green-700"
+                onClick={() => {
+                  handleFinishDay();
+                  handleStatus(selectedPlanId, progressStats);
+                }}
+              />
+            ) : (
+              shouldShowIncompleteWarning() &&
+              <RegularButton
+                title={
+                  !isDayCompleted 
+                    ? "Complete All Exercises First" 
+                    : !isAllSetsCompleted 
+                    ? "Complete This Exercise First"
+                    : activeTimer !== null
+                    ? "Finish Current Timer First"
+                    : "Finish Day's Workout"
+                }
+                className="w-full font-semibold text-gray-400 bg-gray-200 cursor-not-allowed"
+                disabled={true}
+              />
+            )}
+          </>
         )}
       </div>
+
       {/* Navigation Arrows */}
       <div className="flex items-center justify-between my-6">
         <button
@@ -1258,18 +1415,15 @@ const SetAndRepsForm = ({
         {!isLastExercise && (
           <button
             onClick={handleGoNext}
-            className={`p-2 text-lg rounded-full hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed aspect-square flex items-center justify-center w-9 h-9 ${
-               "text-gray-700 bg-gray-200" // Keep visible even if disabled
-            }`}
+            className={`p-2 text-lg rounded-full hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed aspect-square flex items-center justify-center w-9 h-9 text-gray-700 bg-gray-200`}
             aria-label="Next Exercise"
-            // Disable if last exercise, or not all sets completed, or timer active
             disabled={ isLastExercise || !isAllSetsCompleted || activeTimer !== null }
             title={
               !isAllSetsCompleted
                 ? "Complete all sets to advance"
                 : activeTimer !== null
                 ? "Timer active"
-                : isLastExercise // Should be disabled if last, so no title needed
+                : isLastExercise
                 ? ""
                 : "Next Exercise"
             }
@@ -1277,7 +1431,6 @@ const SetAndRepsForm = ({
             <i className="fas fa-arrow-right"></i>
           </button>
         )}
-         {/* Placeholder for alignment when it's the last exercise */}
         {isLastExercise && <div className="w-9 h-9"></div>}
       </div>
       
