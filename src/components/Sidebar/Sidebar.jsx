@@ -22,7 +22,6 @@ const Sidebar = () => {
       onClick: plansRefetch,
     },
     { name: "Health Report", path: "/healthReport", icon: "fa-notes-medical" },
-    { name: "Profile", path: "/profile", icon: "fa-user-vneck-hair" },
     { name: "Angle", path: "/angle", icon: "fa-solid fa-angle" },
     { name: "Instructor", path: "/mentors", icon: "fa-solid fa-person-chalkboard" },
     {
@@ -33,6 +32,7 @@ const Sidebar = () => {
     { name: "Join as Instructor", path: "/join", icon: "fa-solid fa-chalkboard-user" },
     { name: "Neeed FIT AI", path: "/AICoach", icon: "fa-duotone fa-solid fa-microchip-ai" },
     { name: "My Diet", path: "/diets", icon: "fa-duotone fa-solid fa-pan-food" },
+    { name: "Profile", path: "/profile", icon: "fa-user-vneck-hair" },
   ];
 
   
