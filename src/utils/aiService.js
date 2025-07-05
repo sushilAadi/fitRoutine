@@ -1,12 +1,7 @@
-import { geminiModel} from "@/firebase/firebaseConfig";
-
-
+import { geminiModel } from "@/firebase/firebaseConfig";
 
 const generateWorkoutPlan = async (userInput, exerciseList, isFitnessRelated) => {
   try {
-    // const genAI = new GoogleGenerativeAI(apiKey);
-    // const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
     let prompt;
     if (!isFitnessRelated) {
       prompt = `The user input is not related to fitness or workout. Tell the user that they must provide fitness-related information (e.g., fitness level, goals, preferences) to generate a plan. Do not generate plan`;
@@ -35,7 +30,7 @@ Then, provide the workout plan in this exact JSON format and mention which muscl
       "targetMuscle": "targetMuscle",
       "Workout": [
         {
-          "id": "exerciseId"
+          "id": "exerciseId",
           "Exercise": "Exercise Name",
           "Sets": 3,
           "Reps": "8-12"
@@ -51,7 +46,7 @@ Then, provide the workout plan in this exact JSON format and mention which muscl
       "protein": "13g",
       "carbs": "67g",
       "fats": "7g",
-      "fiber": "7g",
+      "fiber": "7g"
     }
   ],
    "totalCaloriesRequired": "2500kcal"
@@ -106,7 +101,17 @@ Diet Plan:
     return text;
   } catch (error) {
     console.error("Error generating workout plan:", error);
-    throw new Error("Failed to generate workout plan. Please check your API key and input.");
+    
+    // Enhanced error handling for common issues
+    if (error.message?.includes('API_KEY')) {
+      throw new Error("Invalid API key. Please check your NEXT_PUBLIC_GOOGLE_API_KEY environment variable.");
+    } else if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
+      throw new Error("API rate limit exceeded. Please try again in a few minutes.");
+    } else if (error.message?.includes('billing')) {
+      throw new Error("Billing issue detected. Make sure you're using the free Google AI Studio API, not Vertex AI.");
+    } else {
+      throw new Error("Failed to generate workout plan. Please try again.");
+    }
   }
 };
 

@@ -1,8 +1,8 @@
 // firebase/firebaseConfig.js
 import { initializeApp } from "firebase/app";
-import { getVertexAI, getGenerativeModel } from "firebase/vertexai";
 import { getAnalytics, isSupported } from "firebase/analytics";
-import { getFirestore } from "firebase/firestore"; // Import Firestore
+import { getFirestore } from "firebase/firestore";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -16,9 +16,12 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const vertexAI = getVertexAI(app);
-export const geminiModel = getGenerativeModel(vertexAI, { model: "gemini-2.0-flash" });
 
+// Initialize Google AI (Free API)
+const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GOOGLE_API_KEY);
+export const geminiModel = genAI.getGenerativeModel({ 
+  model: "gemini-2.5-flash" // Using latest free model
+});
 
 let analytics = null;
 
