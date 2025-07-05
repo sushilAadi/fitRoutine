@@ -209,7 +209,7 @@ const DietDetail = ({ params }) => {
     <SecureComponent>
       <div className="flex flex-col h-screen overflow-hidden">
         <div className="p-4 text-tprimary sticky-top">
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-2xl font-bold z-[99999999]">
             {dietId ? `Diet Plan: ${_.capitalize(dietPlan?.planName) || dietId}` : "My Diet Plan"}
           </h1>
         </div>
