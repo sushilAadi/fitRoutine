@@ -2,14 +2,140 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Accordion, AccordionHeader, AccordionBody } from "@material-tailwind/react"
-import { motion } from "framer-motion"
-
+import { motion, AnimatePresence } from "framer-motion"
 import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc } from "firebase/firestore"
 import { format, isEqual, startOfDay } from "date-fns"
 import { db, geminiModel } from "@/firebase/firebaseConfig"
 import toast from "react-hot-toast"
 
-const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, selectedDate, dietId,handleRefetch }) => {
+// Image Analysis Modal Component
+const ImageAnalysisModal = ({ isOpen, onClose, onConfirm, analysisData, setAnalysisData, isAnalyzing }) => {
+  if (!isOpen) return null
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="w-full max-w-md p-6 mx-4 bg-white rounded-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h3 className="mb-4 text-lg font-bold">Food Analysis Results</h3>
+          
+          {isAnalyzing ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="w-12 h-12 border-b-2 border-orange-500 rounded-full animate-spin"></div>
+              <p className="mt-4 text-gray-600">Analyzing your food...</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-3">
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">Food Name</label>
+                  <input
+                    type="text"
+                    value={analysisData.food || ""}
+                    onChange={(e) => setAnalysisData({ ...analysisData, food: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                    placeholder="e.g., Chicken Salad"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">Quantity/Weight</label>
+                  <input
+                    type="text"
+                    value={analysisData.quantity || ""}
+                    onChange={(e) => setAnalysisData({ ...analysisData, quantity: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md"
+                    placeholder="e.g., 200g or 1 serving"
+                  />
+                </div>
+
+                <div>
+                  <label className="block mb-1 text-sm font-medium text-gray-700">
+                    Additional Ingredients (optional)
+                  </label>
+                  <textarea
+                    value={analysisData.ingredients || ""}
+                    onChange={(e) => setAnalysisData({ ...analysisData, ingredients: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md resize-none"
+                    rows="2"
+                    placeholder="e.g., olive oil dressing, nuts, cheese"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">Calories</label>
+                    <input
+                      type="number"
+                      value={analysisData.calories || ""}
+                      onChange={(e) => setAnalysisData({ ...analysisData, calories: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">Carbs (g)</label>
+                    <input
+                      type="number"
+                      value={analysisData.carbs || ""}
+                      onChange={(e) => setAnalysisData({ ...analysisData, carbs: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">Protein (g)</label>
+                    <input
+                      type="number"
+                      value={analysisData.protein || ""}
+                      onChange={(e) => setAnalysisData({ ...analysisData, protein: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md"
+                    />
+                  </div>
+                  <div>
+                    <label className="block mb-1 text-sm font-medium text-gray-700">Fats (g)</label>
+                    <input
+                      type="number"
+                      value={analysisData.fats || ""}
+                      onChange={(e) => setAnalysisData({ ...analysisData, fats: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-md"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={onClose}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={onConfirm}
+                  className="flex-1 px-4 py-2 text-white bg-orange-500 rounded-md hover:bg-orange-600"
+                >
+                  Use These Values
+                </button>
+              </div>
+            </>
+          )}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  )
+}
+
+const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, selectedDate, dietId, handleRefetch }) => {
   const mealCategories = ["Breakfast", "Lunch", "Snack", "Exercise", "Dinner"]
   const [userMeals, setUserMeals] = useState({})
   const [loading, setLoading] = useState(true)
@@ -19,6 +145,12 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
   const [localMeals, setLocalMeals] = useState({})
   const [generatingSuggestion, setGeneratingSuggestion] = useState(false)
   const [retryCounts, setRetryCounts] = useState({})
+  
+  // New states for image analysis
+  const [imageAnalysisModal, setImageAnalysisModal] = useState({ isOpen: false, category: null, mealId: null, isNewMeal: false })
+  const [analysisData, setAnalysisData] = useState({})
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const fileInputRefs = useRef({})
 
   const inputRefs = useRef({})
 
@@ -27,7 +159,6 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
       setLoading(true)
       try {
         const mealCollectionRef = collection(db, "meals")
-        // Modified query to include dietId filter when available
         let q
         if (dietId) {
           q = query(
@@ -44,7 +175,6 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         const mealsByCategory = {}
         querySnapshot.forEach((doc) => {
           const mealData = doc.data()
-
           const mealDate = mealData.date instanceof Date ? mealData.date : mealData.date?.toDate?.() || new Date()
 
           if (isEqual(startOfDay(mealDate), startOfDay(selectedDate))) {
@@ -70,6 +200,150 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
     }
   }, [userId, selectedDate, dietId])
 
+  // Image analysis function
+  const handleImageAnalysis = async (file, category, mealId, isNewMeal) => {
+    setImageAnalysisModal({ isOpen: true, category, mealId, isNewMeal })
+    setIsAnalyzing(true)
+    setAnalysisData({})
+
+    try {
+      // Convert file to base64
+      const reader = new FileReader()
+      const base64Promise = new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result.split(',')[1])
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+      
+      const base64Data = await base64Promise
+
+      const prompt = `Analyze this food image and provide nutritional information. 
+      Identify the food items visible and estimate:
+      1. Food name/description
+      2. Approximate serving size/weight
+      3. Calories
+      4. Carbohydrates (g)
+      5. Protein (g)
+      6. Fats (g)
+      
+      Return the response as a JSON object with keys: food, quantity, calories, carbs, protein, fats.
+      Make reasonable estimates based on typical serving sizes if exact measurements aren't clear.`
+
+      const result = await geminiModel.generateContent([
+        prompt,
+        {
+          inlineData: {
+            mimeType: file.type,
+            data: base64Data
+          }
+        }
+      ])
+
+      const response = await result.response
+      let text = response.text()
+
+      // Extract JSON from response
+      const codeBlockRegex = /```json\s*([\s\S]*?)\s*```/
+      const match = text.match(codeBlockRegex)
+      if (match) {
+        text = match[1]
+      }
+
+      let parsedData
+      try {
+        parsedData = JSON.parse(text)
+      } catch (parseError) {
+        console.error("Error parsing Gemini response:", parseError)
+        toast.error("Could not analyze the image properly. Please try again or enter manually.")
+        setIsAnalyzing(false)
+        return
+      }
+
+      // Process the values
+      const processValue = (value) => {
+        if (!value) return ""
+        const stringValue = typeof value === "string" ? value : String(value)
+        const cleanedValue = stringValue.replace(/[^0-9.]/g, "")
+        const numValue = Number.parseFloat(cleanedValue)
+        return isNaN(numValue) ? "" : Math.round(numValue).toString()
+      }
+
+      setAnalysisData({
+        food: parsedData.food || "",
+        quantity: parsedData.quantity || "",
+        calories: processValue(parsedData.calories),
+        carbs: processValue(parsedData.carbs),
+        protein: processValue(parsedData.protein),
+        fats: processValue(parsedData.fats)
+      })
+
+      setIsAnalyzing(false)
+    } catch (error) {
+      console.error("Error analyzing image:", error)
+      toast.error("Failed to analyze image. Please try again.")
+      setIsAnalyzing(false)
+      setImageAnalysisModal({ isOpen: false, category: null, mealId: null, isNewMeal: false })
+    }
+  }
+
+  // Handle image file selection
+  const handleImageSelect = (e, category, mealId, isNewMeal) => {
+    const file = e.target.files[0]
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error("Please select an image file")
+        return
+      }
+      
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Image size should be less than 10MB")
+        return
+      }
+
+      handleImageAnalysis(file, category, mealId, isNewMeal)
+    }
+  }
+
+  // Handle analysis confirmation
+  const handleAnalysisConfirm = () => {
+    const { category, mealId, isNewMeal } = imageAnalysisModal
+
+    if (isNewMeal) {
+      setNewMealData((prevState) => ({
+        ...prevState,
+        [category]: {
+          ...prevState[category],
+          food: analysisData.food,
+          quantity: analysisData.quantity,
+          calories: analysisData.calories,
+          carbs: analysisData.carbs,
+          protein: analysisData.protein,
+          fats: analysisData.fats,
+          dietId: dietId || null,
+        },
+      }))
+    } else {
+      setLocalMeals((prevState) => ({
+        ...prevState,
+        [mealId]: {
+          ...prevState[mealId],
+          food: analysisData.food,
+          quantity: analysisData.quantity,
+          calories: analysisData.calories,
+          carbs: analysisData.carbs,
+          protein: analysisData.protein,
+          fats: analysisData.fats,
+        },
+      }))
+    }
+
+    setImageAnalysisModal({ isOpen: false, category: null, mealId: null, isNewMeal: false })
+    setAnalysisData({})
+    toast.success("Nutritional values updated!")
+  }
+
   const handleAddMeal = (category) => {
     setNewMealForms((prevState) => ({ ...prevState, [category]: true }))
     setNewMealData((prevState) => ({
@@ -84,7 +358,6 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         calories: "",
         userId: userId,
         date: selectedDate,
-        // Include dietId in new meal data
         dietId: dietId || null,
       },
     }))
@@ -106,7 +379,6 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
   const handleSaveNewMeal = async (category, mealData) => {
     try {
       const mealCollectionRef = collection(db, "meals")
-      // Ensure dietId is included when adding new meal
       const mealWithDietId = { ...mealData, dietId: dietId || null }
       const docRef = await addDoc(mealCollectionRef, mealWithDietId)
 
@@ -140,7 +412,6 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
   const handleUpdateMeal = async (category, mealId, updatedMealData) => {
     try {
       const mealDocRef = doc(db, "meals", mealId)
-      // Make sure we maintain the dietId during updates
       const updateData = { ...updatedMealData }
       if (dietId && !updateData.dietId) {
         updateData.dietId = dietId
@@ -181,7 +452,6 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
 
   const handleGeminiSuggestion = useCallback(
     async (category, mealId, food, quantity, isNewMeal) => {
-      // Check retry count
       const currentRetryCount = retryCounts[mealId] || 0
   
       if (currentRetryCount >= 2) {
@@ -222,9 +492,8 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         }
         
         if (parsedData && Object.keys(parsedData).length === 0 && parsedData.constructor === Object) {
-          console.warn("Gemini returned an empty object, retrying") // log the empty response
+          console.warn("Gemini returned an empty object, retrying")
           toast("Gemini could not find suggestions. Please add manually.", { position: "top-center" })
-          // Increment retry count
           setRetryCounts((prevCounts) => ({
             ...prevCounts,
             [mealId]: (prevCounts[mealId] || 0) + 1,
@@ -234,21 +503,13 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
   
         const processValue = (value) => {
           if (!value) return ""
-          // Ensure value is a string
           const stringValue = typeof value === "string" ? value : String(value)
-  
-          // 1. Clean the text
           let cleanedValue = stringValue.replace(/approximately|approx\.|depending on.*|varies greatly|about/gi, "")
-  
-          // 2. Extract the first number from a range (e.g., "200-400" becomes "200")
-          const rangeMatch = cleanedValue.match(/(\d+(\.\d+)?)/) // Match a number with optional decimal
+          const rangeMatch = cleanedValue.match(/(\d+(\.\d+)?)/)
           if (rangeMatch) {
-            cleanedValue = rangeMatch[1] // Take the first matched number
+            cleanedValue = rangeMatch[1]
           }
-  
-          // 3. Remove all non-numeric characters except the decimal point
           const numericValue = cleanedValue.replace(/[^0-9.]/g, "")
-  
           const numValue = Number.parseFloat(numericValue)
           return isNaN(numValue) ? "" : Math.round(numValue).toString()
         }
@@ -262,7 +523,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
               carbs: processValue(parsedData.carbs),
               protein: processValue(parsedData.protein),
               fats: processValue(parsedData.fats),
-              dietId: dietId || null, // Ensure dietId is included for new meals
+              dietId: dietId || null,
             },
           }))
         } else {
@@ -279,7 +540,6 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         }
       } catch (error) {
         console.error("Error getting Gemini suggestion:", error)
-        // Increment retry count
         setRetryCounts((prevCounts) => ({
           ...prevCounts,
           [mealId]: (prevCounts[mealId] || 0) + 1,
@@ -304,6 +564,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
     const isBeingEdited = editingMeal?.category === category && editingMeal?.id === meal.id
     const localMeal = localMeals[meal.id] || meal
     const currentRetryCount = retryCounts[meal.id] || 0
+    const fileInputKey = `${category}-${meal.id}`
 
     const handleInputChange = (e, field) => {
       const value = e.target.value
@@ -340,24 +601,40 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             onChange={(e) => handleInputChange(e, "food")}
             className="w-full px-2 py-1 mb-1 border rounded"
           />
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center justify-between gap-2">
             <input
               type="text"
               value={localMeal.quantity || ""}
               placeholder="Quantity (e.g., 100g)"
               onChange={(e) => handleInputChange(e, "quantity")}
-              className="px-2 py-1 mb-1 border rounded "
+              className="flex-1 px-2 py-1 mb-1 border rounded"
             />
+
+            <input
+              ref={(el) => (fileInputRefs.current[fileInputKey] = el)}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleImageSelect(e, category, meal.id, false)}
+            />
+            
+            <button
+              onClick={() => fileInputRefs.current[fileInputKey]?.click()}
+              className="p-2 text-blue-500 rounded hover:bg-blue-50"
+              title="Upload food image"
+            >
+              <i className="text-lg fa-solid fa-camera"></i>
+            </button>
 
             <button
               onClick={handleGetSuggestion}
               disabled={currentRetryCount >= 2 || generatingSuggestion}
-              className={`bg-transparent border-none p-0 ${currentRetryCount >= 2 || generatingSuggestion ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+              className={`p-2 ${currentRetryCount >= 2 || generatingSuggestion ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
             >
               {generatingSuggestion ? (
-                <span>Generating...</span>
+                <span className="text-sm">...</span>
               ) : (
-                <i className="text-xl text-orange-500 fa-solid fa-hand-sparkles"></i>
+                <i className="text-lg text-orange-500 fa-solid fa-hand-sparkles"></i>
               )}
             </button>
           </div>
@@ -449,8 +726,10 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
   }
 
   const renderNewMealForm = (category, mealData, setMealData) => {
-    const mealId = category // Use the category as a unique key for new meal forms
+    const mealId = category
     const currentRetryCount = retryCounts[mealId] || 0
+    const fileInputKey = `new-${category}`
+    
     const handleInputChange = (e, field) => {
       setMealData((prevState) => ({
         ...prevState,
@@ -479,24 +758,40 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
           onChange={(e) => handleInputChange(e, "food")}
           className="w-full px-2 py-1 mb-1 border rounded"
         />
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between gap-2">
           <input
             type="text"
             placeholder="Quantity (e.g., 100g)"
             value={mealData[category]?.quantity || ""}
             onChange={(e) => handleInputChange(e, "quantity")}
-            className="w-full px-2 py-1 mb-1 border rounded"
+            className="flex-1 w-full px-2 py-1 mb-1 border rounded"
           />
+
+          <input
+            ref={(el) => (fileInputRefs.current[fileInputKey] = el)}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => handleImageSelect(e, category, mealId, true)}
+          />
+          
+          <button
+            onClick={() => fileInputRefs.current[fileInputKey]?.click()}
+            className="p-2 text-blue-500 rounded hover:bg-blue-50"
+            title="Upload food image"
+          >
+            <i className="text-lg fa-solid fa-camera"></i>
+          </button>
 
           <button
             onClick={handleGetSuggestion}
             disabled={currentRetryCount >= 2 || generatingSuggestion}
-            className={`bg-transparent border-none p-0 ${currentRetryCount >= 2 || generatingSuggestion ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+            className={`p-2 ${currentRetryCount >= 2 || generatingSuggestion ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
           >
             {generatingSuggestion ? (
-              <span>Generating...</span>
+              <span className="text-sm">...</span>
             ) : (
-              <i className="text-xl text-orange-500 fa-solid fa-hand-sparkles"></i>
+              <i className="text-lg text-orange-500 fa-solid fa-hand-sparkles"></i>
             )}
           </button>
         </div>
@@ -550,88 +845,87 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
     )
   }
 
-  // Filter dietList suggestions based on the selected date
-  // And filter by dietId if it's provided
   const filteredDietList =
     dietList?.filter((meal) => {
-      // Filter by date
       if (!meal.date) return false
       const mealDate = meal.date instanceof Date ? meal.date : meal.date?.toDate?.() || new Date()
       const dateMatches = isEqual(startOfDay(mealDate), startOfDay(selectedDate))
-      
-      // Filter by dietId (if provided)
       const dietIdMatches = dietId ? meal.dietId === dietId : true
       
       return dateMatches && dietIdMatches
     }) || []
 
   if (loading) {
-    return <div>Loading...</div> // Or a better loading indicator
+    return <div>Loading...</div>
   }
 
   return (
-    <div className="pb-20 space-y-3 overflow-y-auto">
-      <div className="p-2 text-center rounded-lg bg-tprimary">
-        <h3 className="font-medium text-white">{format(selectedDate, "EEEE, MMMM d, yyyy")}</h3>
-       
+    <>
+      <ImageAnalysisModal
+        isOpen={imageAnalysisModal.isOpen}
+        onClose={() => setImageAnalysisModal({ isOpen: false, category: null, mealId: null, isNewMeal: false })}
+        onConfirm={handleAnalysisConfirm}
+        analysisData={analysisData}
+        setAnalysisData={setAnalysisData}
+        isAnalyzing={isAnalyzing}
+      />
+      
+      <div className="pb-20 space-y-3 overflow-y-auto">
+        <div className="p-2 text-center rounded-lg bg-tprimary">
+          <h3 className="font-medium text-white">{format(selectedDate, "EEEE, MMMM d, yyyy")}</h3>
+        </div>
+        {mealCategories?.map((category, index) => {
+          const suggestedMeals = dietId
+            ? dietList?.filter((meal) => meal.meal === category && (!meal.dietId || meal.dietId === dietId))
+            : dietList?.filter((meal) => meal.meal === category)
+            
+          const userAddedMeals = userMeals[category] || []
+
+          return (
+            <Accordion
+              key={category}
+              open={openAccordion === index + 1}
+              className="overflow-hidden bg-white border border-blue-100 rounded-lg"
+            >
+              <AccordionHeader onClick={() => handleOpenAccordion(index + 1)} className="p-2 text-gray-800 border-b-0">
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-3">
+                    {category === "Breakfast" && <span className="text-xl text-orange-500">🍳</span>}
+                    {category === "Lunch" && <span className="text-xl text-green-500">🍲</span>}
+                    {category === "Snack" && <span className="text-xl text-purple-500">🥪</span>}
+                    {category === "Dinner" && <span className="text-xl text-blue-500">🍽️</span>}
+                    {category === "Exercise" && <span className="text-xl text-red-500">🏋️‍♀️</span>}
+                    <span className="font-medium">{category}</span>
+                  </div>
+                </div>
+              </AccordionHeader>
+              <AccordionBody className="p-2 pt-0">
+                {suggestedMeals?.map((meal, mealIndex) => renderMealItem(meal, category, true))}
+                {userAddedMeals?.map((meal, mealIndex) => renderMealItem(meal, category, false))}
+                {newMealForms[category] && renderNewMealForm(category, newMealData, setNewMealData)}
+
+                {!newMealForms[category] && (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-1 mt-2 text-green-500"
+                    onClick={() => handleAddMeal(category)}
+                  >
+                    <span className="text-xl">+</span>
+                    <span className="text-sm">Add Meal</span>
+                  </motion.button>
+                )}
+
+                {suggestedMeals.length === 0 && userAddedMeals.length === 0 && !newMealForms[category] && (
+                  <div className="pt-2 border-t border-gray-100">
+                    <p className="mb-1 font-medium text-gray-800">No meals planned for {category}</p>
+                  </div>
+                )}
+              </AccordionBody>
+            </Accordion>
+          )
+        })}
       </div>
-      {mealCategories?.map((category, index) => {
-        // Filter suggested meals by dietId
-        const suggestedMeals = dietId
-          ? dietList?.filter((meal) => meal.meal === category && (!meal.dietId || meal.dietId === dietId))
-          : dietList?.filter((meal) => meal.meal === category)
-          
-        const userAddedMeals = userMeals[category] || [] // Use || [] to avoid undefined errors
-
-        return (
-          <Accordion
-            key={category}
-            open={openAccordion === index + 1}
-            className="overflow-hidden bg-white border border-blue-100 rounded-lg"
-          >
-            <AccordionHeader onClick={() => handleOpenAccordion(index + 1)} className="p-2 text-gray-800 border-b-0">
-              <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-3">
-                  {category === "Breakfast" && <span className="text-xl text-orange-500">🍳</span>}
-                  {category === "Lunch" && <span className="text-xl text-green-500">🍲</span>}
-                  {category === "Snack" && <span className="text-xl text-purple-500">🥪</span>}
-                  {category === "Dinner" && <span className="text-xl text-blue-500">🍽️</span>}
-                  {category === "Exercise" && <span className="text-xl text-red-500">🏋️‍♀️</span>}
-                  <span className="font-medium">{category}</span>
-                </div>
-              </div>
-            </AccordionHeader>
-            <AccordionBody className="p-2 pt-0">
-              {/* Suggested Meals */}
-              {suggestedMeals?.map((meal, mealIndex) => renderMealItem(meal, category, true))}
-
-              {/* User-Added Meals */}
-              {userAddedMeals?.map((meal, mealIndex) => renderMealItem(meal, category, false))}
-
-              {/* New Meal Form */}
-              {newMealForms[category] && renderNewMealForm(category, newMealData, setNewMealData)}
-
-              {!newMealForms[category] && (
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-1 mt-2 text-green-500"
-                  onClick={() => handleAddMeal(category)}
-                >
-                  <span className="text-xl">+</span>
-                  <span className="text-sm">Add Meal</span>
-                </motion.button>
-              )}
-
-              {suggestedMeals.length === 0 && userAddedMeals.length === 0 && !newMealForms[category] && (
-                <div className="pt-2 border-t border-gray-100">
-                  <p className="mb-1 font-medium text-gray-800">No meals planned for {category}</p>
-                </div>
-              )}
-            </AccordionBody>
-          </Accordion>
-        )
-      })}
-    </div>
+    </>
   )
 }
 
