@@ -8,9 +8,9 @@ import { format, isEqual, startOfDay } from "date-fns"
 import { db, geminiModel } from "@/firebase/firebaseConfig"
 import toast from "react-hot-toast"
 
-// Image Analysis Modal Component
-const ImageAnalysisModal = ({ isOpen, onClose, onConfirm, analysisData, setAnalysisData, isAnalyzing }) => {
-  if (!isOpen) return null
+// Food Info Modal Component
+const FoodInfoModal = ({ isOpen, onClose, foodInfo }) => {
+  if (!isOpen || !foodInfo) return null
 
   return (
     <AnimatePresence>
@@ -26,6 +26,68 @@ const ImageAnalysisModal = ({ isOpen, onClose, onConfirm, analysisData, setAnaly
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           className="w-full max-w-md p-6 mx-4 bg-white rounded-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold">Food Information</h3>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <i className="text-xl fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <h4 className="mb-2 font-semibold text-green-600">✅ Pros</h4>
+              <ul className="space-y-1 text-sm text-gray-700 list-disc list-inside">
+                {foodInfo.pros?.map((pro, index) => (
+                  <li key={index}>{pro}</li>
+                ))}
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="mb-2 font-semibold text-red-600">❌ Cons</h4>
+              <ul className="space-y-1 text-sm text-gray-700 list-disc list-inside">
+                {foodInfo.cons?.map((con, index) => (
+                  <li key={index}>{con}</li>
+                ))}
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="mb-2 font-semibold text-blue-600">💡 Suggestions</h4>
+              <p className="text-sm text-gray-700">{foodInfo.suggestion}</p>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  )
+}
+
+// Image Analysis Modal Component
+const ImageAnalysisModal = ({ isOpen, onClose, onConfirm, analysisData, setAnalysisData, isAnalyzing, foodAnalysis, setFoodAnalysis }) => {
+  const [saveAnalysis, setSaveAnalysis] = useState(false)
+  
+  if (!isOpen) return null
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className="bg-white rounded-lg p-6 max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <h3 className="mb-4 text-lg font-bold">Food Analysis Results</h3>
@@ -111,6 +173,47 @@ const ImageAnalysisModal = ({ isOpen, onClose, onConfirm, analysisData, setAnaly
                     />
                   </div>
                 </div>
+
+                {/* Food Analysis Section */}
+                {foodAnalysis && (
+                  <div className="p-4 mt-4 space-y-3 rounded-lg bg-gray-50">
+                    <div>
+                      <h4 className="mb-1 text-sm font-semibold text-green-600">✅ Pros</h4>
+                      <ul className="list-disc list-inside text-xs text-gray-700 space-y-0.5">
+                        {foodAnalysis.pros?.map((pro, index) => (
+                          <li key={index}>{pro}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="mb-1 text-sm font-semibold text-red-600">❌ Cons</h4>
+                      <ul className="list-disc list-inside text-xs text-gray-700 space-y-0.5">
+                        {foodAnalysis.cons?.map((con, index) => (
+                          <li key={index}>{con}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <div>
+                      <h4 className="mb-1 text-sm font-semibold text-blue-600">💡 Suggestion</h4>
+                      <p className="text-xs text-gray-700">{foodAnalysis.suggestion}</p>
+                    </div>
+
+                    <div className="flex items-center mt-3">
+                      <input
+                        type="checkbox"
+                        id="saveAnalysis"
+                        checked={saveAnalysis}
+                        onChange={(e) => setSaveAnalysis(e.target.checked)}
+                        className="mr-2"
+                      />
+                      <label htmlFor="saveAnalysis" className="text-sm text-gray-700">
+                        Save food analysis for future reference
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 mt-6">
@@ -121,7 +224,7 @@ const ImageAnalysisModal = ({ isOpen, onClose, onConfirm, analysisData, setAnaly
                   Cancel
                 </button>
                 <button
-                  onClick={onConfirm}
+                  onClick={() => onConfirm(saveAnalysis)}
                   className="flex-1 px-4 py-2 text-white bg-orange-500 rounded-md hover:bg-orange-600"
                 >
                   Use These Values
@@ -146,11 +249,15 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
   const [generatingSuggestion, setGeneratingSuggestion] = useState(false)
   const [retryCounts, setRetryCounts] = useState({})
   
-  // New states for image analysis
+  // New states for image analysis and food info
   const [imageAnalysisModal, setImageAnalysisModal] = useState({ isOpen: false, category: null, mealId: null, isNewMeal: false })
   const [analysisData, setAnalysisData] = useState({})
+  const [foodAnalysis, setFoodAnalysis] = useState(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const fileInputRefs = useRef({})
+  
+  // Food info modal states
+  const [foodInfoModal, setFoodInfoModal] = useState({ isOpen: false, foodInfo: null })
 
   const inputRefs = useRef({})
 
@@ -200,11 +307,12 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
     }
   }, [userId, selectedDate, dietId])
 
-  // Image analysis function
+  // Image analysis function with pros/cons/suggestions
   const handleImageAnalysis = async (file, category, mealId, isNewMeal) => {
     setImageAnalysisModal({ isOpen: true, category, mealId, isNewMeal })
     setIsAnalyzing(true)
     setAnalysisData({})
+    setFoodAnalysis(null)
 
     try {
       // Convert file to base64
@@ -217,17 +325,24 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
       
       const base64Data = await base64Promise
 
-      const prompt = `Analyze this food image and provide nutritional information. 
-      Identify the food items visible and estimate:
-      1. Food name/description
-      2. Approximate serving size/weight
-      3. Calories
-      4. Carbohydrates (g)
-      5. Protein (g)
-      6. Fats (g)
+      const prompt = `Analyze this food image and provide:
+      1. Nutritional information (food name, quantity, calories, carbs, protein, fats)
+      2. Brief pros (2-3 short points, max 10 words each)
+      3. Brief cons (2-3 short points, max 10 words each)
+      4. One short suggestion (max 15 words)
       
-      Return the response as a JSON object with keys: food, quantity, calories, carbs, protein, fats.
-      Make reasonable estimates based on typical serving sizes if exact measurements aren't clear.`
+      Return as JSON with structure:
+      {
+        "food": "name",
+        "quantity": "amount",
+        "calories": number,
+        "carbs": number,
+        "protein": number,
+        "fats": number,
+        "pros": ["point1", "point2"],
+        "cons": ["point1", "point2"],
+        "suggestion": "brief tip"
+      }`
 
       const result = await geminiModel.generateContent([
         prompt,
@@ -277,6 +392,12 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         fats: processValue(parsedData.fats)
       })
 
+      setFoodAnalysis({
+        pros: parsedData.pros || [],
+        cons: parsedData.cons || [],
+        suggestion: parsedData.suggestion || ""
+      })
+
       setIsAnalyzing(false)
     } catch (error) {
       console.error("Error analyzing image:", error)
@@ -306,21 +427,30 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
     }
   }
 
-  // Handle analysis confirmation
-  const handleAnalysisConfirm = () => {
+  // Handle analysis confirmation with save option
+  const handleAnalysisConfirm = (saveAnalysis) => {
     const { category, mealId, isNewMeal } = imageAnalysisModal
+
+    const mealDataToUpdate = {
+      food: analysisData.food,
+      quantity: analysisData.quantity,
+      calories: analysisData.calories,
+      carbs: analysisData.carbs,
+      protein: analysisData.protein,
+      fats: analysisData.fats,
+    }
+
+    // Add food analysis if user chose to save it
+    if (saveAnalysis && foodAnalysis) {
+      mealDataToUpdate.foodAnalysis = foodAnalysis
+    }
 
     if (isNewMeal) {
       setNewMealData((prevState) => ({
         ...prevState,
         [category]: {
           ...prevState[category],
-          food: analysisData.food,
-          quantity: analysisData.quantity,
-          calories: analysisData.calories,
-          carbs: analysisData.carbs,
-          protein: analysisData.protein,
-          fats: analysisData.fats,
+          ...mealDataToUpdate,
           dietId: dietId || null,
         },
       }))
@@ -329,18 +459,14 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         ...prevState,
         [mealId]: {
           ...prevState[mealId],
-          food: analysisData.food,
-          quantity: analysisData.quantity,
-          calories: analysisData.calories,
-          carbs: analysisData.carbs,
-          protein: analysisData.protein,
-          fats: analysisData.fats,
+          ...mealDataToUpdate,
         },
       }))
     }
 
     setImageAnalysisModal({ isOpen: false, category: null, mealId: null, isNewMeal: false })
     setAnalysisData({})
+    setFoodAnalysis(null)
     toast.success("Nutritional values updated!")
   }
 
@@ -691,8 +817,23 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
 
     return (
       <div key={meal.id} className={`pt-2 border-t border-gray-100 p-2 ${isSuggested && "bg-gray-100 rounded-lg"}`}>
-        <p className="mb-1 font-medium text-gray-800">{meal.food}</p>
-        <p className="mb-2 text-sm text-gray-500">{meal.quantity}</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="mb-1 font-medium text-gray-800">
+              {meal.food}
+              {meal.foodAnalysis && (
+                <button
+                  onClick={() => setFoodInfoModal({ isOpen: true, foodInfo: meal.foodAnalysis })}
+                  className="ml-2 text-blue-500 hover:text-blue-700"
+                  title="View food information"
+                >
+                  <i className="text-sm fa-solid fa-info-circle"></i>
+                </button>
+              )}
+            </p>
+            <p className="mb-2 text-sm text-gray-500">{meal.quantity}</p>
+          </div>
+        </div>
         {meal.calories && <p className="mb-2 text-sm font-semibold text-orange-500">CALORIES: {meal.calories} kcal</p>}
 
         <div className="flex justify-between text-sm">
@@ -868,6 +1009,14 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
         analysisData={analysisData}
         setAnalysisData={setAnalysisData}
         isAnalyzing={isAnalyzing}
+        foodAnalysis={foodAnalysis}
+        setFoodAnalysis={setFoodAnalysis}
+      />
+      
+      <FoodInfoModal
+        isOpen={foodInfoModal.isOpen}
+        onClose={() => setFoodInfoModal({ isOpen: false, foodInfo: null })}
+        foodInfo={foodInfoModal.foodInfo}
       />
       
       <div className="pb-20 space-y-3 overflow-y-auto">
