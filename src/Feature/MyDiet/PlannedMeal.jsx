@@ -1,13 +1,15 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Accordion, AccordionHeader, AccordionBody } from "@material-tailwind/react"
+import { Accordion, AccordionHeader, AccordionBody, Menu, MenuHandler, MenuList, MenuItem } from "@material-tailwind/react"
 import { motion, AnimatePresence } from "framer-motion"
 import { collection, addDoc, getDocs, query, where, doc, updateDoc, deleteDoc } from "firebase/firestore"
 import { format, isEqual, startOfDay } from "date-fns"
 import { db, geminiModel } from "@/firebase/firebaseConfig"
 import toast from "react-hot-toast"
 import ImageAnalysisModal from "./ImageAnalysisModal"
+
+// Remove the CameraOptionsModal component since we'll use Material Tailwind Menu
 
 // Food Info Modal Component
 const FoodInfoModal = ({ isOpen, onClose, foodInfo }) => {
@@ -69,9 +71,6 @@ const FoodInfoModal = ({ isOpen, onClose, foodInfo }) => {
   )
 }
 
-// Image Analysis Modal Component
-
-
 const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, selectedDate, dietId, handleRefetch }) => {
   const mealCategories = ["Breakfast", "Lunch", "Snack", "Exercise", "Dinner"]
   const [userMeals, setUserMeals] = useState({})
@@ -89,6 +88,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
   const [foodAnalysis, setFoodAnalysis] = useState(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const fileInputRefs = useRef({})
+  const cameraInputRefs = useRef({})
   
   // Food info modal states
   const [foodInfoModal, setFoodInfoModal] = useState({ isOpen: false, foodInfo: null })
@@ -241,7 +241,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
     }
   }
 
-  // Handle image file selection
+  // Handle image file selection (both upload and capture)
   const handleImageSelect = (e, category, mealId, isNewMeal) => {
     const file = e.target.files[0]
     if (file) {
@@ -259,6 +259,18 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
 
       handleImageAnalysis(file, category, mealId, isNewMeal)
     }
+  }
+
+  // Handle upload option selection
+  const handleUploadOption = (category, mealId, isNewMeal) => {
+    const fileInputKey = isNewMeal ? `new-${category}` : `${category}-${mealId}`
+    fileInputRefs.current[fileInputKey]?.click()
+  }
+
+  // Handle capture option selection
+  const handleCaptureOption = (category, mealId, isNewMeal) => {
+    const cameraInputKey = isNewMeal ? `camera-new-${category}` : `camera-${category}-${mealId}`
+    cameraInputRefs.current[cameraInputKey]?.click()
   }
 
   // Handle analysis confirmation with save option
@@ -525,6 +537,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
     const localMeal = localMeals[meal.id] || meal
     const currentRetryCount = retryCounts[meal.id] || 0
     const fileInputKey = `${category}-${meal.id}`
+    const cameraInputKey = `camera-${category}-${meal.id}`
 
     const handleInputChange = (e, field) => {
       const value = e.target.value
@@ -570,6 +583,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
               className="flex-1 px-2 py-1 mb-1 border rounded"
             />
 
+            {/* Hidden file inputs */}
             <input
               ref={(el) => (fileInputRefs.current[fileInputKey] = el)}
               type="file"
@@ -578,13 +592,41 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
               onChange={(e) => handleImageSelect(e, category, meal.id, false)}
             />
             
-            <button
-              onClick={() => fileInputRefs.current[fileInputKey]?.click()}
-              className="p-2 text-blue-500 rounded hover:bg-blue-50"
-              title="Upload food image"
-            >
-              <i className="text-lg fa-solid fa-camera"></i>
-            </button>
+            <input
+              ref={(el) => (cameraInputRefs.current[cameraInputKey] = el)}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => handleImageSelect(e, category, meal.id, false)}
+            />
+            
+            <Menu placement="bottom-end">
+              <MenuHandler>
+                <button
+                  className="p-2 text-blue-500 rounded hover:bg-blue-50"
+                  title="Upload or capture food image"
+                >
+                  <i className="text-lg text-black fa-solid fa-camera"></i>
+                </button>
+              </MenuHandler>
+              <MenuList className="min-w-[180px]">
+                <MenuItem 
+                  className="flex items-center gap-3"
+                  onClick={() => handleCaptureOption(category, meal.id, false)}
+                >
+                  <i className="text-lg fa-solid fa-camera"></i>
+                  <span>Take Photo</span>
+                </MenuItem>
+                <MenuItem 
+                  className="flex items-center gap-3"
+                  onClick={() => handleUploadOption(category, meal.id, false)}
+                >
+                  <i className="text-lg fa-solid fa-image"></i>
+                  <span>Upload Image</span>
+                </MenuItem>
+              </MenuList>
+            </Menu>
 
             <button
               onClick={handleGetSuggestion}
@@ -704,6 +746,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
     const mealId = category
     const currentRetryCount = retryCounts[mealId] || 0
     const fileInputKey = `new-${category}`
+    const cameraInputKey = `camera-new-${category}`
     
     const handleInputChange = (e, field) => {
       setMealData((prevState) => ({
@@ -742,6 +785,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             className="flex-1 w-full px-2 py-1 mb-1 border rounded"
           />
 
+          {/* Hidden file inputs */}
           <input
             ref={(el) => (fileInputRefs.current[fileInputKey] = el)}
             type="file"
@@ -750,13 +794,41 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             onChange={(e) => handleImageSelect(e, category, mealId, true)}
           />
           
-          <button
-            onClick={() => fileInputRefs.current[fileInputKey]?.click()}
-            className="p-2 text-blue-500 rounded hover:bg-blue-50"
-            title="Upload food image"
-          >
-            <i className="text-lg fa-solid fa-camera"></i>
-          </button>
+          <input
+            ref={(el) => (cameraInputRefs.current[cameraInputKey] = el)}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => handleImageSelect(e, category, mealId, true)}
+          />
+          
+          <Menu placement="bottom-end">
+            <MenuHandler>
+              <button
+                className="p-2 text-blue-500 rounded hover:bg-blue-50"
+                title="Upload or capture food image"
+              >
+                <i className="text-lg text-black fa-solid fa-camera"></i>
+              </button>
+            </MenuHandler>
+            <MenuList className="min-w-[180px]">
+              <MenuItem 
+                className="flex items-center gap-3"
+                onClick={() => handleCaptureOption(category, mealId, true)}
+              >
+                <i className="text-lg fa-solid fa-camera"></i>
+                <span>Take Photo</span>
+              </MenuItem>
+              <MenuItem 
+                className="flex items-center gap-3"
+                onClick={() => handleUploadOption(category, mealId, true)}
+              >
+                <i className="text-lg fa-solid fa-image"></i>
+                <span>Upload Image</span>
+              </MenuItem>
+            </MenuList>
+          </Menu>
 
           <button
             onClick={handleGetSuggestion}
@@ -766,7 +838,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             {generatingSuggestion ? (
               <span className="text-sm">...</span>
             ) : (
-              <i className="text-lg text-orange-500 fa-solid fa-hand-sparkles"></i>
+              <i className="text-lg text-orange-500 fa-duotone fa-solid fa-microchip-ai"></i>
             )}
           </button>
         </div>
