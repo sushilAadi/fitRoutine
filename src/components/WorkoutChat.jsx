@@ -398,6 +398,92 @@ const WorkoutChat = ({ onPlanGenerated }) => {
 
   const debouncedHandleSendMessage = debounce(handleSendMessage, 300);
 
+  // Helper function to generate personalized fallback focus areas
+  const generatePersonalizedFallbackFocusAreas = (userProfile, fitnessLevel, goal) => {
+    const focusAreas = [];
+    
+    // Analyze user profile to create relevant focus areas
+    if (goal?.toLowerCase().includes('lose weight') || goal?.toLowerCase().includes('fat loss')) {
+      focusAreas.push({
+        id: `fat_loss_${userProfile.age}_${userProfile.gender}`,
+        title: "Targeted Fat Loss Program",
+        description: `Customized fat loss approach for ${userProfile.age}-year-old ${userProfile.gender} with ${fitnessLevel} fitness level`,
+        icon: "🔥",
+        suitableFor: `Optimized for your ${goal} goal and current activity level`,
+        priority: "high",
+        targetAreas: ["Full body fat reduction", "Metabolic enhancement"]
+      });
+    }
+    
+    if (goal?.toLowerCase().includes('muscle') || goal?.toLowerCase().includes('strength') || goal?.toLowerCase().includes('build')) {
+      focusAreas.push({
+        id: `strength_${userProfile.gender}_${fitnessLevel}`,
+        title: "Progressive Strength Building",
+        description: `Strength development program tailored for ${fitnessLevel} level ${userProfile.gender}`,
+        icon: "💪",
+        suitableFor: `Perfect match for your ${goal} objective`,
+        priority: "high",
+        targetAreas: ["Major muscle groups", "Progressive overload"]
+      });
+    }
+    
+    // Age-based recommendations
+    if (userProfile.age >= 30) {
+      focusAreas.push({
+        id: `posture_mobility_${userProfile.age}`,
+        title: "Posture & Mobility Enhancement",
+        description: "Address common posture issues and maintain mobility for long-term health",
+        icon: "🧘",
+        suitableFor: `Essential for ${userProfile.age}+ age group`,
+        priority: "medium",
+        targetAreas: ["Spinal alignment", "Joint mobility", "Core stability"]
+      });
+    }
+    
+    // Activity level based recommendations
+    if (userProfile.activityLevel?.toLowerCase().includes('sedentary') || userProfile.activityLevel?.toLowerCase().includes('low')) {
+      focusAreas.push({
+        id: `conditioning_${userProfile.activityLevel}`,
+        title: "Cardiovascular Conditioning",
+        description: "Build endurance and improve overall fitness foundation",
+        icon: "❤️",
+        suitableFor: `Ideal for improving from ${userProfile.activityLevel} activity level`,
+        priority: "medium",
+        targetAreas: ["Cardiovascular health", "General conditioning"]
+      });
+    }
+    
+    return focusAreas.slice(0, 3); // Return max 3 focus areas
+  };
+
+  // Helper function to generate areas needing work based on profile
+  const generateAreasNeedingWork = (userProfile, goal) => {
+    const areas = [];
+    
+    if (userProfile.age >= 35) {
+      areas.push("Core stability", "Posture alignment");
+    }
+    
+    if (goal?.toLowerCase().includes('lose weight')) {
+      areas.push("Metabolic conditioning", "Body composition");
+    }
+    
+    if (goal?.toLowerCase().includes('muscle') || goal?.toLowerCase().includes('strength')) {
+      areas.push("Progressive overload", "Muscle activation");
+    }
+    
+    if (userProfile.activityLevel?.toLowerCase().includes('sedentary')) {
+      areas.push("Cardiovascular endurance", "Movement quality");
+    }
+    
+    // Default areas if none match
+    if (areas.length === 0) {
+      areas.push("Overall conditioning", "Movement patterns", "Consistency");
+    }
+    
+    return areas.slice(0, 4); // Return max 4 areas
+  };
+
   const handleImageAnalysis = async (files) => {
     setIsAnalyzingImage(true);
     setPhotoAnalysis(null);
@@ -443,13 +529,16 @@ const WorkoutChat = ({ onPlanGenerated }) => {
         equipment: equipment
       };
 
-      const prompt = `You are a professional fitness assessor analyzing body composition photos. Provide a detailed body analysis report.
+      const prompt = `You are a professional fitness assessor analyzing body composition photos. Provide a detailed body analysis report and create PERSONALIZED focus areas based on the specific analysis results.
+
+      User Profile: Age ${userProfile.age}, ${userProfile.gender}, Height ${userProfile.height}cm, Weight ${userProfile.weight}kg, Activity Level: ${userProfile.activityLevel}, Goals: ${userProfile.goals}, Fitness Level: ${userProfile.fitnessLevel}
 
       Analyze these photos and provide:
       1. Body composition assessment (estimated body fat %, muscle development)
       2. Posture analysis (head position, shoulders, spine alignment)
       3. Proportions and muscle imbalances
       4. Areas needing improvement
+      5. PERSONALIZED focus areas based on SPECIFIC analysis findings
 
       Return ONLY valid JSON (no markdown formatting):
       {
@@ -467,28 +556,35 @@ const WorkoutChat = ({ onPlanGenerated }) => {
         },
         "focusAreas": [
           {
-            "id": "strength",
-            "title": "Strength & Muscle Building",
-            "description": "Focus on building lean muscle mass and strength",
-            "icon": "💪",
-            "suitableFor": "Based on visible muscle development needs"
+            "id": "unique_id_based_on_analysis",
+            "title": "Specific title based on actual body analysis findings",
+            "description": "Detailed description addressing specific issues found in photos",
+            "icon": "appropriate emoji",
+            "suitableFor": "Specific reasoning based on photo analysis results",
+            "priority": "high/medium/low",
+            "targetAreas": ["specific body parts that need work"]
           },
           {
-            "id": "fat_loss", 
-            "title": "Fat Loss & Toning",
-            "description": "Reduce body fat and improve definition",
-            "icon": "🔥",
-            "suitableFor": "Based on body composition analysis"
-          },
-          {
-            "id": "posture",
-            "title": "Posture & Alignment", 
-            "description": "Correct imbalances and improve posture",
-            "icon": "🧘",
-            "suitableFor": "Based on posture assessment"
+            "id": "another_unique_id", 
+            "title": "Another personalized focus based on findings",
+            "description": "Another specific description for identified issues",
+            "icon": "appropriate emoji",
+            "suitableFor": "Another specific reasoning from analysis",
+            "priority": "high/medium/low",
+            "targetAreas": ["other specific areas"]
           }
         ]
-      }`;
+      }
+
+      CRITICAL: Generate 2-4 focus areas that are SPECIFICALLY tailored to this person's visible body analysis results. DO NOT use generic categories. Instead:
+      - If you see forward head posture → create "Forward Head Correction" focus
+      - If you see rounded shoulders → create "Shoulder Mobility & Strength" focus  
+      - If you see lower body fat concentration → create "Lower Body Fat Reduction" focus
+      - If you see weak core → create "Core Stabilization Program" focus
+      - If you see muscle imbalances → create specific imbalance correction focus
+      - If you see good muscle development but high body fat → create "Body Recomposition" focus
+      
+      Each focus area should address SPECIFIC findings from the photo analysis, not generic fitness goals.`;
 
       console.log("Prompt being sent:", prompt);
 
@@ -531,43 +627,23 @@ const WorkoutChat = ({ onPlanGenerated }) => {
         } catch (secondError) {
           console.log("Second parsing attempt failed, using smart fallback");
           
-          // Create dynamic fallback body report
+          // Create personalized fallback based on user profile
+          const personalizedFocusAreas = generatePersonalizedFallbackFocusAreas(userProfile, fitnessLevel, goal);
+          
           analysisData = {
             bodyReport: {
               bodyFat: "Unable to accurately assess from photo",
-              muscleTone: "Moderate muscle development visible",
+              muscleTone: `Moderate muscle development visible for ${fitnessLevel} level`,
               posture: {
-                head: "Analysis pending",
-                shoulders: "Assessment needed",
-                spine: "Alignment check required"
+                head: "Analysis pending - will focus on general alignment",
+                shoulders: "Assessment needed - will include shoulder mobility work",
+                spine: "Alignment check required - will add core strengthening"
               },
-              areasNeedingWork: ["Core stability", "Posture alignment", "Overall conditioning"],
-              strengths: ["Commitment to fitness", "Ready for improvement"],
-              overallAssessment: `Based on your profile as a ${fitnessLevel} level individual with goal to ${goal}, there are several areas we can work on together.`
+              areasNeedingWork: generateAreasNeedingWork(userProfile, goal),
+              strengths: [`${fitnessLevel.charAt(0).toUpperCase() + fitnessLevel.slice(1)} fitness foundation`, "Commitment to improvement"],
+              overallAssessment: `Based on your profile as a ${userProfile.age}-year-old ${userProfile.gender} with ${fitnessLevel} fitness level and goal to ${goal}, we've identified key areas to focus on for optimal results.`
             },
-            focusAreas: [
-              {
-                id: "strength",
-                title: "Strength & Muscle Building",
-                description: "Focus on building lean muscle mass and strength",
-                icon: "💪",
-                suitableFor: `Perfect for your ${goal} goal`
-              },
-              {
-                id: "fat_loss",
-                title: "Fat Loss & Toning", 
-                description: "Reduce body fat and improve definition",
-                icon: "🔥",
-                suitableFor: "Great for body composition improvement"
-              },
-              {
-                id: "posture",
-                title: "Posture & Alignment",
-                description: "Correct imbalances and improve posture", 
-                icon: "🧘",
-                suitableFor: "Essential for long-term health"
-              }
-            ]
+            focusAreas: personalizedFocusAreas
           };
         }
       }
@@ -679,8 +755,9 @@ const WorkoutChat = ({ onPlanGenerated }) => {
 
     let strategy = "";
 
-    if (focusArea.id === "strength") {
-      strategy = `**Strength Building Strategy for ${userInfo.fitnessLevel} Level**
+    // Handle dynamic focus areas based on ID patterns and content
+    if (focusArea.id.includes("strength") || focusArea.title.toLowerCase().includes("strength") || focusArea.title.toLowerCase().includes("muscle")) {
+      strategy = `**${focusArea.title} for ${userInfo.fitnessLevel} Level**
 
 **Training Split (${userInfo.daysPerWeek} days/week):**
 ${userInfo.daysPerWeek >= 4 ? "• Upper/Lower split with progressive overload" : "• Full body workouts focusing on compound movements"}
@@ -690,6 +767,8 @@ ${userInfo.daysPerWeek >= 4 ? "• Upper/Lower split with progressive overload" 
 • Progressive overload: Increase weight by 2.5-5lbs weekly
 • Rep ranges: 6-8 reps for strength, 8-12 for muscle growth
 
+**Target Areas:** ${focusArea.targetAreas ? focusArea.targetAreas.join(', ') : 'Major muscle groups'}
+
 **Equipment Adaptation:**
 ${userInfo.equipment === "none" ? 
   "• Bodyweight progressions: Push-up variations, single-leg squats\n• Resistance bands for added difficulty" :
@@ -697,8 +776,8 @@ ${userInfo.equipment === "none" ?
 
 **Timeline:** Expect strength gains in 4-6 weeks with consistent training.`;
 
-    } else if (focusArea.id === "fat_loss") {
-      strategy = `**Fat Loss Strategy for ${userInfo.fitnessLevel} Level**
+    } else if (focusArea.id.includes("fat_loss") || focusArea.title.toLowerCase().includes("fat") || focusArea.title.toLowerCase().includes("toning")) {
+      strategy = `**${focusArea.title} for ${userInfo.fitnessLevel} Level**
 
 **Training Approach (${userInfo.daysPerWeek} days/week):**
 • Combine strength training with cardio intervals
@@ -710,6 +789,8 @@ ${userInfo.equipment === "none" ?
 • 40% cardio intervals for fat burning
 • Circuit training: 30-45 seconds work, 15-30 seconds rest
 
+**Target Areas:** ${focusArea.targetAreas ? focusArea.targetAreas.join(', ') : 'Full body fat reduction'}
+
 **Cardio Integration:**
 ${userInfo.equipment === "none" ?
   "• Bodyweight circuits: Burpees, mountain climbers, jump squats\n• Walking/running intervals" :
@@ -717,11 +798,11 @@ ${userInfo.equipment === "none" ?
 
 **Expected Results:** 1-2 lbs fat loss per week with proper nutrition.`;
 
-    } else if (focusArea.id === "posture") {
-      strategy = `**Posture Correction Strategy for ${userInfo.fitnessLevel} Level**
+    } else if (focusArea.id.includes("posture") || focusArea.title.toLowerCase().includes("posture") || focusArea.title.toLowerCase().includes("alignment")) {
+      strategy = `**${focusArea.title} for ${userInfo.fitnessLevel} Level**
 
 **Assessment Focus:**
-Based on your body analysis, we'll target specific imbalances and alignment issues.
+${focusArea.description}
 
 **Daily Routine (${userInfo.timePerWorkout} min sessions):**
 • 10 min mobility/stretching
@@ -733,12 +814,57 @@ Based on your body analysis, we'll target specific imbalances and alignment issu
 • **Stretch:** Chest, hip flexors, neck muscles
 • **Mobilize:** Thoracic spine, shoulders, hips
 
+**Target Areas:** ${focusArea.targetAreas ? focusArea.targetAreas.join(', ') : 'Spinal alignment, Core stability'}
+
 **Equipment Adaptation:**
 ${userInfo.equipment === "none" ?
   "• Wall angels, doorway stretches, floor exercises\n• Resistance band exercises for upper back" :
   `• Use ${userInfo.equipment} for targeted strengthening\n• Focus on rowing movements and back extensions`}
 
 **Daily Habits:** Posture check every hour, ergonomic workspace setup.`;
+
+    } else if (focusArea.id.includes("conditioning") || focusArea.title.toLowerCase().includes("cardio") || focusArea.title.toLowerCase().includes("conditioning")) {
+      strategy = `**${focusArea.title} for ${userInfo.fitnessLevel} Level**
+
+**Training Approach (${userInfo.daysPerWeek} days/week):**
+• Progressive cardiovascular training
+• Mix of steady-state and interval training
+• ${userInfo.timePerWorkout}-minute sessions building endurance
+
+**Workout Structure:**
+• 20% warm-up and mobility
+• 60% cardiovascular training
+• 20% cool-down and stretching
+
+**Target Areas:** ${focusArea.targetAreas ? focusArea.targetAreas.join(', ') : 'Cardiovascular health, General conditioning'}
+
+**Exercise Selection:**
+${userInfo.equipment === "none" ?
+  "• Walking/jogging intervals\n• Bodyweight circuits\n• Stair climbing, jumping jacks" :
+  `• Equipment-based cardio using ${userInfo.equipment}\n• Rowing, cycling, or treadmill intervals`}
+
+**Expected Results:** Improved endurance and energy levels within 3-4 weeks.`;
+
+    } else {
+      // Generic strategy for any other focus area
+      strategy = `**${focusArea.title} for ${userInfo.fitnessLevel} Level**
+
+**Training Approach (${userInfo.daysPerWeek} days/week):**
+${focusArea.description}
+
+**Session Structure (${userInfo.timePerWorkout} min sessions):**
+• Customized approach based on your specific needs
+• Progressive training methodology
+• Regular assessment and adjustment
+
+**Target Areas:** ${focusArea.targetAreas ? focusArea.targetAreas.join(', ') : 'Comprehensive fitness improvement'}
+
+**Equipment Adaptation:**
+${userInfo.equipment === "none" ?
+  "• Bodyweight exercises and movements\n• Creative use of household items" :
+  `• Optimal use of ${userInfo.equipment}\n• Equipment-specific exercise selection`}
+
+**Focus:** ${focusArea.suitableFor}`;
     }
 
     return strategy;
