@@ -1,6 +1,5 @@
 // firebase/firebaseConfig.js
 import { initializeApp } from "firebase/app";
-import { getAnalytics, isSupported } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
@@ -23,23 +22,6 @@ export const geminiModel = genAI.getGenerativeModel({
   model: "gemini-2.5-flash" // Using latest free model
 });
 
-let analytics = null;
-
-// Safely initialize Analytics if supported and in the browser environment
-if (typeof window !== "undefined") {
-  isSupported()
-    .then((supported) => {
-      if (supported) {
-        analytics = getAnalytics(app);
-      } else {
-        console.log("Analytics is not supported in this environment.");
-      }
-    })
-    .catch((error) => {
-      console.error("Error checking analytics support:", error);
-    });
-}
-
 const db = getFirestore(app);
 
-export { app, analytics, db };
+export { app, db };

@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Clean layout utilities */
+@layer utilities {
+  .floating-nav-space {
+    padding-top: 4rem; /* Space for floating navigation */
+  }
+}
+
 
 
 @font-face {
@@ -152,6 +159,15 @@ a {
 
 .offcanvas.offcanvas-end{
   border-left: none !important;
+}
+
+/* Clerk UserButton minimal fixes */
+.cl-userButtonPopover {
+  z-index: 9999 !important;
+}
+
+.cl-userButtonPopoverCard {
+  z-index: 9999 !important;
 }
 
 /* @media (prefers-color-scheme: light) {
@@ -317,11 +333,11 @@ border: 1px solid rgba( 255, 255, 255, 0.18 );
 }
 
 .bg-glass{
-  background: rgba( 255, 255, 255, 0.2 );
-box-shadow: 0 2px 16px 0 rgba(192, 195, 242, 0.37);
-backdrop-filter: blur( 7.5px );
--webkit-backdrop-filter: blur( 7.5px );
-
+  background: rgba( 0, 0, 0, 0.85 );
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur( 20px );
+  -webkit-backdrop-filter: blur( 20px );
+  border: 1px solid rgba( 255, 255, 255, 0.1 );
 }
 .p-datepicker-header{
   margin-bottom: 40px !important;

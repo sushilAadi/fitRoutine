@@ -185,7 +185,7 @@ export const Card = ({
             layoutId={layout ? `card-${card.title}` : undefined}
             className="max-w-5xl mx-auto   h-full text-white  z-[60] p-4 md:p-10 font-sans relative">
             <button
-              className="sticky right-0 flex items-center justify-center w-8 h-8 ml-auto rounded-full top-4 "
+              className="sticky right-0 flex items-center justify-center w-8 h-8 ml-auto rounded-full top-14 "
               onClick={handleClose}>
               {/* <IconX className="w-6 h-6 text-neutral-100 dark:text-neutral-900" /> */}
               <i className="fa-solid fa-xmark "></i>

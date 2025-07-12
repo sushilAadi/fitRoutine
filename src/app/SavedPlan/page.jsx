@@ -219,14 +219,14 @@ const CustomPlanPage = () => {
                 </p>
               </div>
 
-              <IconButton
+              {/* <IconButton
                 variant="text"
                 className="w-6 h-6 ml-auto text-white hover:bg-transparent focus:bg-transparent active:bg-transparent lg:hidden"
                 ripple={false}
                 onClick={handleOpenClose}
               >
                 <Bars3Icon className="w-6 h-6" />
-              </IconButton>
+              </IconButton> */}
             </div>
           </div>
           {/* {savedPlans?.length > 0 && (

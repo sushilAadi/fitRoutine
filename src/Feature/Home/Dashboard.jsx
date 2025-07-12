@@ -103,7 +103,7 @@ export default function FitnessTrackerDashboard() {
       <div className="flex flex-col items-center h-screen overflow-hidden">
         
         <div className="mb-2 overflow-auto overflow-y-auto no-scrollbar h-100 innerContainer">
-        <div className="sticky top-0 z-50 w-full bg-tprimary stickyCard">
+        <div className="sticky top-0 z-40 w-full bg-tprimary stickyCard">
         
           <motion.div
             initial={{ y: -20, opacity: 0 }}

@@ -7,6 +7,8 @@ import {
 } from "@material-tailwind/react";
 import {
   Bars3Icon,
+  XMarkIcon,
+  ArrowLeftIcon,
 } from "@heroicons/react/24/solid";
 import Link from "next/link";
 import Image from "next/image";
@@ -18,70 +20,35 @@ import {
   UserButton
 } from '@clerk/nextjs'
 import { GlobalContext } from "@/context/GloablContext";
+import { useRouter, usePathname } from "next/navigation";
 
 const NavbarComponent = () => {
   const {handleOpenClose,show} = useContext(GlobalContext)
+  const pathname = usePathname();
+  
+  // Hide on home page since profile image handles sidebar opening
+  if (pathname === '/' || pathname === '/healthReport') {
+    return null;
+  }
+  console.log(pathname,"pathname")
 
   return (
-    <div className="absolute px-4 pt-2 w-100 z-[999999999]">
-      <div className="flex items-center justify-between ">
-        <Typography
-          as="a"
-          href="#"
-          variant="h6"
-          className="mr-4 cursor-pointer py-1.5"
-        >
-          {/* <Image src={logo} alt="logo" width={46} height={46} className="mix-blend-multiply" /> */}
-        </Typography>
-        <div className="hidden lg:block">
-            <ul className="flex flex-col gap-2 mt-2 mb-4 lg:mb-0 lg:mt-0 lg:flex-row lg:items-center lg:gap-6">
-              {/* <Typography
-                as="li"
-                variant="small"
-                color="blue-gray"
-                className="p-1 font-normal"
-              >
-                <Link href="/bodyparts" className="no-underline text-inherit">
-                  Body Parts
-                </Link>
-              </Typography> */}
-              <Typography
-                as="li"
-                variant="small"
-                color="blue-gray"
-                className="p-1 font-normal"
-              >
-                <Link href="/createPlanPage" className="no-underline text-inherit">
-                  Create Plan
-                </Link>
-              </Typography>
-              <Typography
-                as="li"
-                variant="small"
-                color="blue-gray"
-                className="p-1 font-normal"
-              >
-                <Link href="/SavedPlan" className="no-underline text-inherit">
-                  Saved Plan
-                </Link>
-              </Typography>
-
-              <UserButton />
-
-            </ul>
-        </div>
-        {!show && 
-        <IconButton
-          variant="text"
-          className="w-6 h-6 ml-auto text-inherit hover:bg-transparent focus:bg-transparent active:bg-transparent lg:hidden"
-          ripple={false}
-          onClick={handleOpenClose}
-        >
-          <Bars3Icon className="w-6 h-6" />
-        </IconButton>}
-      </div>
-
-    </div>
+    <>
+    {!show && <IconButton
+      variant="filled"
+      className="w-12 h-12 text-gray-500 "
+      ripple={false}
+      onClick={handleOpenClose}
+    >
+      {show ? (
+        <XMarkIcon className="w-6 h-6" />
+      ) : (
+        <Bars3Icon className="w-6 h-6" />
+      )}
+    </IconButton>}
+      
+    </>
+    
   );
 }
 

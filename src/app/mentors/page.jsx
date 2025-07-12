@@ -65,10 +65,10 @@ const Coaches = () => {
               <p className="text-3xl">Choose</p>
               <p className="text-3xl">your <i>Instructor</i></p>
             </div>
-            <i 
+            {/* <i 
               className="cursor-pointer text-white fa-duotone fa-solid fa-bars text-[20px] hambergerMenu" 
               onClick={handleOpenClose}
-            />
+            /> */}
           </div>
         </div>
         <div className="p-3 mb-2 overflow-auto overflow-y-auto exerciseCard no-scrollbar">

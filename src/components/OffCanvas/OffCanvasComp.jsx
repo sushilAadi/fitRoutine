@@ -15,8 +15,16 @@ const OffCanvasComp = ({customStyle,sidebar,handleClose,showProps, children, ...
   }
   
   return (
-    <Offcanvas className={`${customStyle} duration-500`} show={sidebar?show:showProps} onHide={handleCloseProps} {...props}>
-        <Offcanvas.Body className='p-0 duration-500'>
+    <Offcanvas 
+      className={`${customStyle} duration-500 h-full`} 
+      show={sidebar?show:showProps} 
+      onHide={handleCloseProps} 
+      backdrop={true}
+      scroll={false}
+      style={{ height: '100vh', maxHeight: '100vh' }}
+      {...props}
+    >
+        <Offcanvas.Body className='p-0 duration-500 h-full overflow-hidden'>
           {children}
         </Offcanvas.Body>
       </Offcanvas>

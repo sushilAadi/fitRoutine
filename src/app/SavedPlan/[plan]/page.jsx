@@ -13,6 +13,7 @@ import ConfirmationToast from "@/components/Toast/ConfirmationToast";
 import { calculateDetailedWorkoutProgress } from "@/utils/progress";
 import ProgressRealTime from "./ProgressRealTime";
 import { ProgressBar } from "react-bootstrap";
+import FloatingNavbar from "@/components/Navbar/FloatingNavbar";
 
 const PlanDetail = ({ params }) => {
   const { userId } = useContext(GlobalContext);
@@ -524,7 +525,9 @@ const PlanDetail = ({ params }) => {
   if (!transFormedData || !selectedWeek || selectedDay === null) return <div className="flex flex-col items-center justify-center h-screen"><div className="p-4 text-center text-gray-500">Workout data not available or incomplete.</div></div>;
 
   return (
-    <div className="flex flex-col bg-gray-50 hide-scrollbar">
+    <>
+      <FloatingNavbar title={workoutData?.planName || "Workout Plan"} />
+      <div className="flex flex-col bg-gray-50 hide-scrollbar pt-16">
       {/* Header */}
       
       <div className="p-3 pb-1 bg-white border-b sticky-top">
@@ -605,7 +608,8 @@ const PlanDetail = ({ params }) => {
       </div>
         <Progress transFormedData={transFormedData} firebaseStoredData={firebaseStoredData}/>
       
-    </div>
+      </div>
+    </>
   );
 };
 

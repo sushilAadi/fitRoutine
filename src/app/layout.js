@@ -21,9 +21,7 @@ import "primereact/resources/themes/lara-light-indigo/theme.css";
 const queryClient = new QueryClient();
 
 export default function RootLayout({ children }) {
-  const [show, setShow] = useState(false);
-
-  const handleOpenClose = () => setShow(!show);
+  
   const key = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   return (
     <ClerkProvider publishableKey={key}>
@@ -85,12 +83,15 @@ export default function RootLayout({ children }) {
                   >
                     <Sidebar />
                   </OffCanvasComp>
-
-                  <div>
-                    <NavbarComponent />
+                  
+                  {/* Global Hamburger Menu - Fixed Position */}
+                  <div className="fixed top-4 right-4 z-[999999] lg:top-6 lg:right-6">
+                    {<NavbarComponent />}
                   </div>
                 </SignedIn>
-                {children}
+                <main className="min-h-screen">
+                  {children}
+                </main>
                 <Toaster/>
               </ThemeProvider>
               <Analytics />
