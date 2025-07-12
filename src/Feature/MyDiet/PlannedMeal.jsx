@@ -441,26 +441,44 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
   
       const prompt = `Give me the estimated nutritional information (calories, carbs, protein, and fat) for ${quantity} of ${food}. Return the response as a JSON object with keys: calories, carbs, protein, fats. If you cannot find the information, return a JSON object with all values set to empty strings (""). Give clear integer value only`
   
+      console.log("=== NUTRITION DEBUG ===");
+      console.log("Food:", food, "Quantity:", quantity);
+      console.log("Prompt:", prompt);
+  
       try {
         const response = await geminiModel.generateContent(prompt)
+        console.log("Gemini response received:", response);
         let text = response.response.text()
+        console.log("Raw text from Gemini:", text);
   
         const codeBlockRegex = /```json\s*([\s\S]*?)\s*```/
         const match = text.match(codeBlockRegex)
   
         if (match) {
           text = match[1]
+          console.log("Extracted JSON:", text);
         }
   
         let parsedData
         try {
           parsedData = JSON.parse(text)
+          console.log("Parsed nutrition data:", parsedData);
         } catch (parseError) {
           console.error("Error parsing Gemini response:", parseError, "Raw text:", text)
-          toast("Could not understand the response from Gemini. Please try again or add manually.", {
-            position: "top-center",
-          })
-          return
+          
+          // Try to extract without code block
+          const cleanText = text.replace(/```json|```/g, '').trim();
+          try {
+            parsedData = JSON.parse(cleanText);
+            console.log("Parsed from cleaned text:", parsedData);
+          } catch (secondError) {
+            console.error("Second parsing attempt failed:", secondError);
+            toast("Could not understand the response from Gemini. Please try again or add manually.", {
+              position: "top-center",
+            })
+            setGeneratingSuggestion(false)
+            return
+          }
         }
         
         if (parsedData && Object.keys(parsedData).length === 0 && parsedData.constructor === Object) {
@@ -935,6 +953,14 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
             : dietList?.filter((meal) => meal.meal === category)
             
           const userAddedMeals = userMeals[category] || []
+          
+          // Filter out suggested meals that are already added by user to avoid duplication
+          const filteredSuggestedMeals = suggestedMeals?.filter(suggestedMeal => 
+            !userAddedMeals.some(userMeal => 
+              userMeal.food === suggestedMeal.food && 
+              userMeal.quantity === suggestedMeal.quantity
+            )
+          ) || []
 
           return (
             <Accordion
@@ -955,7 +981,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                 </div>
               </AccordionHeader>
               <AccordionBody className="p-2 pt-0">
-                {suggestedMeals?.map((meal, mealIndex) => renderMealItem(meal, category, true))}
+                {filteredSuggestedMeals?.map((meal, mealIndex) => renderMealItem(meal, category, true))}
                 {userAddedMeals?.map((meal, mealIndex) => renderMealItem(meal, category, false))}
                 {newMealForms[category] && renderNewMealForm(category, newMealData, setNewMealData)}
 
@@ -970,7 +996,7 @@ const PlannedMeal = ({ dietList, openAccordion, handleOpenAccordion, userId, sel
                   </motion.button>
                 )}
 
-                {suggestedMeals.length === 0 && userAddedMeals.length === 0 && !newMealForms[category] && (
+                {filteredSuggestedMeals.length === 0 && userAddedMeals.length === 0 && !newMealForms[category] && (
                   <div className="pt-2 border-t border-gray-100">
                     <p className="mb-1 font-medium text-gray-800">No meals planned for {category}</p>
                   </div>
