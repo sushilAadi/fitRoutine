@@ -19,9 +19,11 @@ export default function GlobalContextProvider({ children }) {
 
   const [userDetail, setUserDetail] = useState(null);
   const [userWeightData, setUserWeightData] = useState([]);
+  const [userStepsData, setUserStepsData] = useState([]);
   const [plans, setPlans] = useState([]);
   const [isFetchingUser, setIsFetchingUser] = useState(false);
   const [isFetchingWeight, setIsFetchingWeight] = useState(false);
+  const [isFetchingSteps, setIsFetchingSteps] = useState(false);
   const [isFetchingPlans, setIsFetchingPlans] = useState(false);
 
   const [gender, setGender] = useState(null);
@@ -70,6 +72,23 @@ export default function GlobalContextProvider({ children }) {
     }
   };
 
+  const fetchUserSteps = async () => {
+    try {
+      setIsFetchingSteps(true);
+      
+      const stepsCollectionRef = collection(db, "steps");
+      const stepsQuery = query(stepsCollectionRef, where("userIdCl", "==", userId));
+      const stepsDocs = await getDocs(stepsQuery);
+      const data = stepsDocs.docs.map((doc) => doc.data());
+      
+      setUserStepsData(data);
+    } catch (error) {
+      console.error("Error fetching steps details:", error);
+    } finally {
+      setIsFetchingSteps(false);
+    }
+  };
+
   const fetchPlans = async () => {
     try {
       setIsFetchingPlans(true);
@@ -110,12 +129,14 @@ export default function GlobalContextProvider({ children }) {
     if (userId) {
       fetchUserDetail();
       fetchUserWeight();
+      fetchUserSteps();
       fetchPlans();
     }
   }, [userId]);
 
   const userRefetch = fetchUserDetail;
   const userWeightRefetch = fetchUserWeight;
+  const userStepsRefetch = fetchUserSteps;
   const plansRefetch = fetchPlans;
 
   const userDetailData = userDetail || {};
@@ -124,8 +145,9 @@ export default function GlobalContextProvider({ children }) {
 
   const handleOpenClose = () => setShow(!show);
   const latestWeight = _.maxBy(userWeightData, (entry) => new Date(entry?.created_at));
+  const latestSteps = _.maxBy(userStepsData, (entry) => new Date(entry?.created_at));
 
-  const isFetching = isFetchingUser || isFetchingWeight || isFetchingPlans;
+  const isFetching = isFetchingUser || isFetchingWeight || isFetchingSteps || isFetchingPlans;
 
   const contextValue = useMemo(() => {
     return {
@@ -147,8 +169,11 @@ export default function GlobalContextProvider({ children }) {
       activityLevel,
       setActivityLevel,
       userWeightRefetch,
+      userStepsRefetch,
       plansRefetch,
       latestWeight,
+      latestSteps,
+      userStepsData,
       plans,
       userId,
       userAgeCal,
@@ -166,6 +191,8 @@ export default function GlobalContextProvider({ children }) {
     selectedGoals,
     activityLevel,
     latestWeight,
+    latestSteps,
+    userStepsData,
     plans,
     userAgeCal,
     isFetching,

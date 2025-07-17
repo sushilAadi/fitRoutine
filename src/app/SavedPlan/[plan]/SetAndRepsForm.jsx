@@ -1233,7 +1233,7 @@ const SetAndRepsForm = ({
                   </span>
                 </td>
                 <td className="p-1 text-center align-middle border">
-                  <div className="flex flex-wrap items-center justify-center gap-1 text-base md:gap-2">
+                  <div className="flex flex-wrap items-center gap-1 text-base justify-evenly md:gap-2">
                     {isSkipped ? (
                       <i
                         className="text-gray-400 fas fa-ban"
@@ -1265,7 +1265,7 @@ const SetAndRepsForm = ({
                     ) : (
                       <>
                         {set.isEditing && (
-                          <>
+                          <div className="flex justify-evenly">
                             <i
                               className="text-blue-500 cursor-pointer fas fa-play hover:text-blue-700"
                               onClick={() => startWorkout(set.id)}
@@ -1276,7 +1276,7 @@ const SetAndRepsForm = ({
                               onClick={() => completeSet(set.id)}
                               title="Save & Complete (Skip Timer)"
                             ></i>
-                          </>
+                          </div>
                         )}
                         {set.isActive && !set.isEditing && !set.isCompleted && (
                           <i

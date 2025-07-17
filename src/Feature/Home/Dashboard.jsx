@@ -16,6 +16,7 @@ import { GlobalContext } from "@/context/GloablContext";
 
 import BMICard from "./BMICard";
 import { calculateAge, calculateBMI } from "@/utils";
+import { calculatePersonalizedStepGoal } from "@/utils/steps";
 import Link from "next/link";
 
 // Helper functions
@@ -31,7 +32,7 @@ const calculateCalories = (weight, height, age, gender, activityFactor) => {
 
 
 export default function FitnessTrackerDashboard() {
-  const { userDetailData,handleOpenClose,latestWeight } = useContext(GlobalContext);
+  const { userDetailData, handleOpenClose, latestWeight, latestSteps } = useContext(GlobalContext);
 
 
   if (!userDetailData) {
@@ -60,39 +61,47 @@ export default function FitnessTrackerDashboard() {
     activityLevel.factor
   );
   
+  const currentSteps = latestSteps?.steps || 0;
+  const personalizedStepGoal = calculatePersonalizedStepGoal(userDetailData, latestWeight);
+  const stepsGoal = latestSteps?.goal || personalizedStepGoal;
+  
 
   const goals = [
     {
       name: "Calories",
-      value: `${maintenanceCalories} kcal/day`, // Show maintenance calories directly
+      value: `${maintenanceCalories} kcal/day`,
       trend: "up",
       color: "bg-[#FFD7CC]",
       textColor: "text-[#FF6B6B]",
       requirement: `Maintain at ${maintenanceCalories} kcal/day`,
+      progress: 0,
     },
     {
       name: "Active time",
-      value: "30 min/day", // Show active time directly
+      value: "30 min/day",
       trend: "up",
       color: "bg-[#E8FFCC]",
       textColor: "text-[#7AB55C]",
       requirement: "Target: 30 min/day",
+      progress: 0,
     },
     {
       name: "Steps",
-      value: "10,000 steps/day", // Show step count directly
-      trend: "up",
+      value: `${currentSteps.toLocaleString()} / ${stepsGoal.toLocaleString()}`,
+      trend: currentSteps >= stepsGoal ? "up" : "down",
       color: "bg-[#CCF6FF]",
       textColor: "text-[#5CB5C2]",
-      requirement: "Goal: 10,000 steps/day",
+      requirement: `Goal: ${stepsGoal.toLocaleString()} steps/day`,
+      progress: Math.min((currentSteps / stepsGoal) * 100, 100),
     },
     {
       name: "Weight",
-      value: `${latestWeight?.userWeights} kg`, // Show weight directly
+      value: `${latestWeight?.userWeights} kg`,
       trend: "down",
       color: "bg-[#F2CCFF]",
       textColor: "text-[#B55CC2]",
       requirement: `Current: ${latestWeight?.userWeights} kg`,
+      progress: 0,
     },
   ];
 
@@ -195,7 +204,7 @@ export default function FitnessTrackerDashboard() {
                         <div className="w-full h-1 rounded-full bg-tprimary">
                           <motion.div
                             initial={{ width: 0 }}
-                            animate={{ width: `${goal.value}%` }}
+                            animate={{ width: `${goal.progress || 0}%` }}
                             transition={{ duration: 1, delay: index * 0.2 }}
                             className={`h-full rounded-full ${goal.textColor.replace(
                               "text",
