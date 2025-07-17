@@ -30,7 +30,82 @@ export default function RootLayout({ children }) {
         <PrimeReactProvider>
           <html lang="en" suppressHydrationWarning>
             <head>
-            <link rel="manifest" href="/manifest.json" />
+              {/* Viewport meta tag to prevent zooming */}
+              <meta 
+                name="viewport" 
+                content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" 
+              />
+              
+              {/* CSS to prevent zooming */}
+              <style>
+                {`
+                  html, body {
+                    overflow-x: hidden;
+                    position: relative;
+                    touch-action: pan-y pan-x; /* Allow scrolling but prevent zoom */
+                  }
+                  
+                  /* Prevent double-tap zoom on specific elements */
+                  * {
+                    -webkit-touch-callout: none;
+                    -webkit-tap-highlight-color: transparent;
+                  }
+                `}
+              </style>
+              
+              {/* JavaScript to prevent zoom events */}
+              <script
+                dangerouslySetInnerHTML={{
+                  __html: `
+                    (function() {
+                      // Prevent double-click zoom
+                      document.addEventListener('dblclick', function(e) {
+                        e.preventDefault();
+                      }, { passive: false });
+                      
+                      // Prevent zoom with Ctrl/Cmd + scroll (desktop only)
+                      document.addEventListener('wheel', function(e) {
+                        if (e.ctrlKey || e.metaKey) {
+                          e.preventDefault();
+                        }
+                      }, { passive: false });
+                      
+                      // Prevent zoom with Ctrl/Cmd + plus/minus (desktop only)
+                      document.addEventListener('keydown', function(e) {
+                        if ((e.ctrlKey || e.metaKey) && 
+                            (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+                          e.preventDefault();
+                        }
+                      }, { passive: false });
+                      
+                      // Prevent multi-touch zoom while allowing single touch
+                      let isMultiTouch = false;
+                      
+                      document.addEventListener('touchstart', function(e) {
+                        if (e.touches.length > 1) {
+                          isMultiTouch = true;
+                          e.preventDefault();
+                        } else {
+                          isMultiTouch = false;
+                        }
+                      }, { passive: false });
+                      
+                      document.addEventListener('touchmove', function(e) {
+                        if (e.touches.length > 1 || isMultiTouch) {
+                          e.preventDefault();
+                        }
+                      }, { passive: false });
+                      
+                      document.addEventListener('touchend', function(e) {
+                        if (isMultiTouch) {
+                          isMultiTouch = false;
+                        }
+                      }, { passive: false });
+                    })();
+                  `
+                }}
+              />
+              <link rel="manifest" href="/manifest.json" />
               <link
                 rel="stylesheet"
                 href="https://site-assets.fontawesome.com/releases/v6.6.0/css/all.css"
