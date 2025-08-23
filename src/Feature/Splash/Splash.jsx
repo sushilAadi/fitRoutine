@@ -2,8 +2,10 @@
 import ButtonCs from '@/components/Button/ButtonCs'
 import React, { useEffect } from 'react'
 import splashImag from '@/assets/splash.jpeg'
+import logo from '../../assets/neeed.jpg'
 import Link from 'next/link'
 import { useAuth } from '@clerk/nextjs'
+import Image from 'next/image'
 
 const Splash = ({ setStep }) => {
   const { userId } = useAuth()
@@ -30,24 +32,39 @@ const Splash = ({ setStep }) => {
     }
   }, [userId])
   return (
-    <div className='flex items-center justify-between px-5 py-4 bg-white ch-screen flex-column animate__animated animate__slideInLeft'>
-      <div className="w-[200px] h-[230px] ">
-        <div className='relative flex justify-center'>
-          <img src="https://img.freepik.com/premium-photo/ai-generated-gym-poster-with-glowing-background_694356-53.jpg" alt="" srcSet="" className='absolute w-[100px]  object-cover left-0 rounded-md' />
-          <img src="https://img.freepik.com/premium-photo/muscular-young-man-gym-showing-muscles-back-view-fitness-model-gym-generated-by-ai_1038983-22608.jpg" alt="" srcSet="" className='absolute  top-[30px]  right-1 rounded-md w-[80px] h-[100px] object-cover' />
-          <img src="https://img.freepik.com/premium-photo/direction-determination-gym-experience-ai-generated_915770-4824.jpg" alt="" srcSet="" className='absolute w-[160px] h-[80px] top-[115px] left-0 object-cover rounded-md border-4 border-white' />
+    <div className='relative flex flex-col overflow-hidden bg-white ch-screen animate__animated animate__slideInLeft'>
+      {/* Background geometric elements */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 right-0 translate-x-32 -translate-y-32 rounded-full w-96 h-96 bg-gradient-to-bl from-orange-100 to-transparent"></div>
+        <div className="absolute bottom-0 left-0 -translate-x-32 translate-y-32 rounded-full w-80 h-80 bg-gradient-to-tr from-purple-100 to-transparent"></div>
+      </div>
+
+      {/* Main Image */}
+      <div className="relative z-10 flex items-center justify-center flex-1 px-6 pt-12">
+        <div className="relative">
+          <Image 
+            src={logo} 
+            alt="splash" 
+            width={120}
+            height={120}
+            className='object-cover shadow-xl w-[120px] h-[120px] rounded-3xl'
+          />
+          
         </div>
       </div>
 
-      <div className="text-center">
-        <h1 className='font-bold'>NEEEDFIT</h1>
-        <p className='text-gray-500'>lets you create personalized workout plans tailored to your fitness goals. Take control of your journey and build the workout routine that fits your needs!</p>
-        <br />
-        <br />
+      {/* Content */}
+      <div className="relative z-10 px-6 pt-8 pb-8">
+        <div className="text-center">
+          <h1 className='mb-4 text-2xl font-bold text-gray-900'>NEEEDFIT</h1>
+          <p className='mb-8 text-sm leading-relaxed text-gray-600'>lets you create personalized workout plans tailored to your fitness goals. Take control of your journey and build the workout routine that fits your needs!</p>
+        </div>
+
+        {/* Button */}
+        <Link href="/sign-in">
+          <ButtonCs title="Let's Go" icon={<i className="ml-2 fa-solid fa-arrow-right "></i>} type="submit" className="mt-[36px] btnStyle min-w-[184px] " />
+        </Link>
       </div>
-      <Link href="/sign-in">
-        <ButtonCs title="Let's Go" icon={<i className="ml-2 fa-solid fa-arrow-right "></i>} type="submit" className="mt-[36px] btnStyle min-w-[184px] " />
-      </Link>
     </div>
   )
 }

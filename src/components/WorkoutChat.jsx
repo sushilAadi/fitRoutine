@@ -148,6 +148,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   // Function to clear generated plan data from localStorage
   const clearGeneratedPlanFromLocalStorage = () => {
     localStorage.removeItem(`generatedPlanData_${userId}`);
+    localStorage.removeItem(`generationState_${userId}`);
   };
 
   // Function to update preferences based on user selections
@@ -287,16 +288,27 @@ const WorkoutChat = ({ onPlanGenerated }) => {
           totalWeeks: plans?.Totalweeks
         });
 
+        // Also save generation state to localStorage for reliable recovery
+        localStorage.setItem(`generationState_${userId}`, JSON.stringify({
+          generatedPlan: plan,
+          generatedExercises: plans?.workoutPlan,
+          diet: plans?.dietPlan,
+          totalCaloriesRequied: plans?.totalCaloriesRequired,
+          totalWeeks: plans?.Totalweeks,
+          isGenerated: true,
+          timestamp: Date.now()
+        }));
+
         onPlanGenerated(plan);
 
         addMessage("Your workout and diet plan is ready!", "ai");
         setCurrentStep("complete");
-        sessionStorage.setItem(`planGenerated_${userId}`, 'true');
+        localStorage.setItem(`planGenerated_${userId}`, 'true');
       } else {
         addMessage("We are sorry for the inconvenience. The workout plan generation failed. Please try again. If the issue persists, contact 7892808101.", "ai");
         setIsPlanGenerationFailed(true);
         setCurrentStep("complete");
-        sessionStorage.removeItem(`planGenerated_${userId}`);
+        localStorage.removeItem(`planGenerated_${userId}`);
       }
     } catch (err) {
       console.error("Error generating workout plan:", err);
@@ -1033,9 +1045,11 @@ ${userInfo.equipment === "none" ?
     setTotalWeeks(0);
 
     // Clear all storage
-    sessionStorage.removeItem(`paymentSuccessful_${userId}`);
-    sessionStorage.removeItem(`planGenerated_${userId}`);
-    sessionStorage.removeItem(`workoutData_${userId}`);
+    localStorage.removeItem(`paymentSuccessful_${userId}`);
+    localStorage.removeItem(`planGenerated_${userId}`);
+    localStorage.removeItem(`workoutData_${userId}`);
+    localStorage.removeItem(`paymentTimestamp_${userId}`);
+    localStorage.removeItem(`generationState_${userId}`);
     clearGeneratedPlanFromLocalStorage();
     setSaved(false);
     setShowImageUpload(false);
@@ -1269,7 +1283,9 @@ ${userInfo.equipment === "none" ?
     setHasPaymentBeenAttempted(true);
     setIsPaymentSuccessful(true);
 
-    sessionStorage.setItem(`paymentSuccessful_${userId}`, 'true');
+    // Use localStorage instead of sessionStorage for persistence across page refreshes
+    localStorage.setItem(`paymentSuccessful_${userId}`, 'true');
+    localStorage.setItem(`paymentTimestamp_${userId}`, Date.now().toString());
 
     const workoutData = {
       fitnessLevel,
@@ -1280,7 +1296,7 @@ ${userInfo.equipment === "none" ?
       preferences,
       userInputData,
     };
-    sessionStorage.setItem(`workoutData_${userId}`, JSON.stringify(workoutData));
+    localStorage.setItem(`workoutData_${userId}`, JSON.stringify(workoutData));
 
     addMessage("Payment successful! Generating your personalized workout and diet plan...", "ai");
     generatePlan();
@@ -1407,9 +1423,11 @@ ${userInfo.equipment === "none" ?
       setSaved(true);
       
       // Clear all storage after successful save
-      sessionStorage.removeItem(`paymentSuccessful_${userId}`);
-      sessionStorage.removeItem(`planGenerated_${userId}`);
-      sessionStorage.removeItem(`workoutData_${userId}`);
+      localStorage.removeItem(`paymentSuccessful_${userId}`);
+      localStorage.removeItem(`planGenerated_${userId}`);
+      localStorage.removeItem(`workoutData_${userId}`);
+      localStorage.removeItem(`paymentTimestamp_${userId}`);
+      localStorage.removeItem(`generationState_${userId}`);
       clearGeneratedPlanFromLocalStorage();
     } catch (error) {
       console.error("Error saving plan:", error);
@@ -1422,25 +1440,33 @@ ${userInfo.equipment === "none" ?
   };
 
   useEffect(() => {
-    const paymentSuccessful = sessionStorage.getItem(`paymentSuccessful_${userId}`) === 'true';
-    const planGenerated = sessionStorage.getItem(`planGenerated_${userId}`) === 'true';
+    const paymentSuccessful = localStorage.getItem(`paymentSuccessful_${userId}`) === 'true';
+    const planGenerated = localStorage.getItem(`planGenerated_${userId}`) === 'true';
+    const paymentTimestamp = localStorage.getItem(`paymentTimestamp_${userId}`);
 
-    if (paymentSuccessful) {
+    // Check if payment is recent (within last 24 hours) to avoid old payments
+    const isPaymentRecent = paymentTimestamp && (Date.now() - parseInt(paymentTimestamp)) < (24 * 60 * 60 * 1000);
+
+    if (paymentSuccessful && isPaymentRecent) {
       setHasPaymentBeenAttempted(true)
       setIsPaymentSuccessful(true);
       setIsReadyForPayment(false);
       setCurrentStep("complete");
 
-      const storedWorkoutData = sessionStorage.getItem(`workoutData_${userId}`);
+      const storedWorkoutData = localStorage.getItem(`workoutData_${userId}`);
       if (storedWorkoutData) {
-        const workoutData = JSON.parse(storedWorkoutData);
-        setFitnessLevel(workoutData.fitnessLevel);
-        setGoal(workoutData.goal);
-        setDaysPerWeek(workoutData.daysPerWeek);
-        setTimePerWorkout(workoutData.timePerWorkout);
-        setEquipment(workoutData.equipment);
-        setPreferences(workoutData.preferences);
-        setUserInputData(workoutData.userInputData);
+        try {
+          const workoutData = JSON.parse(storedWorkoutData);
+          setFitnessLevel(workoutData.fitnessLevel);
+          setGoal(workoutData.goal);
+          setDaysPerWeek(workoutData.daysPerWeek);
+          setTimePerWorkout(workoutData.timePerWorkout);
+          setEquipment(workoutData.equipment);
+          setPreferences(workoutData.preferences);
+          setUserInputData(workoutData.userInputData);
+        } catch (error) {
+          console.error("Error parsing stored workout data:", error);
+        }
       }
 
       // Try to load generated plan data from localStorage first
@@ -1449,10 +1475,22 @@ ${userInfo.equipment === "none" ?
       if (planLoadedFromLocalStorage) {
         // Plan data found in localStorage, display it
         addMessage("Your workout and diet plan is ready!", "ai");
+        if (!planGenerated) {
+          localStorage.setItem(`planGenerated_${userId}`, 'true');
+        }
       } else if (!planGenerated) {
         // No plan data in localStorage and plan not generated, generate new plan
+        addMessage("Payment successful! Generating your personalized workout and diet plan...", "ai");
         generatePlan();
       }
+    } else if (paymentSuccessful && !isPaymentRecent) {
+      // Clean up old payment data
+      localStorage.removeItem(`paymentSuccessful_${userId}`);
+      localStorage.removeItem(`planGenerated_${userId}`);
+      localStorage.removeItem(`workoutData_${userId}`);
+      localStorage.removeItem(`paymentTimestamp_${userId}`);
+      localStorage.removeItem(`generationState_${userId}`);
+      clearGeneratedPlanFromLocalStorage();
     }
   }, [userId]);
 
