@@ -26,7 +26,11 @@
       "Bash(shadcn-ui-mcp-server:*)",
       "Bash(timeout:*)",
       "Bash(npx shadcn:*)",
-      "Bash(sudo find \"/Volumes/Extreme SSD/s/fit-app\" -name \"._*\" -type f -delete)"
+      "Bash(sudo find \"/Volumes/Extreme SSD/s/fit-app\" -name \"._*\" -type f -delete)",
+      "Bash(yarn install)",
+      "Bash(ln:*)",
+      "Bash(npx @magicuidesign/cli@latest install:*)",
+      "Bash(claude mcp:*)"
     ],
     "deny": []
   }

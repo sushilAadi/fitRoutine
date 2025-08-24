@@ -405,3 +405,17 @@ border: 1px solid rgba( 255, 255, 255, 0.18 );
   margin-top: 0.625rem; /* 10px */
 }
 
+.cl-headerTitle{
+  display: none !important;
+}
+.cl-internal-d5pd3d, .cl-internal-vvtys3{
+  box-shadow: none !important;
+  padding: 0 !important;
+  gap:0 !important;
+  box-sizing: none !important;
+  border: none !important;
+}
+.cl-socialButtonsBlockButton{
+  padding: 12px 0 !important;
+  /* width: 80%; */
+}

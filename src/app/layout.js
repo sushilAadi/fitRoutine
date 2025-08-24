@@ -29,7 +29,7 @@ export default function RootLayout({ children }) {
         <GlobalContextProvider>
         <PrimeReactProvider>
           <html lang="en" suppressHydrationWarning>
-            <head>
+            <head suppressHydrationWarning>
               {/* Viewport meta tag to prevent zooming */}
               <meta 
                 name="viewport" 

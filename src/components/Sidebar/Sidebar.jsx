@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { UserButton, useClerk, useUser } from "@clerk/nextjs";
 import { GlobalContext } from "@/context/GloablContext";
-import logo from "@/assets/logo.jpg";
+import logo from "@/assets/neeed.jpg";
 
 const Sidebar = () => {
   const { handleOpenClose, fullName, user, plansRefetch } =

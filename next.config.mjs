@@ -71,6 +71,10 @@ const nextConfig = withPWA({
           protocol: 'https',
           hostname: 'your-logo-url.com',
         },
+        {
+          protocol: 'https',
+          hostname: 'res.cloudinary.com',
+        },
       ],
     },
 
