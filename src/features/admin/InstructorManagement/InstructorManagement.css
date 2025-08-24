@@ -1,0 +1,124 @@
+/* InstructorManagement Component Styles */
+
+.instructor-management {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.instructor-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.expandable-row {
+  overflow: hidden;
+}
+
+.expandable-row td {
+  padding: 0 !important;
+  border: none !important;
+  vertical-align: top;
+}
+
+.expandable-content {
+  overflow: hidden;
+}
+
+.instructor-row {
+  transition: background-color 0.2s ease;
+}
+
+.instructor-row:hover {
+  background-color: rgba(0,0,0,0.05) !important;
+}
+
+.table-container {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 280px);
+}
+
+.table-header {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.table-body-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.profile-image {
+  width: 180px !important;
+  height: 180px !important;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.document-image {
+  width: 180px !important;
+  height: 150px !important;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.cert-image {
+  width: 180px !important;
+  height: 160px !important;
+  object-fit: cover;
+  border-radius: 8px;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+.certificate-gallery {
+  display: flex;
+  overflow-x: auto;
+  gap: 8px;
+  padding: 4px 0;
+  scrollbar-width: thin;
+}
+
+.certificate-gallery::-webkit-scrollbar {
+  height: 6px;
+}
+
+.certificate-gallery::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.certificate-gallery::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.certificate-gallery::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+.stats-container {
+  flex-shrink: 0;
+}
+
+.controls-container {
+  flex-shrink: 0;
+}
+
+.content-container {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}

@@ -19,13 +19,22 @@ const AdminSidebar = () => {
   const userRole = user?.publicMetadata?.role;
 
   const adminMenuItems = [
-    { name: "Instructor Management", path: "/admin/dashboard", icon: "fa-solid fa-chalkboard-user" },
+    { name: "Instructor Management", component: "instructor-management", icon: "fa-solid fa-chalkboard-user" },
     ...(userRole === "admin" ? [
-      { name: "User Management", path: "/admin/users", icon: "fa-solid fa-users" },
-      { name: "System Settings", path: "/admin/settings", icon: "fa-solid fa-gear" },
-      { name: "Analytics", path: "/admin/analytics", icon: "fa-solid fa-chart-bar" },
+      { name: "User Management", component: "user-management", icon: "fa-solid fa-users" },
+      { name: "System Settings", component: "system-settings", icon: "fa-solid fa-gear" },
+      { name: "Analytics", component: "analytics", icon: "fa-solid fa-chart-bar" },
     ] : []),
   ];
+  
+  const handleMenuClick = (component) => {
+    // Dispatch custom event for component navigation
+    const event = new CustomEvent('admin-navigate', {
+      detail: { component }
+    });
+    window.dispatchEvent(event);
+    setShowSidebar(false); // Close mobile menu
+  };
 
   const accountItems = [
     { 
@@ -76,12 +85,13 @@ const AdminSidebar = () => {
           <div className="flex-grow-1 overflow-auto">
             <List className="p-2">
               {adminMenuItems.map((item, index) => {
-                const isActive = pathname === item.path;
+                const isActive = pathname.includes(item.component) || (item.component === 'instructor-management' && pathname === '/admin/dashboard');
                 return (
-                  <Link
+                  <div
                     key={index}
-                    href={item.path}
                     className="text-decoration-none text-dark"
+                    onClick={() => handleMenuClick(item.component)}
+                    style={{ cursor: 'pointer' }}
                   >
                     <ListItem className={`px-3 py-2 my-1 rounded hover-bg-light ${isActive ? 'bg-light' : ''}`}>
                       <ListItemPrefix>
@@ -89,7 +99,7 @@ const AdminSidebar = () => {
                       </ListItemPrefix>
                       <span className={isActive ? "fw-bold" : "fw-normal"}>{item.name}</span>
                     </ListItem>
-                  </Link>
+                  </div>
                 );
               })}
             </List>
@@ -154,13 +164,13 @@ const AdminSidebar = () => {
           {/* Navigation Menu */}
           <List className="p-2">
             {adminMenuItems.map((item, index) => {
-              const isActive = pathname === item.path;
+              const isActive = pathname.includes(item.component) || (item.component === 'instructor-management' && pathname === '/admin/dashboard');
               return (
-                <Link
+                <div
                   key={index}
-                  href={item.path}
                   className="text-decoration-none text-dark"
-                  onClick={() => setShowSidebar(false)}
+                  onClick={() => handleMenuClick(item.component)}
+                  style={{ cursor: 'pointer' }}
                 >
                   <ListItem className={`px-3 py-2 my-1 rounded hover-bg-light ${isActive ? 'bg-light' : ''}`}>
                     <ListItemPrefix>
@@ -168,7 +178,7 @@ const AdminSidebar = () => {
                     </ListItemPrefix>
                     <span className={isActive ? "fw-bold" : "fw-normal"}>{item.name}</span>
                   </ListItem>
-                </Link>
+                </div>
               );
             })}
           </List>
