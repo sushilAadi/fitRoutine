@@ -66,6 +66,15 @@ const Sidebar = () => {
     });
   }
 
+  // Admin-only menu items
+  if (userRole === "admin") {
+    menuItems.push({
+      name: "Admin Dashboard",
+      path: "/admin/dashboard", 
+      icon: "fa-solid fa-shield-halved",
+    });
+  }
+
   return (
     <div className="flex flex-col h-full">
       <Card className="flex flex-col w-full h-full border-0 bg-glass rounded-0">
