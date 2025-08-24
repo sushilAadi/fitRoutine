@@ -41,12 +41,39 @@ Then, provide the workout plan in this exact JSON format and mention which muscl
   "dietPlan": [
     {
       "meal": "Breakfast",
-      "food": "Oats",
-      "quantity": "100g",
-      "protein": "13g",
-      "carbs": "67g",
-      "fats": "7g",
-      "fiber": "7g"
+      "food": "Oats, Banana, Almonds",
+      "quantity": "100g oats, 1 medium banana, 20g almonds",
+      "protein": "20",
+      "carbs": "85",
+      "fats": "15",
+      "fiber": "12"
+    },
+    {
+      "meal": "Lunch", 
+      "food": "Brown Rice, Dal, Mixed Vegetables",
+      "quantity": "150g rice, 100g dal, 100g vegetables",
+      "protein": "25",
+      "carbs": "120",
+      "fats": "8",
+      "fiber": "15"
+    },
+    {
+      "meal": "Snack",
+      "food": "Greek Yogurt, Berries",
+      "quantity": "200g yogurt, 50g berries",
+      "protein": "18",
+      "carbs": "20",
+      "fats": "6",
+      "fiber": "4"
+    },
+    {
+      "meal": "Dinner",
+      "food": "Grilled Chicken, Quinoa, Broccoli",
+      "quantity": "150g chicken, 100g quinoa, 100g broccoli",
+      "protein": "35",
+      "carbs": "40",
+      "fats": "12",
+      "fiber": "8"
     }
   ],
    "totalCaloriesRequired": "2500kcal"
@@ -64,7 +91,12 @@ Rules for the diet plan:
 - Focus on Indian diet options
 - Include all macronutrients (protein, carbs, fats)
 - Provide specific quantities
-- Include at least 4 meals (Breakfast, Lunch, Snack, Dinner)
+- Include EXACTLY 4 meals (Breakfast, Lunch, Snack, Dinner)
+- IMPORTANT: Create ONE entry per meal type only - combine all foods for each meal into a single entry
+- If multiple foods are needed for a meal, list them separated by commas in the "food" field
+- Sum up the total nutrients for all foods in that meal
+- DO NOT create multiple entries for the same meal type (e.g., don't create 4 separate Breakfast entries)
+- Each meal type (Breakfast, Lunch, Snack, Dinner) should appear exactly once in the dietPlan array
 
 After the JSON, display the plans in markdown table format for better readability:
 
@@ -76,7 +108,8 @@ Workout Plan:
 Diet Plan:
 | Meal | Food | Quantity | Protein | Carbs | Fats |
 |------|------|----------|---------|--------|------|
-| Breakfast | Oats | 100g | 13g | 67g | 7g |`;
+| Breakfast | Oats, Banana, Almonds | 100g oats, 1 medium banana, 20g almonds | 20g | 85g | 15g |
+| Lunch | Brown Rice, Dal, Mixed Vegetables | 150g rice, 100g dal, 100g vegetables | 25g | 120g | 8g |`;
     }
 
     const result = await geminiModel.generateContent(prompt);

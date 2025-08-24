@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(npm run lint)",
+      "Bash(rm:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(grep:*)",
+      "Bash(npm install:*)",
+      "Bash(find:*)",
+      "Bash(sudo find /Volumes/Extreme SSD/s/fit-app -name \"._*\" -type f -delete)",
+      "Bash(git merge:*)",
+      "Bash(git rebase:*)",
+      "Bash(git stash:*)",
+      "Bash(git reset:*)",
+      "Bash(git clean:*)",
+      "Bash(git checkout:*)",
+      "Bash(git fetch:*)",
+      "Bash(ls:*)",
+      "Bash(mkdir:*)",
+      "Bash(echo $SHELL)",
+      "Bash(source:*)",
+      "Bash(npm search:*)",
+      "Bash(shadcn-ui-mcp-server:*)",
+      "Bash(timeout:*)",
+      "Bash(npx shadcn:*)",
+      "Bash(sudo find \"/Volumes/Extreme SSD/s/fit-app\" -name \"._*\" -type f -delete)",
+      "Bash(yarn install)",
+      "Bash(ln:*)",
+      "Bash(npx @magicuidesign/cli@latest install:*)",
+      "Bash(claude mcp:*)"
+    ],
+    "deny": []
+  }
+}

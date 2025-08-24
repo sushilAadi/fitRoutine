@@ -7,8 +7,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import _ from "lodash";
 import { useRouter } from "next/navigation";
-import { updateDoc, doc } from "firebase/firestore";
+import { updateDoc, doc, deleteDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
+import toast from "react-hot-toast";
 
 const Diet = () => {
   const router = useRouter();
@@ -92,6 +93,53 @@ const Diet = () => {
     }
   };
 
+  // Function to handle deleting a diet plan
+  const handleDeletePlan = async (planId, planName) => {
+    const deletePlan = () => {
+      toast((t) => (
+        <div className="flex flex-col gap-2">
+          <span>Are you sure you want to delete "{planName}" diet plan?</span>
+          <div className="flex gap-2">
+            <button
+              className="px-4 py-2 text-white bg-red-500 rounded hover:bg-red-600"
+              onClick={async () => {
+                toast.dismiss(t.id);
+                setIsLoading(true);
+                try {
+                  // Delete the diet plan from Firebase
+                  await deleteDoc(doc(db, "diet_AI", planId));
+                  
+                  // Refresh diet plans
+                  await memoizedFetchDietPlans();
+                  
+                  toast.success("Diet plan deleted successfully!");
+                } catch (error) {
+                  console.error("Error deleting diet plan:", error);
+                  toast.error("Failed to delete diet plan. Please try again.");
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+            >
+              Yes, Delete
+            </button>
+            <button
+              className="px-4 py-2 text-gray-700 bg-gray-200 rounded hover:bg-gray-300"
+              onClick={() => toast.dismiss(t.id)}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ), {
+        duration: 10000,
+        position: 'top-center',
+      });
+    };
+
+    deletePlan();
+  };
+
   // Define the MealPlanCard component directly here
   const MealPlanCard = ({
     mealData,
@@ -100,10 +148,12 @@ const Diet = () => {
     weeks,
     onClick,
     onComplete,
+    onDelete,
     anyPlanActive,
     totalCaloriesRequied
   }) => {
     const [selectedMeal, setSelectedMeal] = useState(null);
+    const [showAllMeals, setShowAllMeals] = useState(false);
 
     const icons = {
       Breakfast: "fa-solid fa-mug-hot",
@@ -148,6 +198,9 @@ const Diet = () => {
     // Calculate days left
     const daysLeft = calculateDaysLeft(plan.activeDate, plan.totalWeeks);
 
+    // Determine which meals to show
+    const displayedMeals = showAllMeals ? mealData : mealData.slice(0, 1);
+
     return (
       <div
         className={`border border-gray-200 shadow-md rounded-xl w-full max-w-[350px] h-full flex-shrink-0`}
@@ -156,9 +209,12 @@ const Diet = () => {
           <div className="relative flex flex-col gap-3 p-3 bg-white rounded-xl">
             <div className="flex items-center justify-between">
               <div className="px-2 pt-2">
-                <h3 className="text-lg font-bold text-gray-800">
-                  {_.capitalize(planName)}
-                </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-gray-800">
+                    {_.capitalize(planName)}
+                  </h3>
+                  
+                </div>
                 <div className="flex">
                   <p className="mt-0.5 text-gray-600 text-sm">
                     {weeks} Weeks Plan.
@@ -302,94 +358,126 @@ const Diet = () => {
           <div className="p-1 bg-gray-50 rounded-xl">
             <h4 className="mb-1 text-lg font-bold text-gray-800">Meals</h4>
             <div className="grid grid-cols-1 gap-1">
-              {mealData.map((meal, index) => (
-                <motion.div
-                  key={meal.meal}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.99 }}
-                  className="cursor-pointer"
-                  onClick={() => {
-                    setSelectedMeal(
-                      selectedMeal === meal.meal ? null : meal.meal
-                    );
-                  }}
-                >
-                  <div
-                    className={`rounded-xl p-1.5 h-full transition-all duration-200 ${
-                      selectedMeal === meal.meal
-                        ? "bg-gradient-to-r from-blue-50 to-green-50 border border-green-200"
-                        : "bg-white shadow-sm hover:shadow border border-gray-100"
-                    }`}
+              <AnimatePresence mode="wait">
+                {displayedMeals.map((meal, index) => (
+                  <motion.div
+                    key={meal.meal}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2, delay: index * 0.1 }}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    className="cursor-pointer"
+                    onClick={() => {
+                      setSelectedMeal(
+                        selectedMeal === meal.meal ? null : meal.meal
+                      );
+                    }}
                   >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          selectedMeal === meal.meal
-                            ? "bg-gradient-to-r from-blue-500 to-green-500"
-                            : "bg-gray-200"
-                        }`}
-                      >
-                        <i
-                          className={`${icons[meal.meal]} ${
+                    <div
+                      className={`rounded-xl p-1.5 h-full transition-all duration-200 ${
+                        selectedMeal === meal.meal
+                          ? "bg-gradient-to-r from-blue-50 to-green-50 border border-green-200"
+                          : "bg-white shadow-sm hover:shadow border border-gray-100"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center ${
                             selectedMeal === meal.meal
-                              ? "text-white text-xs"
-                              : "text-gray-600 text-xs"
+                              ? "bg-gradient-to-r from-blue-500 to-green-500"
+                              : "bg-gray-200"
                           }`}
-                        ></i>
-                      </div>
-                      <div>
-                        <h5 className="text-sm font-medium text-gray-800">
-                          {meal.meal}
-                        </h5>
-                        <p
-                          className="text-sm text-gray-600 line-clamp-2"
-                          title={meal.food}
                         >
-                          {meal.food}
-                        </p>
+                          <i
+                            className={`${icons[meal.meal]} ${
+                              selectedMeal === meal.meal
+                                ? "text-white text-xs"
+                                : "text-gray-600 text-xs"
+                            }`}
+                          ></i>
+                        </div>
+                        <div className="flex-1">
+                          <h5 className="text-sm font-medium text-gray-800">
+                            {meal.meal}
+                          </h5>
+                          <p
+                            className="text-sm text-gray-600 line-clamp-2"
+                            title={meal.food}
+                          >
+                            {meal.food}
+                          </p>
+                        </div>
                       </div>
-                    </div>
 
-                    <AnimatePresence>
-                      {selectedMeal === meal.meal && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="pt-2 mt-2 border-t border-gray-200">
-                            <div className="grid grid-cols-2 gap-1 text-xs">
-                              <div>
-                                <p className="text-gray-500">Quantity</p>
-                                <p className="text-gray-800">{meal.quantity}</p>
-                              </div>
-                              <div className="grid grid-cols-3 gap-1">
+                      <AnimatePresence>
+                        {selectedMeal === meal.meal && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="pt-2 mt-2 border-t border-gray-200">
+                              <div className="grid grid-cols-2 gap-1 text-xs">
                                 <div>
-                                  <p className="text-gray-500">Protein</p>
-                                  <p className="text-gray-800">
-                                    {meal.protein}
-                                  </p>
+                                  <p className="text-gray-500">Quantity</p>
+                                  <p className="text-gray-800">{meal.quantity}</p>
                                 </div>
-                                <div>
-                                  <p className="text-gray-500">Carbs</p>
-                                  <p className="text-gray-800">{meal.carbs}</p>
-                                </div>
-                                <div>
-                                  <p className="text-gray-500">Fats</p>
-                                  <p className="text-gray-800">{meal.fats}</p>
+                                <div className="grid grid-cols-3 gap-1">
+                                  <div>
+                                    <p className="text-gray-500">Protein</p>
+                                    <p className="text-gray-800">
+                                      {meal.protein}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-500">Carbs</p>
+                                    <p className="text-gray-800">{meal.carbs}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-500">Fats</p>
+                                    <p className="text-gray-800">{meal.fats}</p>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </motion.div>
-              ))}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
+
+            {/* Show More/Less Button */}
+            {mealData.length > 1 && (
+              <button
+                onClick={() => setShowAllMeals(!showAllMeals)}
+                className="w-full py-2 mt-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-800"
+              >
+                <motion.div
+                  className="flex items-center justify-center gap-1"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  {showAllMeals ? (
+                    <>
+                      <span>Show less</span>
+                      <i className="text-xs fa-solid fa-chevron-up"></i>
+                    </>
+                  ) : (
+                    <>
+                      <span>Show more ({mealData.length - 1} more meals)</span>
+                      <i className="text-xs fa-solid fa-chevron-down"></i>
+                    </>
+                  )}
+                </motion.div>
+              </button>
+            )}
 
             {plan.isActive ? (
               <div className="flex gap-4">
@@ -406,6 +494,7 @@ const Diet = () => {
                 >
                   {isLoading ? "Completing..." : "Complete Plan"}
                 </button>
+                
               </div>
             ) : (
               <button
@@ -417,6 +506,14 @@ const Diet = () => {
                 {isLoading ? "Starting..." : plan.completed ? "Restart Plan" : "Start Plan"}
               </button>
             )}
+            <button
+                    onClick={() => onDelete(plan.id, planName)}
+                    className="w-full p-1 my-2 text-center text-red-500 transition-colors rounded-full"
+                    title="Delete Diet Plan"
+                    disabled={isLoading}
+                  >
+                    <i className="mr-3 fa-duotone fa-solid fa-trash" ></i>Delete Plan
+                  </button>
           </div>
         </div>
       </div>
@@ -451,6 +548,7 @@ const Diet = () => {
                       weeks={plan?.totalWeeks}
                       onClick={handleStartPlan}
                       onComplete={handleCompletePlan}
+                      onDelete={handleDeletePlan}
                       totalCaloriesRequied={plan?.totalCaloriesRequied}
                       anyPlanActive={anyPlanActive} // Pass the status to the card
                     />

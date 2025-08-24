@@ -10,10 +10,11 @@ import MealPlanCard from "@/Feature/AiCoach/MealPlan";
 import { motion, AnimatePresence } from "framer-motion";
 import PaymentComponent from "@/components/PaymentComponent";
 import { addDoc, collection, doc, setDoc, getDoc } from "@firebase/firestore";
-import { db } from "@/firebase/firebaseConfig";
+import { db, geminiModel } from "@/firebase/firebaseConfig";
 import toast from "react-hot-toast";
 import { debounce } from 'lodash';
 import jsonToSpreadsheet from "@/utils/excel";
+import ReactMarkdown from 'react-markdown';
 
 const colorMap = {
   1: 'bg-blue-50',
@@ -56,6 +57,16 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   const [saved, setSaved] = useState(false);
   const [isPlanGenerationFailed, setIsPlanGenerationFailed] = useState(false);
   const [hasPaymentBeenAttempted, setHasPaymentBeenAttempted] = useState(false);
+  const [showImageUpload, setShowImageUpload] = useState(false);
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [photoAnalysis, setPhotoAnalysis] = useState(null);
+  const [uploadedImages, setUploadedImages] = useState([]);
+  const [workoutSuggestions, setWorkoutSuggestions] = useState([]);
+  const [bodyReport, setBodyReport] = useState(null);
+  const [focusAreas, setFocusAreas] = useState([]);
+  const [selectedFocusArea, setSelectedFocusArea] = useState(null);
+  const fileInputRef = useRef(null);
+  const cameraInputRef = useRef(null);
 
   const { data: exercisesData = [] } = useQuery({
     queryKey: ["exercise"],
@@ -137,6 +148,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   // Function to clear generated plan data from localStorage
   const clearGeneratedPlanFromLocalStorage = () => {
     localStorage.removeItem(`generatedPlanData_${userId}`);
+    localStorage.removeItem(`generationState_${userId}`);
   };
 
   // Function to update preferences based on user selections
@@ -146,6 +158,11 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     const { userName, userGender, userHeight, userWeight, helpYou, activityLevel } = userDetailData;
     
     if (!userName || !userGender || !userHeight || !userWeight || !helpYou || !activityLevel) return;
+    
+    // Don't override if we already have enhanced preferences from photo analysis
+    if (preferences && preferences.includes("BODY ANALYSIS RESULTS")) {
+      return; // Keep the enhanced preferences with photo analysis
+    }
     
     let updatedPreferences = `I am ${userName}, a ${userAgeCal}-year-old, ${userGender.toLowerCase()} with a height of ${userHeight} cm and weight of ${userWeight} kg.I have an activity level of "${activityLevel.subtitle}".`;
     
@@ -189,9 +206,17 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     }
   }, [currentStep]);
 
-  const addMessage = (content, type = "user", isCaption = false, isSuggestion = false) => {
-    const newMessage = { type, content, isCaption, id: Date.now(), isSuggestion };
-    setMessages(prev => [...prev, newMessage]);
+  const addMessage = (content, type = "user", isCaption = false, isSuggestion = false, isMarkdown = false) => {
+    setMessages(prev => {
+      // Check if the same content was just added to prevent immediate duplicates
+      const lastMessage = prev[prev.length - 1];
+      if (lastMessage && lastMessage.content === content && lastMessage.type === type) {
+        return prev; // Don't add duplicate message
+      }
+      
+      const newMessage = { type, content, isCaption, id: Date.now() + Math.random(), isSuggestion, isMarkdown };
+      return [...prev, newMessage];
+    });
 
     if (isSuggestion) {
       setShowCopyButton(true);
@@ -263,16 +288,27 @@ const WorkoutChat = ({ onPlanGenerated }) => {
           totalWeeks: plans?.Totalweeks
         });
 
+        // Also save generation state to localStorage for reliable recovery
+        localStorage.setItem(`generationState_${userId}`, JSON.stringify({
+          generatedPlan: plan,
+          generatedExercises: plans?.workoutPlan,
+          diet: plans?.dietPlan,
+          totalCaloriesRequied: plans?.totalCaloriesRequired,
+          totalWeeks: plans?.Totalweeks,
+          isGenerated: true,
+          timestamp: Date.now()
+        }));
+
         onPlanGenerated(plan);
 
         addMessage("Your workout and diet plan is ready!", "ai");
         setCurrentStep("complete");
-        sessionStorage.setItem(`planGenerated_${userId}`, 'true');
+        localStorage.setItem(`planGenerated_${userId}`, 'true');
       } else {
         addMessage("We are sorry for the inconvenience. The workout plan generation failed. Please try again. If the issue persists, contact 7892808101.", "ai");
         setIsPlanGenerationFailed(true);
         setCurrentStep("complete");
-        sessionStorage.removeItem(`planGenerated_${userId}`);
+        localStorage.removeItem(`planGenerated_${userId}`);
       }
     } catch (err) {
       console.error("Error generating workout plan:", err);
@@ -311,17 +347,29 @@ const WorkoutChat = ({ onPlanGenerated }) => {
 
       case "equipment":
         setEquipment(userInput);
-        setCurrentStep("preferences");
+        setCurrentStep("imageUpload");
         setTimeout(() => {
-          addMessage("Any specific preferences or details you'd like to share?", "ai");
-
-          if (preferences) {
-            setTimeout(() => {
-              addMessage("Here's a suggestion based on your profile:", "ai");
-              addMessage(preferences, "ai", true, true);
-            }, 800);
-          }
+          addMessage("Would you like to upload a photo for personalized workout recommendations based on your current fitness level?", "ai");
         }, 500);
+        break;
+
+      case "imageUpload":
+        if (userInput.toLowerCase().includes("yes")) {
+          setShowImageUpload(true);
+          addMessage("Great! Please upload a photo or take one using the options below.", "ai");
+        } else {
+          setCurrentStep("preferences");
+          setTimeout(() => {
+            addMessage("Any specific preferences or details you'd like to share?", "ai");
+
+            if (preferences) {
+              setTimeout(() => {
+                addMessage("Here's a suggestion based on your profile:", "ai");
+                addMessage(preferences, "ai", true, true);
+              }, 800);
+            }
+          }, 500);
+        }
         break;
 
       case "preferences":
@@ -337,6 +385,13 @@ const WorkoutChat = ({ onPlanGenerated }) => {
           Equipment: ${equipment || "None"}
           Preferences: ${finalPreferences || "None"}
         `;
+        
+        console.log("=== FINAL WORKOUT GENERATION DATA ===");
+        console.log("Input Data being sent to AI:", inputData);
+        console.log("Final Preferences:", finalPreferences);
+        console.log("Selected Focus Area:", selectedFocusArea);
+        console.log("Body Report:", bodyReport);
+        
         setUserInputData(inputData);
 
         addMessage("Thanks! Your information has been collected. Please complete payment to generate your personalized workout and diet plan.", "ai");
@@ -354,6 +409,554 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   };
 
   const debouncedHandleSendMessage = debounce(handleSendMessage, 300);
+
+  // Helper function to generate personalized fallback focus areas
+  const generatePersonalizedFallbackFocusAreas = (userProfile, fitnessLevel, goal) => {
+    const focusAreas = [];
+    
+    // Analyze user profile to create relevant focus areas
+    if (goal?.toLowerCase().includes('lose weight') || goal?.toLowerCase().includes('fat loss')) {
+      focusAreas.push({
+        id: `fat_loss_${userProfile.age}_${userProfile.gender}`,
+        title: "Targeted Fat Loss Program",
+        description: `Customized fat loss approach for ${userProfile.age}-year-old ${userProfile.gender} with ${fitnessLevel} fitness level`,
+        icon: "🔥",
+        suitableFor: `Optimized for your ${goal} goal and current activity level`,
+        priority: "high",
+        targetAreas: ["Full body fat reduction", "Metabolic enhancement"]
+      });
+    }
+    
+    if (goal?.toLowerCase().includes('muscle') || goal?.toLowerCase().includes('strength') || goal?.toLowerCase().includes('build')) {
+      focusAreas.push({
+        id: `strength_${userProfile.gender}_${fitnessLevel}`,
+        title: "Progressive Strength Building",
+        description: `Strength development program tailored for ${fitnessLevel} level ${userProfile.gender}`,
+        icon: "💪",
+        suitableFor: `Perfect match for your ${goal} objective`,
+        priority: "high",
+        targetAreas: ["Major muscle groups", "Progressive overload"]
+      });
+    }
+    
+    // Age-based recommendations
+    if (userProfile.age >= 30) {
+      focusAreas.push({
+        id: `posture_mobility_${userProfile.age}`,
+        title: "Posture & Mobility Enhancement",
+        description: "Address common posture issues and maintain mobility for long-term health",
+        icon: "🧘",
+        suitableFor: `Essential for ${userProfile.age}+ age group`,
+        priority: "medium",
+        targetAreas: ["Spinal alignment", "Joint mobility", "Core stability"]
+      });
+    }
+    
+    // Activity level based recommendations
+    if (userProfile.activityLevel?.toLowerCase().includes('sedentary') || userProfile.activityLevel?.toLowerCase().includes('low')) {
+      focusAreas.push({
+        id: `conditioning_${userProfile.activityLevel}`,
+        title: "Cardiovascular Conditioning",
+        description: "Build endurance and improve overall fitness foundation",
+        icon: "❤️",
+        suitableFor: `Ideal for improving from ${userProfile.activityLevel} activity level`,
+        priority: "medium",
+        targetAreas: ["Cardiovascular health", "General conditioning"]
+      });
+    }
+    
+    return focusAreas.slice(0, 3); // Return max 3 focus areas
+  };
+
+  // Helper function to generate areas needing work based on profile
+  const generateAreasNeedingWork = (userProfile, goal) => {
+    const areas = [];
+    
+    if (userProfile.age >= 35) {
+      areas.push("Core stability", "Posture alignment");
+    }
+    
+    if (goal?.toLowerCase().includes('lose weight')) {
+      areas.push("Metabolic conditioning", "Body composition");
+    }
+    
+    if (goal?.toLowerCase().includes('muscle') || goal?.toLowerCase().includes('strength')) {
+      areas.push("Progressive overload", "Muscle activation");
+    }
+    
+    if (userProfile.activityLevel?.toLowerCase().includes('sedentary')) {
+      areas.push("Cardiovascular endurance", "Movement quality");
+    }
+    
+    // Default areas if none match
+    if (areas.length === 0) {
+      areas.push("Overall conditioning", "Movement patterns", "Consistency");
+    }
+    
+    return areas.slice(0, 4); // Return max 4 areas
+  };
+
+  const handleImageAnalysis = async (files) => {
+    setIsAnalyzingImage(true);
+    setPhotoAnalysis(null);
+
+    try {
+      const imagePromises = files.map(file => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve({
+            data: reader.result.split(',')[1],
+            type: file.type,
+            name: file.name,
+            size: file.size
+          });
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      });
+
+      const images = await Promise.all(imagePromises);
+      
+      console.log("=== IMAGE ANALYSIS DEBUG ===");
+      console.log("Number of images:", files.length);
+      console.log("Image details:", images.map(img => ({
+        type: img.type,
+        name: img.name,
+        size: img.size,
+        dataLength: img.data.length
+      })));
+
+      // Include user profile data for more personalized analysis
+      const userProfile = {
+        age: userAgeCal,
+        gender: userGender,
+        height: userHeight,
+        weight: userWeight,
+        activityLevel: activityLevel?.subtitle,
+        goals: helpYou,
+        fitnessLevel: fitnessLevel,
+        goal: goal,
+        daysPerWeek: daysPerWeek,
+        timePerWorkout: timePerWorkout,
+        equipment: equipment
+      };
+
+      const prompt = `You are a professional fitness assessor analyzing body composition photos. Provide a detailed body analysis report and create PERSONALIZED focus areas based on the specific analysis results.
+
+      User Profile: Age ${userProfile.age}, ${userProfile.gender}, Height ${userProfile.height}cm, Weight ${userProfile.weight}kg, Activity Level: ${userProfile.activityLevel}, Goals: ${userProfile.goals}, Fitness Level: ${userProfile.fitnessLevel}
+
+      Analyze these photos and provide:
+      1. Body composition assessment (estimated body fat %, muscle development)
+      2. Posture analysis (head position, shoulders, spine alignment)
+      3. Proportions and muscle imbalances
+      4. Areas needing improvement
+      5. PERSONALIZED focus areas based on SPECIFIC analysis findings
+
+      Return ONLY valid JSON (no markdown formatting):
+      {
+        "bodyReport": {
+          "bodyFat": "estimated percentage (e.g., 18-22%)",
+          "muscleTone": "description of visible muscle development",
+          "posture": {
+            "head": "forward/neutral/tilted analysis",
+            "shoulders": "rounded/squared/uneven analysis", 
+            "spine": "curved/straight/tilted analysis"
+          },
+          "areasNeedingWork": ["area1", "area2", "area3"],
+          "strengths": ["strength1", "strength2"],
+          "overallAssessment": "2-3 sentence professional assessment"
+        },
+        "focusAreas": [
+          {
+            "id": "unique_id_based_on_analysis",
+            "title": "Specific title based on actual body analysis findings",
+            "description": "Detailed description addressing specific issues found in photos",
+            "icon": "appropriate emoji",
+            "suitableFor": "Specific reasoning based on photo analysis results",
+            "priority": "high/medium/low",
+            "targetAreas": ["specific body parts that need work"]
+          },
+          {
+            "id": "another_unique_id", 
+            "title": "Another personalized focus based on findings",
+            "description": "Another specific description for identified issues",
+            "icon": "appropriate emoji",
+            "suitableFor": "Another specific reasoning from analysis",
+            "priority": "high/medium/low",
+            "targetAreas": ["other specific areas"]
+          }
+        ]
+      }
+
+      CRITICAL: Generate 2-4 focus areas that are SPECIFICALLY tailored to this person's visible body analysis results. DO NOT use generic categories. Instead:
+      - If you see forward head posture → create "Forward Head Correction" focus
+      - If you see rounded shoulders → create "Shoulder Mobility & Strength" focus  
+      - If you see lower body fat concentration → create "Lower Body Fat Reduction" focus
+      - If you see weak core → create "Core Stabilization Program" focus
+      - If you see muscle imbalances → create specific imbalance correction focus
+      - If you see good muscle development but high body fat → create "Body Recomposition" focus
+      
+      Each focus area should address SPECIFIC findings from the photo analysis, not generic fitness goals.`;
+
+      console.log("Prompt being sent:", prompt);
+
+      const contentParts = [prompt, ...images.map(img => ({
+        inlineData: {
+          mimeType: img.type,
+          data: img.data
+        }
+      }))];
+
+      console.log("Content parts structure:", contentParts.length, "total parts");
+
+      const result = await geminiModel.generateContent(contentParts);
+      const response = await result.response;
+      let text = response.text();
+
+      console.log("Raw AI response:", text);
+
+      // Extract JSON from response
+      const codeBlockRegex = /```json\s*([\s\S]*?)\s*```/;
+      const match = text.match(codeBlockRegex);
+      if (match) {
+        text = match[1];
+        console.log("Extracted JSON from code block:", text);
+      }
+
+      let analysisData;
+      try {
+        analysisData = JSON.parse(text);
+        console.log("Parsed analysis data:", analysisData);
+      } catch (parseError) {
+        console.log("JSON parsing failed, using fallback. Error:", parseError);
+        console.log("Text that failed to parse:", text);
+        
+        // Try to extract JSON from different formats
+        const cleanText = text.replace(/```json|```/g, '').trim();
+        try {
+          analysisData = JSON.parse(cleanText);
+          console.log("Parsed from cleaned text:", analysisData);
+        } catch (secondError) {
+          console.log("Second parsing attempt failed, using smart fallback");
+          
+          // Create personalized fallback based on user profile
+          const personalizedFocusAreas = generatePersonalizedFallbackFocusAreas(userProfile, fitnessLevel, goal);
+          
+          analysisData = {
+            bodyReport: {
+              bodyFat: "Unable to accurately assess from photo",
+              muscleTone: `Moderate muscle development visible for ${fitnessLevel} level`,
+              posture: {
+                head: "Analysis pending - will focus on general alignment",
+                shoulders: "Assessment needed - will include shoulder mobility work",
+                spine: "Alignment check required - will add core strengthening"
+              },
+              areasNeedingWork: generateAreasNeedingWork(userProfile, goal),
+              strengths: [`${fitnessLevel.charAt(0).toUpperCase() + fitnessLevel.slice(1)} fitness foundation`, "Commitment to improvement"],
+              overallAssessment: `Based on your profile as a ${userProfile.age}-year-old ${userProfile.gender} with ${fitnessLevel} fitness level and goal to ${goal}, we've identified key areas to focus on for optimal results.`
+            },
+            focusAreas: personalizedFocusAreas
+          };
+        }
+      }
+
+      console.log("Final analysis data being used:", analysisData);
+
+      setBodyReport(analysisData.bodyReport);
+      setFocusAreas(analysisData.focusAreas);
+      setWorkoutSuggestions([]); // Clear old suggestions to prevent duplication
+      
+      // Add body analysis report
+      addMessage("📊 Body Analysis Report", "ai");
+      
+      const reportText = `**Body Fat:** ${analysisData.bodyReport.bodyFat}
+**Muscle Tone:** ${analysisData.bodyReport.muscleTone}
+
+**Posture Analysis:**
+• Head: ${analysisData.bodyReport.posture.head}
+• Shoulders: ${analysisData.bodyReport.posture.shoulders}
+• Spine: ${analysisData.bodyReport.posture.spine}
+
+**Areas Needing Work:** ${analysisData.bodyReport.areasNeedingWork.join(', ')}
+
+**Strengths:** ${analysisData.bodyReport.strengths.join(', ')}
+
+**Assessment:** ${analysisData.bodyReport.overallAssessment}`;
+
+      addMessage(reportText, "ai", true, false, true);
+      
+      setTimeout(() => {
+        addMessage("👇 Choose your primary focus area:", "ai");
+      }, 1500);
+      
+      setIsAnalyzingImage(false);
+    } catch (error) {
+      console.error("Error analyzing image:", error);
+      console.error("Full error details:", error);
+      toast.error("Failed to analyze image. Please try again.");
+      setIsAnalyzingImage(false);
+    }
+  };
+
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files);
+    
+    if (files.length === 0) return;
+
+    // Validate files
+    for (const file of files) {
+      if (!file.type.startsWith('image/')) {
+        toast.error("Please select only image files");
+        return;
+      }
+      
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Each image should be less than 10MB");
+        return;
+      }
+    }
+
+    if (files.length > 5) {
+      toast.error("Maximum 5 images allowed");
+      return;
+    }
+
+    setUploadedImages(files);
+    handleImageAnalysis(files);
+  };
+
+  const handleFocusAreaSelect = (focusArea) => {
+    setSelectedFocusArea(focusArea);
+    addMessage(`Selected Focus: ${focusArea.title}`, "user");
+    
+    // Generate personalized workout plan based on focus area + user profile
+    const personalizedPlan = generatePersonalizedWorkoutSuggestion(focusArea);
+    
+    addMessage("🎯 Personalized Workout Strategy", "ai");
+    addMessage(personalizedPlan, "ai", true, false, true);
+    
+    // Update preferences to include the selected focus area and body analysis
+    const updatedPreferencesWithFocus = updatePreferencesWithAnalysis(focusArea, personalizedPlan);
+    setPreferences(updatedPreferencesWithFocus);
+    
+    // Continue to preferences after personalized plan
+    setTimeout(() => {
+      setFocusAreas([]); // Clear focus areas
+      setWorkoutSuggestions([]); // Ensure old suggestions are cleared
+      setCurrentStep("preferences");
+      addMessage("Any specific preferences or details you'd like to share?", "ai");
+
+      setTimeout(() => {
+        addMessage("Here's your updated profile with photo analysis:", "ai");
+        addMessage(updatedPreferencesWithFocus, "ai", true, true);
+      }, 800);
+    }, 2000);
+  };
+
+  const generatePersonalizedWorkoutSuggestion = (focusArea) => {
+    const userInfo = {
+      age: userAgeCal,
+      gender: userGender,
+      fitnessLevel: fitnessLevel,
+      goal: goal,
+      timePerWorkout: timePerWorkout,
+      daysPerWeek: daysPerWeek,
+      equipment: equipment,
+      activityLevel: activityLevel?.subtitle
+    };
+
+    let strategy = "";
+
+    // Handle dynamic focus areas based on ID patterns and content
+    if (focusArea.id.includes("strength") || focusArea.title.toLowerCase().includes("strength") || focusArea.title.toLowerCase().includes("muscle")) {
+      strategy = `**${focusArea.title} for ${userInfo.fitnessLevel} Level**
+
+**Training Split (${userInfo.daysPerWeek} days/week):**
+${userInfo.daysPerWeek >= 4 ? "• Upper/Lower split with progressive overload" : "• Full body workouts focusing on compound movements"}
+
+**Key Exercises (${userInfo.timePerWorkout} min sessions):**
+• Compound movements: Squats, deadlifts, bench press
+• Progressive overload: Increase weight by 2.5-5lbs weekly
+• Rep ranges: 6-8 reps for strength, 8-12 for muscle growth
+
+**Target Areas:** ${focusArea.targetAreas ? focusArea.targetAreas.join(', ') : 'Major muscle groups'}
+
+**Equipment Adaptation:**
+${userInfo.equipment === "none" ? 
+  "• Bodyweight progressions: Push-up variations, single-leg squats\n• Resistance bands for added difficulty" :
+  `• Utilize ${userInfo.equipment} for optimal resistance training\n• Focus on free weights and compound movements`}
+
+**Timeline:** Expect strength gains in 4-6 weeks with consistent training.`;
+
+    } else if (focusArea.id.includes("fat_loss") || focusArea.title.toLowerCase().includes("fat") || focusArea.title.toLowerCase().includes("toning")) {
+      strategy = `**${focusArea.title} for ${userInfo.fitnessLevel} Level**
+
+**Training Approach (${userInfo.daysPerWeek} days/week):**
+• Combine strength training with cardio intervals
+• High-intensity circuits for maximum calorie burn
+• ${userInfo.timePerWorkout}-minute sessions with minimal rest
+
+**Workout Structure:**
+• 60% strength training for muscle preservation
+• 40% cardio intervals for fat burning
+• Circuit training: 30-45 seconds work, 15-30 seconds rest
+
+**Target Areas:** ${focusArea.targetAreas ? focusArea.targetAreas.join(', ') : 'Full body fat reduction'}
+
+**Cardio Integration:**
+${userInfo.equipment === "none" ?
+  "• Bodyweight circuits: Burpees, mountain climbers, jump squats\n• Walking/running intervals" :
+  `• Equipment-based intervals using ${userInfo.equipment}\n• Compound movements in circuit format`}
+
+**Expected Results:** 1-2 lbs fat loss per week with proper nutrition.`;
+
+    } else if (focusArea.id.includes("posture") || focusArea.title.toLowerCase().includes("posture") || focusArea.title.toLowerCase().includes("alignment")) {
+      strategy = `**${focusArea.title} for ${userInfo.fitnessLevel} Level**
+
+**Assessment Focus:**
+${focusArea.description}
+
+**Daily Routine (${userInfo.timePerWorkout} min sessions):**
+• 10 min mobility/stretching
+• 15 min strengthening weak muscles
+• 10 min posture awareness exercises
+
+**Key Exercise Categories:**
+• **Strengthen:** Upper back, deep core, glutes
+• **Stretch:** Chest, hip flexors, neck muscles
+• **Mobilize:** Thoracic spine, shoulders, hips
+
+**Target Areas:** ${focusArea.targetAreas ? focusArea.targetAreas.join(', ') : 'Spinal alignment, Core stability'}
+
+**Equipment Adaptation:**
+${userInfo.equipment === "none" ?
+  "• Wall angels, doorway stretches, floor exercises\n• Resistance band exercises for upper back" :
+  `• Use ${userInfo.equipment} for targeted strengthening\n• Focus on rowing movements and back extensions`}
+
+**Daily Habits:** Posture check every hour, ergonomic workspace setup.`;
+
+    } else if (focusArea.id.includes("conditioning") || focusArea.title.toLowerCase().includes("cardio") || focusArea.title.toLowerCase().includes("conditioning")) {
+      strategy = `**${focusArea.title} for ${userInfo.fitnessLevel} Level**
+
+**Training Approach (${userInfo.daysPerWeek} days/week):**
+• Progressive cardiovascular training
+• Mix of steady-state and interval training
+• ${userInfo.timePerWorkout}-minute sessions building endurance
+
+**Workout Structure:**
+• 20% warm-up and mobility
+• 60% cardiovascular training
+• 20% cool-down and stretching
+
+**Target Areas:** ${focusArea.targetAreas ? focusArea.targetAreas.join(', ') : 'Cardiovascular health, General conditioning'}
+
+**Exercise Selection:**
+${userInfo.equipment === "none" ?
+  "• Walking/jogging intervals\n• Bodyweight circuits\n• Stair climbing, jumping jacks" :
+  `• Equipment-based cardio using ${userInfo.equipment}\n• Rowing, cycling, or treadmill intervals`}
+
+**Expected Results:** Improved endurance and energy levels within 3-4 weeks.`;
+
+    } else {
+      // Generic strategy for any other focus area
+      strategy = `**${focusArea.title} for ${userInfo.fitnessLevel} Level**
+
+**Training Approach (${userInfo.daysPerWeek} days/week):**
+${focusArea.description}
+
+**Session Structure (${userInfo.timePerWorkout} min sessions):**
+• Customized approach based on your specific needs
+• Progressive training methodology
+• Regular assessment and adjustment
+
+**Target Areas:** ${focusArea.targetAreas ? focusArea.targetAreas.join(', ') : 'Comprehensive fitness improvement'}
+
+**Equipment Adaptation:**
+${userInfo.equipment === "none" ?
+  "• Bodyweight exercises and movements\n• Creative use of household items" :
+  `• Optimal use of ${userInfo.equipment}\n• Equipment-specific exercise selection`}
+
+**Focus:** ${focusArea.suitableFor}`;
+    }
+
+    return strategy;
+  };
+
+  const updatePreferencesWithAnalysis = (selectedFocusArea, personalizedPlan) => {
+    // Start with the original profile-based preferences
+    let basePreferences = `I am ${userName}, a ${userAgeCal}-year-old, ${userGender.toLowerCase()} with a height of ${userHeight} cm and weight of ${userWeight} kg. I have an activity level of "${activityLevel?.subtitle}".`;
+    
+    // Add all the collected information
+    if (fitnessLevel) {
+      basePreferences += ` My fitness level is ${fitnessLevel}.`;
+    }
+    
+    if (goal) {
+      basePreferences += ` Specifically, I want to ${goal}.`;
+    }
+    
+    if (daysPerWeek) {
+      basePreferences += ` I plan to train ${daysPerWeek} days per week.`;
+    }
+    
+    if (timePerWorkout) {
+      basePreferences += ` Each workout session will be ${timePerWorkout} minutes long.`;
+    }
+    
+    if (equipment && equipment.toLowerCase() !== 'none') {
+      basePreferences += ` I have access to ${equipment}.`;
+    } else if (equipment && equipment.toLowerCase() === 'none') {
+      basePreferences += ` I don't have access to any gym equipment.`;
+    }
+
+    // Add body analysis results if available
+    if (bodyReport) {
+      basePreferences += `\n\nBODY ANALYSIS RESULTS:\n`;
+      basePreferences += `• Body Fat: ${bodyReport.bodyFat}\n`;
+      basePreferences += `• Muscle Tone: ${bodyReport.muscleTone}\n`;
+      basePreferences += `• Posture Issues: Head - ${bodyReport.posture?.head}, Shoulders - ${bodyReport.posture?.shoulders}, Spine - ${bodyReport.posture?.spine}\n`;
+      basePreferences += `• Areas Needing Work: ${bodyReport.areasNeedingWork?.join(', ')}\n`;
+      basePreferences += `• Current Strengths: ${bodyReport.strengths?.join(', ')}\n`;
+    }
+
+    // Add selected focus area and personalized strategy
+    if (selectedFocusArea) {
+      basePreferences += `\n\nSELECTED PRIMARY FOCUS: ${selectedFocusArea.title}\n`;
+      basePreferences += `Focus Reasoning: ${selectedFocusArea.suitableFor}\n`;
+      basePreferences += `Description: ${selectedFocusArea.description}\n`;
+    }
+
+    // Add key points from personalized strategy
+    if (personalizedPlan) {
+      basePreferences += `\n\nPERSONALIZED STRATEGY HIGHLIGHTS:\n`;
+      
+      if (selectedFocusArea?.id === "strength") {
+        basePreferences += `• Training approach: ${daysPerWeek >= 4 ? "Upper/Lower split with progressive overload" : "Full body workouts focusing on compound movements"}\n`;
+        basePreferences += `• Key focus: Compound movements with progressive overload\n`;
+        basePreferences += `• Equipment adaptation: ${equipment === "none" ? "Bodyweight progressions and resistance bands" : `Optimal use of ${equipment} for resistance training`}\n`;
+      } else if (selectedFocusArea?.id === "fat_loss") {
+        basePreferences += `• Training approach: Combine strength training (60%) with cardio intervals (40%)\n`;
+        basePreferences += `• Workout style: High-intensity circuits for maximum calorie burn\n`;
+        basePreferences += `• Target: 1-2 lbs fat loss per week with proper nutrition\n`;
+      } else if (selectedFocusArea?.id === "posture") {
+        basePreferences += `• Daily routine: 10 min mobility + 15 min strengthening + 10 min posture awareness\n`;
+        basePreferences += `• Key focus: Strengthen upper back/core, stretch chest/hip flexors\n`;
+        basePreferences += `• Special emphasis: Posture correction based on identified imbalances\n`;
+      }
+    }
+    
+    basePreferences += `\n\nPlease create a comprehensive workout and diet plan that specifically addresses my body analysis results and selected focus area while considering all my personal constraints and goals.`;
+    
+    return basePreferences;
+  };
+
+  const handleUploadOption = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleCaptureOption = () => {
+    cameraInputRef.current?.click();
+  };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey && currentStep !== "preferences") {
@@ -442,11 +1045,21 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     setTotalWeeks(0);
 
     // Clear all storage
-    sessionStorage.removeItem(`paymentSuccessful_${userId}`);
-    sessionStorage.removeItem(`planGenerated_${userId}`);
-    sessionStorage.removeItem(`workoutData_${userId}`);
+    localStorage.removeItem(`paymentSuccessful_${userId}`);
+    localStorage.removeItem(`planGenerated_${userId}`);
+    localStorage.removeItem(`workoutData_${userId}`);
+    localStorage.removeItem(`paymentTimestamp_${userId}`);
+    localStorage.removeItem(`generationState_${userId}`);
     clearGeneratedPlanFromLocalStorage();
-    setSaved(false)
+    setSaved(false);
+    setShowImageUpload(false);
+    setIsAnalyzingImage(false);
+    setPhotoAnalysis(null);
+    setUploadedImages([]);
+    setWorkoutSuggestions([]);
+    setBodyReport(null);
+    setFocusAreas([]);
+    setSelectedFocusArea(null);
   };
 
   const renderInputArea = () => {
@@ -545,25 +1158,121 @@ const WorkoutChat = ({ onPlanGenerated }) => {
             </div>
           )}
           {!saved ? 
-          <div className="flex items-center gap-2">
-            <input
-              type={getInputType()}
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Type your message..."
-              min={currentStep === "timePerWorkout" ? "10" : undefined}
-              max={currentStep === "timePerWorkout" ? "180" : undefined}
-              className="flex-1 px-3 py-2 bg-white border rounded-lg outline-none text-tprimary "
-              disabled={isLoading || currentStep === "complete" || currentStep === "payment"}
-            />
-            <button
-              onClick={debouncedHandleSendMessage}
-              disabled={!userInput.trim() || isLoading || currentStep === "payment"}
-              className="p-2 text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <i className="text-white fa-sharp fa-solid fa-paper-plane-top"></i>
-            </button>
+          <div className="flex flex-col gap-2">
+            {(currentStep === "imageUpload" || showImageUpload) && (
+              <div className="flex flex-col gap-2 p-3 border rounded-lg bg-gray-50">
+                <p className="text-sm text-gray-600">Upload photos from different angles (front, side, back) for comprehensive analysis. Max 5 images.</p>
+                
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleImageSelect}
+                />
+                
+                <input
+                  ref={cameraInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleImageSelect}
+                />
+                
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCaptureOption}
+                    disabled={isAnalyzingImage}
+                    className="flex-1 p-2 text-white transition duration-200 rounded-lg bg-green-500 hover:bg-green-600 disabled:opacity-50"
+                  >
+                    📷 Take Photo
+                  </button>
+                  <button
+                    onClick={handleUploadOption}
+                    disabled={isAnalyzingImage}
+                    className="flex-1 p-2 text-white transition duration-200 rounded-lg bg-blue-500 hover:bg-blue-600 disabled:opacity-50"
+                  >
+                    📁 Upload Images
+                  </button>
+                </div>
+                
+                {isAnalyzingImage && (
+                  <div className="flex items-center justify-center p-2">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                      className="w-5 h-5 border-2 border-blue-500 rounded-full border-t-transparent"
+                    />
+                    <span className="ml-2 text-sm text-gray-600">Analyzing your photo...</span>
+                  </div>
+                )}
+                
+                <button
+                  onClick={() => {
+                    setShowImageUpload(false);
+                    setCurrentStep("preferences");
+                    setTimeout(() => {
+                      addMessage("Any specific preferences or details you'd like to share?", "ai");
+                      if (preferences) {
+                        setTimeout(() => {
+                          addMessage("Here's a suggestion based on your profile:", "ai");
+                          addMessage(preferences, "ai", true, true);
+                        }, 800);
+                      }
+                    }, 500);
+                  }}
+                  className="p-1 text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Skip Photo Upload
+                </button>
+              </div>
+            )}
+
+            {currentStep !== "imageUpload" && !showImageUpload && (
+              <div className="flex items-center gap-2">
+                <input
+                  type={getInputType()}
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type your message..."
+                  min={currentStep === "timePerWorkout" ? "10" : undefined}
+                  max={currentStep === "timePerWorkout" ? "180" : undefined}
+                  className="flex-1 px-3 py-2 bg-white border rounded-lg outline-none text-tprimary "
+                  disabled={isLoading || currentStep === "complete" || currentStep === "payment"}
+                />
+                <button
+                  onClick={debouncedHandleSendMessage}
+                  disabled={!userInput.trim() || isLoading || currentStep === "payment"}
+                  className="p-2 text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <i className="text-white fa-sharp fa-solid fa-paper-plane-top"></i>
+                </button>
+              </div>
+            )}
+
+            {currentStep === "imageUpload" && !showImageUpload && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={userInput}
+                  onChange={(e) => setUserInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Type 'yes' to upload photo or 'no' to skip..."
+                  className="flex-1 px-3 py-2 bg-white border rounded-lg outline-none text-tprimary"
+                  disabled={isLoading}
+                />
+                <button
+                  onClick={debouncedHandleSendMessage}
+                  disabled={!userInput.trim() || isLoading}
+                  className="p-2 text-white transition duration-200 rounded-lg bg-tprimary hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <i className="text-white fa-sharp fa-solid fa-paper-plane-top"></i>
+                </button>
+              </div>
+            )}
           </div>:<button onClick={handleReset}>Start Again</button>}
         </div>
       );
@@ -574,7 +1283,9 @@ const WorkoutChat = ({ onPlanGenerated }) => {
     setHasPaymentBeenAttempted(true);
     setIsPaymentSuccessful(true);
 
-    sessionStorage.setItem(`paymentSuccessful_${userId}`, 'true');
+    // Use localStorage instead of sessionStorage for persistence across page refreshes
+    localStorage.setItem(`paymentSuccessful_${userId}`, 'true');
+    localStorage.setItem(`paymentTimestamp_${userId}`, Date.now().toString());
 
     const workoutData = {
       fitnessLevel,
@@ -585,7 +1296,7 @@ const WorkoutChat = ({ onPlanGenerated }) => {
       preferences,
       userInputData,
     };
-    sessionStorage.setItem(`workoutData_${userId}`, JSON.stringify(workoutData));
+    localStorage.setItem(`workoutData_${userId}`, JSON.stringify(workoutData));
 
     addMessage("Payment successful! Generating your personalized workout and diet plan...", "ai");
     generatePlan();
@@ -712,9 +1423,11 @@ const WorkoutChat = ({ onPlanGenerated }) => {
       setSaved(true);
       
       // Clear all storage after successful save
-      sessionStorage.removeItem(`paymentSuccessful_${userId}`);
-      sessionStorage.removeItem(`planGenerated_${userId}`);
-      sessionStorage.removeItem(`workoutData_${userId}`);
+      localStorage.removeItem(`paymentSuccessful_${userId}`);
+      localStorage.removeItem(`planGenerated_${userId}`);
+      localStorage.removeItem(`workoutData_${userId}`);
+      localStorage.removeItem(`paymentTimestamp_${userId}`);
+      localStorage.removeItem(`generationState_${userId}`);
       clearGeneratedPlanFromLocalStorage();
     } catch (error) {
       console.error("Error saving plan:", error);
@@ -727,25 +1440,33 @@ const WorkoutChat = ({ onPlanGenerated }) => {
   };
 
   useEffect(() => {
-    const paymentSuccessful = sessionStorage.getItem(`paymentSuccessful_${userId}`) === 'true';
-    const planGenerated = sessionStorage.getItem(`planGenerated_${userId}`) === 'true';
+    const paymentSuccessful = localStorage.getItem(`paymentSuccessful_${userId}`) === 'true';
+    const planGenerated = localStorage.getItem(`planGenerated_${userId}`) === 'true';
+    const paymentTimestamp = localStorage.getItem(`paymentTimestamp_${userId}`);
 
-    if (paymentSuccessful) {
+    // Check if payment is recent (within last 24 hours) to avoid old payments
+    const isPaymentRecent = paymentTimestamp && (Date.now() - parseInt(paymentTimestamp)) < (24 * 60 * 60 * 1000);
+
+    if (paymentSuccessful && isPaymentRecent) {
       setHasPaymentBeenAttempted(true)
       setIsPaymentSuccessful(true);
       setIsReadyForPayment(false);
       setCurrentStep("complete");
 
-      const storedWorkoutData = sessionStorage.getItem(`workoutData_${userId}`);
+      const storedWorkoutData = localStorage.getItem(`workoutData_${userId}`);
       if (storedWorkoutData) {
-        const workoutData = JSON.parse(storedWorkoutData);
-        setFitnessLevel(workoutData.fitnessLevel);
-        setGoal(workoutData.goal);
-        setDaysPerWeek(workoutData.daysPerWeek);
-        setTimePerWorkout(workoutData.timePerWorkout);
-        setEquipment(workoutData.equipment);
-        setPreferences(workoutData.preferences);
-        setUserInputData(workoutData.userInputData);
+        try {
+          const workoutData = JSON.parse(storedWorkoutData);
+          setFitnessLevel(workoutData.fitnessLevel);
+          setGoal(workoutData.goal);
+          setDaysPerWeek(workoutData.daysPerWeek);
+          setTimePerWorkout(workoutData.timePerWorkout);
+          setEquipment(workoutData.equipment);
+          setPreferences(workoutData.preferences);
+          setUserInputData(workoutData.userInputData);
+        } catch (error) {
+          console.error("Error parsing stored workout data:", error);
+        }
       }
 
       // Try to load generated plan data from localStorage first
@@ -754,10 +1475,22 @@ const WorkoutChat = ({ onPlanGenerated }) => {
       if (planLoadedFromLocalStorage) {
         // Plan data found in localStorage, display it
         addMessage("Your workout and diet plan is ready!", "ai");
+        if (!planGenerated) {
+          localStorage.setItem(`planGenerated_${userId}`, 'true');
+        }
       } else if (!planGenerated) {
         // No plan data in localStorage and plan not generated, generate new plan
+        addMessage("Payment successful! Generating your personalized workout and diet plan...", "ai");
         generatePlan();
       }
+    } else if (paymentSuccessful && !isPaymentRecent) {
+      // Clean up old payment data
+      localStorage.removeItem(`paymentSuccessful_${userId}`);
+      localStorage.removeItem(`planGenerated_${userId}`);
+      localStorage.removeItem(`workoutData_${userId}`);
+      localStorage.removeItem(`paymentTimestamp_${userId}`);
+      localStorage.removeItem(`generationState_${userId}`);
+      clearGeneratedPlanFromLocalStorage();
     }
   }, [userId]);
 
@@ -783,13 +1516,122 @@ const WorkoutChat = ({ onPlanGenerated }) => {
                     } ${message.isSuggestion ? 'cursor-pointer' : ''}`}
                   onClick={() => message.isSuggestion && handleCopySuggestion()}
                 >
-                  {message.content}
+                  {message.isMarkdown ? (
+                    <ReactMarkdown 
+                      className="prose prose-sm max-w-none"
+                      components={{
+                        p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
+                        strong: ({children}) => <strong className="font-semibold text-tprimary">{children}</strong>,
+                        ul: ({children}) => <ul className="ml-4 list-disc">{children}</ul>,
+                        li: ({children}) => <li className="mb-1">{children}</li>
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  ) : (
+                    message.content
+                  )}
                   {message.isSuggestion && (
                     <div className="mt-1 text-xs text-gray-300">(Click to use)</div>
                   )}
                 </div>
               </motion.div>
             ))}
+
+            {focusAreas.length > 0 && currentStep === "imageUpload" && workoutSuggestions.length === 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mb-4"
+              >
+                <div className="p-4 border rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+                  <div className="flex items-center mb-4">
+                    <div className="p-2 rounded-lg bg-indigo-500">
+                      <i className="text-white fa-solid fa-target"></i>
+                    </div>
+                    <div className="ml-3">
+                      <h4 className="font-bold text-tprimary">Choose Your Primary Focus</h4>
+                      <p className="text-sm text-gray-600">Swipe horizontally to see all options</p>
+                    </div>
+                  </div>
+                  
+                  {/* Horizontal Scrollable Focus Areas */}
+                  <div className="flex gap-4 pb-2 overflow-x-auto scrollbar-thin scrollbar-thumb-indigo-300">
+                    {focusAreas.map((focusArea, index) => (
+                      <motion.div
+                        key={focusArea.id}
+                        initial={{ opacity: 0, x: 50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.2 }}
+                        className="flex-none w-72"
+                      >
+                        <button
+                          onClick={() => handleFocusAreaSelect(focusArea)}
+                          className="w-full p-6 text-left transition duration-300 bg-white border-2 border-gray-200 rounded-xl hover:border-indigo-400 hover:shadow-lg group h-full"
+                        >
+                          <div className="flex flex-col h-full">
+                            <div className="flex items-center mb-3">
+                              <span className="text-3xl mr-3">{focusArea.icon}</span>
+                              <h5 className="font-bold text-lg text-tprimary group-hover:text-indigo-600">
+                                {focusArea.title}
+                              </h5>
+                            </div>
+                            
+                            <p className="text-sm text-gray-700 mb-4 leading-relaxed flex-grow">
+                              {focusArea.description}
+                            </p>
+                            
+                            <div className="mt-auto">
+                              <div className="flex items-center">
+                                <i className="text-indigo-500 fa-solid fa-check-circle mr-2"></i>
+                                <p className="text-xs text-indigo-700 font-medium">
+                                  {focusArea.suitableFor}
+                                </p>
+                              </div>
+                              
+                              <div className="flex items-center justify-between mt-3">
+                                <span className="text-xs text-gray-500">Click to select</span>
+                                <i className="text-gray-400 transition-colors fa-solid fa-arrow-right group-hover:text-indigo-500"></i>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      </motion.div>
+                    ))}
+                  </div>
+                  
+                  {/* Progress indicator */}
+                  <div className="flex justify-center mt-4 space-x-2">
+                    {focusAreas.map((_, index) => (
+                      <div key={index} className="w-2 h-2 bg-indigo-200 rounded-full"></div>
+                    ))}
+                  </div>
+                  
+                  <div className="mt-4 pt-3 border-t border-indigo-200">
+                    <button
+                      onClick={() => {
+                        setFocusAreas([]);
+                        setWorkoutSuggestions([]); // Clear any old suggestions
+                        setCurrentStep("preferences");
+                        setTimeout(() => {
+                          addMessage("Any specific preferences or details you'd like to share?", "ai");
+                          if (preferences) {
+                            setTimeout(() => {
+                              addMessage("Here's a suggestion based on your profile:", "ai");
+                              addMessage(preferences, "ai", true, true);
+                            }, 800);
+                          }
+                        }, 500);
+                      }}
+                      className="w-full p-2 text-sm text-gray-600 transition duration-200 rounded-lg hover:bg-white hover:text-gray-800"
+                    >
+                      <i className="mr-2 fa-solid fa-forward"></i>
+                      Skip Selection - Continue to Preferences
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </div>
 
           {currentStep === "payment" && isReadyForPayment && !isPaymentSuccessful && (
