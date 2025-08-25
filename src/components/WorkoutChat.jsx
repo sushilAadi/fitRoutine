@@ -9,7 +9,7 @@ import ExerciseAiCard from "@/Feature/AiCoach/ExerciseAiCard";
 import MealPlanCard from "@/Feature/AiCoach/MealPlan";
 import { motion, AnimatePresence } from "framer-motion";
 import PaymentComponent from "@/components/PaymentComponent";
-import { addDoc, collection, doc, setDoc, getDoc } from "@firebase/firestore";
+import { addDoc, collection, doc, setDoc, getDoc } from "firebase/firestore";
 import { db, geminiModel } from "@/firebase/firebaseConfig";
 import toast from "react-hot-toast";
 import { debounce } from 'lodash';
@@ -1408,6 +1408,13 @@ ${userInfo.equipment === "none" ?
   }
 
   const savePlan = async () => {
+    // Check if Firebase is properly initialized
+    if (!db) {
+      console.error('Firebase database not initialized');
+      toast.error('Database connection error. Please try again.');
+      return;
+    }
+
     const transformedPlan = transformWorkoutPlan(fullyUpdatedWorkoutPlan);
 
     try {

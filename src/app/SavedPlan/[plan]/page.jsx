@@ -11,11 +11,11 @@ import _ from "lodash"; // Make sure lodash is installed
 import Progress from "./Progress";
 import ConfirmationToast from "@/components/Toast/ConfirmationToast";
 import { calculateDetailedWorkoutProgress } from "@/utils/progress";
-import ProgressRealTime from "./ProgressRealTime";
 import { ProgressBar } from "react-bootstrap";
 import FloatingNavbar from "@/components/Navbar/FloatingNavbar";
 
 const PlanDetail = ({ params }) => {
+  const resolvedParams = React.use(params);
   const { userId } = useContext(GlobalContext);
   const router = useRouter();
   const [workoutData, setWorkoutData] = useState(null);
@@ -27,7 +27,7 @@ const PlanDetail = ({ params }) => {
   const [firebaseStoredData, setFirebaseStoredData] = useState(undefined); // Use undefined initially to distinguish from null (no data found)
   const [progressStats, setProgressStats] = useState(null);
 
-  const selectedPlanId = decodeURIComponent(params?.plan);
+  const selectedPlanId = decodeURIComponent(resolvedParams?.plan);
 
   const workoutProgressKey = `workout-progress-${selectedPlanId || 'default'}`;
   const selectedWeekKey = `selectedWeekIndex_${selectedPlanId || 'default'}`;
@@ -375,7 +375,7 @@ const PlanDetail = ({ params }) => {
     weekName: selectedWeek?.weekName, week: selectedWeek?.week,
   } : {};
 
-  const { exercises, dayName, weekName, day: currentDayNumber, week: currentWeekIndex } = structuredExercisesBasedOnDay || {};
+  const { exercises, day: currentDayNumber, week: currentWeekIndex } = structuredExercisesBasedOnDay || {};
 
   const dayData = dayTabsData?.map(i => ({
     label: i.label, value: i.value, day: i.day

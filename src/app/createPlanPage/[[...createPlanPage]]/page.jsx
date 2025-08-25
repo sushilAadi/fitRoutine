@@ -782,7 +782,6 @@ const createPlanPage = () => {
                     )}
                   </div>
                   {week.map((day, dayIndex) => (
-                    <>
                       <WorkoutDayAccordion
                         key={dayIndex}
                         day={day}
@@ -806,7 +805,6 @@ const createPlanPage = () => {
                         }
                         updateExerciseSets={updateExerciseSets}
                       />
-                    </>
                   ))}
                 </div>
               ))}

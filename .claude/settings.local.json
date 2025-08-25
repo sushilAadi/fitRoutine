@@ -30,7 +30,9 @@
       "Bash(yarn install)",
       "Bash(ln:*)",
       "Bash(npx @magicuidesign/cli@latest install:*)",
-      "Bash(claude mcp:*)"
+      "Bash(claude mcp:*)",
+      "Bash(node:*)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": []
   }

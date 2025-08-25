@@ -1,7 +1,5 @@
 "use client";
 import React, { useEffect, useState, useContext } from "react";
-import { collection, getDocs, doc, updateDoc, deleteDoc } from "firebase/firestore";
-import { db } from "@/firebase/firebaseConfig";
 import { GlobalContext } from "@/context/GloablContext";
 import { Row, Col, Badge, Table, Button } from "react-bootstrap";
 import toast from "react-hot-toast";
@@ -24,15 +22,15 @@ const InstructorManagement = () => {
   const fetchInstructors = async () => {
     try {
       setLoading(true);
-      const mentorsRef = collection(db, "Mentor");
-      const snapshot = await getDocs(mentorsRef);
       
-      const instructorsList = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const response = await fetch('/api/admin/instructors');
       
-      setInstructors(instructorsList);
+      if (!response.ok) {
+        throw new Error('Failed to fetch instructors');
+      }
+      
+      const data = await response.json();
+      setInstructors(data.instructors || []);
     } catch (error) {
       console.error("Error fetching instructors:", error);
       toast.error("Failed to load instructors");
@@ -51,37 +49,19 @@ const InstructorManagement = () => {
 
   const handleApproveInstructor = async (instructorId) => {
     try {
-      const instructor = instructors.find(i => i.id === instructorId);
-      if (!instructor) {
-        toast.error("Instructor not found");
-        return;
-      }
-
-      // Update Firestore status
-      const instructorDoc = doc(db, "Mentor", instructorId);
-      await updateDoc(instructorDoc, {
-        status: "approved",
-        approvedAt: new Date().toISOString()
+      const response = await fetch(`/api/admin/instructors/${instructorId}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
-      // Update user role in Clerk (using the userIdCl from instructor data)
-      if (instructor.userIdCl) {
-        const response = await fetch('/api/admin/update-user-role', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            userId: instructor.userIdCl, 
-            role: 'coach' 
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to update user role in Clerk');
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to approve instructor');
       }
-      
+
+      const data = await response.json();
       toast.success("Instructor approved successfully! Role updated to coach.");
       fetchInstructors(); // Refresh list
     } catch (error) {
@@ -92,17 +72,24 @@ const InstructorManagement = () => {
 
   const handleRejectInstructor = async (instructorId) => {
     try {
-      const instructorDoc = doc(db, "Mentor", instructorId);
-      await updateDoc(instructorDoc, {
-        status: "rejected",
-        rejectedAt: new Date().toISOString()
+      const response = await fetch(`/api/admin/instructors/${instructorId}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
-      
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to reject instructor');
+      }
+
+      const data = await response.json();
       toast.success("Instructor rejected");
       fetchInstructors(); // Refresh list
     } catch (error) {
       console.error("Error rejecting instructor:", error);
-      toast.error("Failed to reject instructor");
+      toast.error("Failed to reject instructor: " + error.message);
     }
   };
 
@@ -112,40 +99,19 @@ const InstructorManagement = () => {
     }
 
     try {
-      const instructor = instructors.find(i => i.id === instructorId);
-      if (!instructor) {
-        toast.error("Instructor not found");
-        return;
+      const response = await fetch(`/api/admin/instructors/${instructorId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete instructor');
       }
 
-      // Delete from Firestore
-      const instructorDoc = doc(db, "Mentor", instructorId);
-      await deleteDoc(instructorDoc);
-
-      // Reset user role to 'user' in Clerk if they were approved
-      if (instructor.userIdCl && instructor.status === "approved") {
-        try {
-          const response = await fetch('/api/admin/update-user-role', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-              userId: instructor.userIdCl, 
-              role: 'user' 
-            }),
-          });
-
-          if (!response.ok) {
-            console.error('Failed to reset user role in Clerk');
-            toast.warning("Instructor deleted but role reset failed");
-          }
-        } catch (roleError) {
-          console.error('Error resetting user role:', roleError);
-          toast.warning("Instructor deleted but role reset failed");
-        }
-      }
-      
+      const data = await response.json();
       toast.success("Instructor deleted successfully");
       fetchInstructors(); // Refresh list
     } catch (error) {

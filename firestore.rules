@@ -1,0 +1,146 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ====================
+    // SECURITY RULES FOR FIT-APP
+    // ====================
+    // These rules enforce server-side only operations for security
+    // All client operations must go through authenticated API routes
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user is admin or coach
+    function isAdminOrCoach() {
+      return isAuthenticated() && 
+             (request.auth.token.role == 'admin' || 
+              request.auth.token.role == 'coach');
+    }
+    
+    // Helper function to check if user owns the resource
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // ====================
+    // ADMIN-ONLY COLLECTIONS
+    // ====================
+    
+    // Mentor collection - Only admins/coaches can manage via API
+    match /Mentor/{mentorId} {
+      // Block all direct client access - must use admin API endpoints
+      allow read, write: if false;
+      
+      // Note: Server-side operations (admin APIs) will still work
+      // because they use Firebase Admin SDK which bypasses these rules
+    }
+    
+    // ====================
+    // USER DATA COLLECTIONS  
+    // ====================
+    
+    // User profiles - Users can only access their own data
+    match /User/{userId} {
+      allow read, write: if isOwner(userId);
+      
+      // Weight records subcollection
+      match /weightRecords/{recordId} {
+        allow read, write: if isOwner(userId);
+      }
+      
+      // Health reports subcollection  
+      match /healthReports/{reportId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // User enrollments - Users can only access their own enrollments
+    match /Enrollment/{enrollmentId} {
+      allow read: if isAuthenticated() && 
+                     (resource.data.userId == request.auth.uid ||
+                      isAdminOrCoach());
+      // Block direct enrollment modifications - must use API
+      allow write: if false;
+    }
+    
+    // ====================
+    // PUBLIC READ-ONLY COLLECTIONS
+    // ====================
+    
+    // Diet plans - Read-only for authenticated users
+    match /DietPlan/{dietId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrCoach(); // Only admins can modify
+    }
+    
+    // Exercise plans - Read-only for authenticated users  
+    match /ExercisePlan/{exerciseId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrCoach(); // Only admins can modify
+    }
+    
+    // Workout plans - Users can access their own plans
+    match /WorkoutPlan/{planId} {
+      allow read: if isAuthenticated() && 
+                     (resource.data.userId == request.auth.uid ||
+                      isAdminOrCoach());
+      allow write: if isAuthenticated() && 
+                      resource.data.userId == request.auth.uid;
+    }
+    
+    // ====================
+    // CLIENT-COACH RELATIONSHIP
+    // ====================
+    
+    // Client data - Only accessible by the client and their assigned coach
+    match /Client/{clientId} {
+      allow read: if isAuthenticated() && 
+                     (resource.data.userId == request.auth.uid ||
+                      resource.data.coachId == request.auth.uid ||
+                      isAdminOrCoach());
+      // Block direct client modifications - must use API for data integrity
+      allow write: if false;
+    }
+    
+    // ====================
+    // SYSTEM COLLECTIONS
+    // ====================
+    
+    // System settings - Admin only
+    match /Settings/{settingId} {
+      allow read: if isAdminOrCoach();
+      allow write: if isAdminOrCoach();
+    }
+    
+    // Analytics data - Admin only
+    match /Analytics/{analyticsId} {
+      allow read, write: if isAdminOrCoach();
+    }
+    
+    // ====================
+    // DEFAULT DENY ALL
+    // ====================
+    
+    // Deny access to any collection not explicitly allowed above
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// ====================
+// IMPLEMENTATION NOTES:
+// ====================
+//
+// 1. These rules work with Clerk authentication where user roles are stored in JWT tokens
+// 2. Server-side operations using Firebase Admin SDK bypass these rules (which is what we want for our APIs)
+// 3. Direct client-side operations are heavily restricted and must go through our secure API routes
+// 4. This enforces the security architecture we've built with the admin dashboard APIs
+//
+// IMPORTANT: 
+// - Test these rules thoroughly before deploying to production
+// - Make sure your Clerk JWT tokens include the 'role' claim
+// - Verify that your API routes work correctly after deployment
