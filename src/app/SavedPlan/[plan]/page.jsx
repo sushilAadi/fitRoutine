@@ -517,7 +517,8 @@ const PlanDetail = ({ params }) => {
     setProgressStats(progress);
   };
 
-
+console.log("workoutData",workoutData)
+console.log("userWorkoutProgress", firebaseStoredData)
 
   // --- Render Logic (No changes needed, added firebaseStoredData prop pass) ---
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="p-4 text-center">Loading workout plan...</div></div>;
@@ -565,22 +566,24 @@ const PlanDetail = ({ params }) => {
       )} */}
 
       {/* Week Tabs never remove below code */}
-      {/* <div className="flex gap-2 p-2 overflow-x-auto bg-white border-b no-scrollbar shrink-0">
-        {weekTabsData.map((weekItem) => (
-          <button
-            className={`px-3 py-1.5 text-sm font-medium rounded-md border whitespace-nowrap ${
-              selectedWeek?.week === weekItem.week
-                ? "bg-black text-white border-black"
-                : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
-            }`}
-            onClick={() => handleWeekSelect(weekItem)}
-            key={weekItem.weekName}
-            // disabled={selectedWeek?.week !== weekItem.week}
-          >
-            {weekItem.weekName}
-          </button>
-        ))}
-      </div> */}
+      {workoutData?.progress === 100 && (
+        <div className="flex gap-2 p-2 overflow-x-auto bg-white border-b no-scrollbar shrink-0">
+          {weekTabsData.map((weekItem) => (
+            <button
+              className={`px-3 py-1.5 text-sm font-medium rounded-md border whitespace-nowrap ${
+                selectedWeek?.week === weekItem.week
+                  ? "bg-black text-white border-black"
+                  : "bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200"
+              }`}
+              onClick={() => handleWeekSelect(weekItem)}
+              key={weekItem.weekName}
+              // disabled={selectedWeek?.week !== weekItem.week}
+            >
+              {weekItem.weekName}
+            </button>
+          ))}
+        </div>
+      )}
      
       {/* Day Tabs and Exercise Content */}
       <div className="flex-1 mb-2 overflow-y-auto exerciseCard no-scrollbar">
@@ -601,6 +604,7 @@ const PlanDetail = ({ params }) => {
             firebaseStoredData={firebaseStoredData}
             updateProgressStats={updateProgressStats}
             progressStats={progressStats}
+            progress={workoutData?.progress}
           />
         ) : (
           <div className="p-4 text-center text-gray-500">No days found for this week.</div>

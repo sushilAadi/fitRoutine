@@ -78,7 +78,7 @@ const CustomPlanPage = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [userId, plansRefetch]);
+  }, [userId]); // Removed plansRefetch from dependencies
 
   useEffect(() => {
     if (isFetching) {
@@ -186,7 +186,7 @@ const CustomPlanPage = () => {
     if (userId) {
       plansRefetch(); // Initial fetch when page loads
     }
-  }, [userId, plansRefetch]);
+  }, [userId]); // Removed plansRefetch from dependencies to prevent infinite loop
 
   const hasActivePlan = savedPlans.some(
     (plan) => plan.status === "active" && plan.progress < 100
