@@ -1,7 +1,7 @@
 // app/new/[plan]/SetAndRepsForm.jsx
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef,useContext } from "react";
 import RegularButton from "@/components/Button/RegularButton";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
@@ -14,6 +14,8 @@ import PreviousHistory from "./PreviousHistory";
 import { calculateDetailedWorkoutProgress } from "@/utils/progress";
 import ProgressRealTime from "./ProgressRealTime";
 import { handleStatus } from "@/service/workoutService";
+import { calculateTodayCalories, saveCaloriesToFirestore } from "@/utils/caloriesCalculation";
+import { GlobalContext } from "@/context/GloablContext";
 
 const SetAndRepsForm = ({
   sets: initialSets,
@@ -27,6 +29,7 @@ const SetAndRepsForm = ({
   isLastExercise,
 }) => {
   const router = useRouter();
+  const { latestWeight } = useContext(GlobalContext);
 
   const {
     selectedPlanId,
@@ -93,7 +96,18 @@ const SetAndRepsForm = ({
     const userProgressRef = doc(db, "userWorkoutProgress", userId);
     const firestorePayload = { [selectedPlanId]: allDataToSave };
     try {
+      // Save workout progress
       await setDoc(userProgressRef, firestorePayload, { merge: true });
+      
+      // Calculate and save calories burnt
+      const userWeight = latestWeight?.weight || 70; // Default to 70kg if no weight found
+      if (userWeight && allDataToSave) {
+        const todayCalories = calculateTodayCalories(allDataToSave, userWeight, selectedPlanId);
+        if (todayCalories > 0) {
+          await saveCaloriesToFirestore(userId, selectedPlanId, todayCalories);
+          console.log(`Calories saved: ${todayCalories} kcal`);
+        }
+      }
     } catch (error) {
       console.error("Error saving data to Firestore:", error);
       toast.error("Error saving workout progress.");

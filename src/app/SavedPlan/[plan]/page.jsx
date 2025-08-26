@@ -13,10 +13,11 @@ import ConfirmationToast from "@/components/Toast/ConfirmationToast";
 import { calculateDetailedWorkoutProgress } from "@/utils/progress";
 import { ProgressBar } from "react-bootstrap";
 import FloatingNavbar from "@/components/Navbar/FloatingNavbar";
+import { calculateTodayCalories, saveCaloriesToFirestore } from "@/utils/caloriesCalculation";
 
 const PlanDetail = ({ params }) => {
   const resolvedParams = React.use(params);
-  const { userId } = useContext(GlobalContext);
+  const { userId, latestWeight } = useContext(GlobalContext);
   const router = useRouter();
   const [workoutData, setWorkoutData] = useState(null);
   const [transFormedData, setTransformedData] = useState(null);
@@ -341,8 +342,20 @@ const PlanDetail = ({ params }) => {
     const firestorePayload = { [selectedPlanId]: allDataToSave };
     
     try {
+        // Save workout progress
         await setDoc(userProgressRef, firestorePayload, { merge: true });
         console.log("Successfully saved state to Firestore for plan:", selectedPlanId);
+        
+        // Calculate and save calories burnt
+        const userWeight = latestWeight?.weight || 70; // Default to 70kg if no weight found
+        if (userWeight && allDataToSave) {
+          const todayCalories = calculateTodayCalories(allDataToSave, userWeight, selectedPlanId);
+          if (todayCalories > 0) {
+            await saveCaloriesToFirestore(userId, selectedPlanId, todayCalories);
+            console.log(`Calories saved: ${todayCalories} kcal`);
+          }
+        }
+        
         return true;
     } catch (error) {
         console.error("Error saving state to Firestore:", error);
