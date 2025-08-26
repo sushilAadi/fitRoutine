@@ -517,8 +517,7 @@ const PlanDetail = ({ params }) => {
     setProgressStats(progress);
   };
 
-console.log("workoutData",workoutData)
-console.log("userWorkoutProgress", firebaseStoredData)
+
 
   // --- Render Logic (No changes needed, added firebaseStoredData prop pass) ---
   if (loading) return <div className="flex items-center justify-center h-screen"><div className="p-4 text-center">Loading workout plan...</div></div>;
