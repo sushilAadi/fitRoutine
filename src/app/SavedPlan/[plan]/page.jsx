@@ -527,7 +527,7 @@ const PlanDetail = ({ params }) => {
   return (
     <>
       <FloatingNavbar title={workoutData?.planName || "Workout Plan"} />
-      <div className="flex flex-col bg-gray-50 hide-scrollbar pt-16">
+      <div className="flex flex-col pt-16 bg-gray-50 hide-scrollbar">
       {/* Header */}
       
       <div className="p-3 pb-1 bg-white border-b sticky-top">
@@ -565,7 +565,7 @@ const PlanDetail = ({ params }) => {
       )} */}
 
       {/* Week Tabs never remove below code */}
-      <div className="flex gap-2 p-2 overflow-x-auto bg-white border-b no-scrollbar shrink-0">
+      {/* <div className="flex gap-2 p-2 overflow-x-auto bg-white border-b no-scrollbar shrink-0">
         {weekTabsData.map((weekItem) => (
           <button
             className={`px-3 py-1.5 text-sm font-medium rounded-md border whitespace-nowrap ${
@@ -580,7 +580,7 @@ const PlanDetail = ({ params }) => {
             {weekItem.weekName}
           </button>
         ))}
-      </div>
+      </div> */}
      
       {/* Day Tabs and Exercise Content */}
       <div className="flex-1 mb-2 overflow-y-auto exerciseCard no-scrollbar">
@@ -606,7 +606,7 @@ const PlanDetail = ({ params }) => {
           <div className="p-4 text-center text-gray-500">No days found for this week.</div>
         )}
       </div>
-        <Progress transFormedData={transFormedData} firebaseStoredData={firebaseStoredData}/>
+        {/* <Progress transFormedData={transFormedData} firebaseStoredData={firebaseStoredData}/> */}
       
       </div>
     </>

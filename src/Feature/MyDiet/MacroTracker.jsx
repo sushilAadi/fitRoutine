@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Progress } from "@material-tailwind/react";
 import { db } from "@/firebase/firebaseConfig"; // Assuming you have this configured
-import { collection, query, where, getDocs } from "@firebase/firestore"; // Import getDocs
+import { collection, query, where, getDocs } from "firebase/firestore"; // Import getDocs
 import { isEqual, startOfDay } from 'date-fns'; // Ensure date-fns is installed
 
 

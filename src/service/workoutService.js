@@ -1,23 +1,37 @@
 import { db } from "@/firebase/firebaseConfig";
-import { doc, updateDoc } from "@firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 
-export const handleStatus = async (planId,progressStats) => {
+export const handleStatus = async (planId, progressStats) => {
     try {
-      if (!planId) throw new Error("Plan ID is missing.");
+      if (!planId) {
+        throw new Error("Plan ID is missing.");
+      }
+      
+      if (!db) {
+        throw new Error("Firebase database not initialized.");
+      }
+      
+      if (!progressStats) {
+        console.warn("No progress stats provided to handleStatus");
+        return;
+      }
   
       const userProgressRef = doc(db, "workoutPlans", planId);
-  
-      await updateDoc(userProgressRef, {
-        "workoutPlanDB.progress": +progressStats?.effectiveCompletionPercent,
+      
+      const updateData = {
+        "workoutPlanDB.progress": Number(progressStats?.effectiveCompletionPercent) || 0,
         "workoutPlanDB.progressData": progressStats,
-      });
+        "workoutPlanDB.lastAccessed": new Date().toISOString()
+      };
   
-      console.log("Status updated successfully!");
-      // Optionally show a toast or UI message
-      // toast.success("Status updated!");
+      await updateDoc(userProgressRef, updateData);
+  
+      console.log("Status updated successfully!", {
+        planId,
+        progress: updateData["workoutPlanDB.progress"]
+      });
     } catch (error) {
-      console.error("Error updating status:", error.message);
-      // Optionally show a toast or UI message
-      // toast.error("Failed to update status");
+      console.error("Error updating status:", error.message || error);
+      console.error("Full error:", error);
     }
   };

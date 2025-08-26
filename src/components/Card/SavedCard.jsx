@@ -42,13 +42,23 @@ const SavedCard = ({
           </div>
         </div>
         {plan.status === "active" && !isCompleted && (
-          <span className="px-3 py-1 text-sm text-green-500 rounded-full bg-green-50">
-            Active
+          <span className="px-3 py-1 text-sm font-medium text-green-600 bg-green-100 rounded-full animate-pulse">
+            🔥 Active
+          </span>
+        )}
+        {plan.progress > 0 && plan.progress < 100 && plan.status !== "active" && (
+          <span className="px-3 py-1 text-sm font-medium text-blue-600 bg-blue-100 rounded-full">
+            📈 In Progress
+          </span>
+        )}
+        {plan.progress === 0 && !isCompleted && (
+          <span className="px-3 py-1 text-sm text-gray-500 bg-gray-100 rounded-full">
+            ⏸️ Not Started
           </span>
         )}
         {isCompleted && (
-          <span className="px-3 py-1 text-sm text-gray-500 bg-gray-200 rounded-full">
-            Completed
+          <span className="px-3 py-1 text-sm font-medium text-emerald-600 bg-emerald-100 rounded-full">
+            ✅ Completed
           </span>
         )}
       </div>
@@ -99,10 +109,12 @@ const SavedCard = ({
         }`}
       >
         {isCompleted
-          ? "View Plan (Completed)"
+          ? "View Completed Plan"
           : plan.status === "active"
-          ? "Continue Your Plan"
-          : "Start Your Plan"}
+          ? "Continue Workout"
+          : plan.progress > 0
+          ? "Resume Plan"
+          : "Start Your Journey"}
       </button>
 
       <button

@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import { calculateNextDay, getAllLocalStorageData, mergeWorkoutData, parseTimeToSeconds } from "@/utils";
 import ConfirmationToast from "@/components/Toast/ConfirmationToast";
 
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import PreviousHistory from "./PreviousHistory";
 import { calculateDetailedWorkoutProgress } from "@/utils/progress";
@@ -664,6 +664,9 @@ const SetAndRepsForm = ({
       setSets(updatedSets);
       updateProgressStats();
       
+      // Check if this is the first set completion of the entire plan
+      checkAndHandleFirstSetCompletion();
+      
       // Dispatch storage event to notify other components
       window.dispatchEvent(new StorageEvent('storage', {
         key: storageKey,
@@ -676,6 +679,77 @@ const SetAndRepsForm = ({
         toast.error("Workout timer running for another set.");
     } else if (!currentSet.isActive && !currentSet.isEditing) {
         toast.error("Set is not active or being edited.");
+    }
+  };
+
+  // Check if this is the first set completion of the entire plan
+  const checkAndHandleFirstSetCompletion = async () => {
+    try {
+      // Check localStorage for any completed sets across the entire plan
+      let hasAnyCompletedSet = false;
+      
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.includes(`workout-`) && key.endsWith(`-${selectedPlanId}`)) {
+          try {
+            const data = JSON.parse(localStorage.getItem(key));
+            if (Array.isArray(data) && data.some(set => set.isCompleted && !set.skipped)) {
+              hasAnyCompletedSet = true;
+              break;
+            }
+          } catch (e) {
+            // Skip invalid JSON
+            continue;
+          }
+        }
+      }
+
+      // If no completed sets found in localStorage, this is the first completion
+      if (!hasAnyCompletedSet) {
+        console.log("First set completion detected - activating plan in Firebase");
+        await updatePlanToActiveStatus();
+      }
+    } catch (error) {
+      console.error("Error checking first set completion:", error);
+    }
+  };
+
+  // Update Firebase to mark plan as active
+  const updatePlanToActiveStatus = async () => {
+    try {
+      const planRef = doc(db, "workoutPlans", selectedPlanId);
+      const planDoc = await getDoc(planRef);
+      
+      if (!planDoc.exists()) {
+        console.error("Plan not found in Firebase");
+        return;
+      }
+      
+      const planData = planDoc.data();
+      const currentProgress = planData.workoutPlanDB?.progress || 0;
+      
+      // Only update if plan is not already active (progress > 0)
+      if (currentProgress === 0) {
+        await updateDoc(planRef, {
+          "workoutPlanDB.progress": 0.1, // Minimal progress to indicate "started"
+          "workoutPlanDB.status": "active",
+          "workoutPlanDB.startedAt": new Date().toISOString(),
+          "workoutPlanDB.lastAccessed": new Date().toISOString()
+        });
+        
+        toast.success("🎉 Plan activated! You've started your fitness journey!", {
+          duration: 4000,
+          style: {
+            background: '#10B981',
+            color: '#fff',
+          },
+        });
+        
+        console.log("Plan successfully activated in Firebase");
+      }
+    } catch (error) {
+      console.error("Error updating plan to active status:", error);
+      // Don't show error to user as this is not critical for workout continuation
     }
   };
 
@@ -1064,12 +1138,12 @@ const SetAndRepsForm = ({
       {/* Header and Action Buttons */}
       
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-        <div>
+        {/* <div>
           <h3 className="text-lg font-semibold capitalize">{exerciseName}</h3>
           <p className="text-xs text-gray-500">
             Track your sets, reps, and weight
           </p>
-        </div>
+        </div> */}
         <div className="flex items-center gap-2">
           {!isAnySetSkipped && activeTimer === null && (
             <RegularButton
@@ -1233,7 +1307,7 @@ const SetAndRepsForm = ({
                   </span>
                 </td>
                 <td className="p-1 text-center align-middle border">
-                  <div className="flex flex-wrap items-center justify-center gap-1 text-base md:gap-2">
+                  <div className="flex flex-wrap items-center justify-center gap-4 text-base md:gap-2">
                     {isSkipped ? (
                       <i
                         className="text-gray-400 fas fa-ban"

@@ -23,7 +23,7 @@ import toast from 'react-hot-toast';
         <button className="px-2 py-1 w-[50%] text-white border-none bg-red-500" onClick={()=>handleConfirm()}>
           Yes, Skip
         </button>
-        <button cdivlassName="px-2 py-1 w-[50%] text-white border-none bg-tprimary" onClick={() => handleCancel()}>
+        <button className="px-2 py-1 w-[50%] text-white border-none bg-tprimary" onClick={() => handleCancel()}>
           Cancel
         </button>
         </div>

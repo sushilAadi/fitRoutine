@@ -32,7 +32,11 @@
       "Bash(npx @magicuidesign/cli@latest install:*)",
       "Bash(claude mcp:*)",
       "Bash(node:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "mcp__reactbits__search_components",
+      "mcp__reactbits__list_categories",
+      "mcp__reactbits__list_components",
+      "mcp__reactbits__get_component"
     ],
     "deny": []
   }

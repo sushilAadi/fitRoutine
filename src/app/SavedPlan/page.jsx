@@ -24,10 +24,10 @@ const CustomPlanPage = () => {
   const {
     handleOpenClose,
     userId,
-    fetchPlans,
+    plansRefetch,
     setLastPosition,
     plans,
-    isFetchingPlans,
+    isFetching,
   } = useContext(GlobalContext);
 
   const router = useRouter();
@@ -41,9 +41,12 @@ const CustomPlanPage = () => {
     try {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        return docSnap.data().totalCalories; // Return the total calories burnt
+        const caloriesData = docSnap.data();
+        console.log(`Calories fetched for plan ${planId}:`, caloriesData.totalCalories);
+        return caloriesData.totalCalories || 0;
       } else {
-        return 0; // Return 0 if no data exists
+        console.log(`No calories data found for plan ${planId} on ${currentDate}`);
+        return 0;
       }
     } catch (error) {
       console.error("Error fetching calories burnt: ", error);
@@ -52,8 +55,33 @@ const CustomPlanPage = () => {
   };
 
 
+  // Refresh plans when page becomes visible (user returns from workout)
   useEffect(() => {
-    if (isFetchingPlans) {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && userId) {
+        console.log("Page became visible - refreshing plans data");
+        plansRefetch(); // Refresh plans data when user returns
+      }
+    };
+
+    const handleFocus = () => {
+      if (userId) {
+        console.log("Window focused - refreshing plans data");
+        plansRefetch(); // Refresh when window gains focus
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [userId, plansRefetch]);
+
+  useEffect(() => {
+    if (isFetching) {
       return; // Wait for the plans to be fetched
     }
 
@@ -101,7 +129,7 @@ const CustomPlanPage = () => {
 
       processPlans();
     }
-  }, [plans, isFetchingPlans]);
+  }, [plans, isFetching]);
 
   const deletePlan = async (planId, planName) => {
     
@@ -147,23 +175,18 @@ const CustomPlanPage = () => {
   };
 
   const startPlan = (planId, planName) => {
-    const updatedPlans = savedPlans.map((plan) => {
-      if (plan.id === planId && plan.progress !== 100) {
-        plan.status = "active";
-      } else if (plan.status === "active" && plan.progress === 100) {
-        plan.status = "completed";
-      } else if (plan.status === "inactive" && plan.progress === 0) {
-        plan.status = "inactive";
-      }
-      // plan.progress = calculateProgress(plan);
-
-      return plan;
-    });
-
-    setSavedPlans(updatedPlans);
-
+    // Don't update Firebase here - let the first set completion handle it
+    // Just navigate to the plan detail page
+    toast.success(`Opening "${planName}" - Complete your first set to activate!`);
     router.push(`/SavedPlan/${planId}`);
   };
+
+  // Refresh data when component mounts or user returns
+  useEffect(() => {
+    if (userId) {
+      plansRefetch(); // Initial fetch when page loads
+    }
+  }, [userId, plansRefetch]);
 
   const hasActivePlan = savedPlans.some(
     (plan) => plan.status === "active" && plan.progress < 100

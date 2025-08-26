@@ -31,7 +31,7 @@ function TabMT({
   return (
     <div className="sticky top-0 z-10 bg-gray-50">
       {/* Day Tabs never remove this code */}
-      <div className="flex px-2 py-2 space-x-2 overflow-x-auto border-b border-blue-gray-50 no-scrollbar">
+      {/* <div className="flex px-2 py-2 space-x-2 overflow-x-auto border-b border-blue-gray-50 no-scrollbar">
         {tab?.map(({ label, value }) => (
           <button
             key={value}
@@ -46,7 +46,7 @@ function TabMT({
             {label}
           </button>
         ))}
-      </div>
+      </div> */}
 
       {/* Exercise Content Area */}
       {selectedDay !== null && exercisesBasedOnDay?.exercises ? (
