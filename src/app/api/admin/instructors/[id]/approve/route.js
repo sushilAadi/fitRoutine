@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import { verifyAdminAuth, logAdminAction } from "@/lib/auth/adminAuth";
+import { clerkClient } from '@clerk/nextjs/server';
 
 export async function POST(request, { params }) {
   try {
@@ -41,20 +42,12 @@ export async function POST(request, { params }) {
     // Update user role in Clerk if userIdCl exists
     if (instructor.userIdCl) {
       try {
-        const response = await fetch(`${request.nextUrl.origin}/api/admin/update-user-role`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            userId: instructor.userIdCl, 
-            role: 'coach' 
-          }),
+        // Directly update user metadata using Clerk client
+        await clerkClient.users.updateUserMetadata(instructor.userIdCl, {
+          publicMetadata: {
+            role: 'coach'
+          }
         });
-
-        if (!response.ok) {
-          throw new Error('Failed to update user role in Clerk');
-        }
       } catch (roleError) {
         console.error('Error updating user role:', roleError);
         // Revert Firestore update if Clerk update fails

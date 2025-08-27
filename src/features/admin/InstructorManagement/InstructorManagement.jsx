@@ -49,6 +49,19 @@ const InstructorManagement = () => {
 
   const handleApproveInstructor = async (instructorId) => {
     try {
+      // Optimistically update the instructor status
+      setInstructors(prevInstructors => 
+        prevInstructors.map(instructor => 
+          instructor.id === instructorId 
+            ? { 
+                ...instructor, 
+                status: 'approved',
+                approvedAt: new Date().toISOString()
+              }
+            : instructor
+        )
+      );
+
       const response = await fetch(`/api/admin/instructors/${instructorId}/approve`, {
         method: 'POST',
         headers: {
@@ -57,13 +70,25 @@ const InstructorManagement = () => {
       });
 
       if (!response.ok) {
+        // Revert optimistic update on error
+        setInstructors(prevInstructors => 
+          prevInstructors.map(instructor => 
+            instructor.id === instructorId 
+              ? { 
+                  ...instructor, 
+                  status: 'pending',
+                  approvedAt: null
+                }
+              : instructor
+          )
+        );
+        
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to approve instructor');
       }
 
       const data = await response.json();
       toast.success("Instructor approved successfully! Role updated to coach.");
-      fetchInstructors(); // Refresh list
     } catch (error) {
       console.error("Error approving instructor:", error);
       toast.error("Failed to approve instructor: " + error.message);
@@ -72,6 +97,19 @@ const InstructorManagement = () => {
 
   const handleRejectInstructor = async (instructorId) => {
     try {
+      // Optimistically update the instructor status
+      setInstructors(prevInstructors => 
+        prevInstructors.map(instructor => 
+          instructor.id === instructorId 
+            ? { 
+                ...instructor, 
+                status: 'rejected',
+                rejectedAt: new Date().toISOString()
+              }
+            : instructor
+        )
+      );
+
       const response = await fetch(`/api/admin/instructors/${instructorId}/reject`, {
         method: 'POST',
         headers: {
@@ -80,13 +118,25 @@ const InstructorManagement = () => {
       });
 
       if (!response.ok) {
+        // Revert optimistic update on error
+        setInstructors(prevInstructors => 
+          prevInstructors.map(instructor => 
+            instructor.id === instructorId 
+              ? { 
+                  ...instructor, 
+                  status: 'pending',
+                  rejectedAt: null
+                }
+              : instructor
+          )
+        );
+        
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to reject instructor');
       }
 
       const data = await response.json();
       toast.success("Instructor rejected");
-      fetchInstructors(); // Refresh list
     } catch (error) {
       console.error("Error rejecting instructor:", error);
       toast.error("Failed to reject instructor: " + error.message);
@@ -99,6 +149,14 @@ const InstructorManagement = () => {
     }
 
     try {
+      // Store the instructor data for potential restoration
+      const instructorToDelete = instructors.find(instructor => instructor.id === instructorId);
+      
+      // Optimistically remove the instructor from the list
+      setInstructors(prevInstructors => 
+        prevInstructors.filter(instructor => instructor.id !== instructorId)
+      );
+
       const response = await fetch(`/api/admin/instructors/${instructorId}`, {
         method: 'DELETE',
         headers: {
@@ -107,13 +165,17 @@ const InstructorManagement = () => {
       });
 
       if (!response.ok) {
+        // Restore the instructor on error
+        if (instructorToDelete) {
+          setInstructors(prevInstructors => [...prevInstructors, instructorToDelete]);
+        }
+        
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to delete instructor');
       }
 
       const data = await response.json();
       toast.success("Instructor deleted successfully");
-      fetchInstructors(); // Refresh list
     } catch (error) {
       console.error("Error deleting instructor:", error);
       toast.error("Failed to delete instructor: " + error.message);
