@@ -20,6 +20,7 @@ const AdminSidebar = () => {
 
   const adminMenuItems = [
     { name: "Instructor Management", component: "instructor-management", icon: "fa-solid fa-chalkboard-user" },
+    { name: "Enrollment Management", component: "enrollment-management", icon: "fa-solid fa-user-plus" },
     ...(userRole === "admin" ? [
       { name: "User Management", component: "user-management", icon: "fa-solid fa-users" },
       { name: "System Settings", component: "system-settings", icon: "fa-solid fa-gear" },

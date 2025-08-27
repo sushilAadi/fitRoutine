@@ -10,6 +10,7 @@ import {
   SystemSettings, 
   Analytics 
 } from "@/features/admin";
+import EnrollmentManagement from "@/app/admin/enrollments/page";
 import "./dashboard.css";
 
 const AdminDashboard = () => {
@@ -45,6 +46,8 @@ const AdminDashboard = () => {
     switch (activeComponent) {
       case 'instructor-management':
         return <InstructorManagement />;
+      case 'enrollment-management':
+        return <EnrollmentManagement />;
       case 'user-management':
         return <UserManagement />;
       case 'system-settings':
