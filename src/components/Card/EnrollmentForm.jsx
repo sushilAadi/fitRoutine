@@ -9,6 +9,7 @@ import { useFileUpload } from "@/hooks/useFileUpload";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import toast from "react-hot-toast";
+import SecurePaymentComponent from "../SecurePaymentComponent";
 
 const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
   const router = useRouter();
@@ -16,6 +17,9 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
   const [loading, setLoading] = useState(false);
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [hour, setHour] = useState("");
+  const [currentStep, setCurrentStep] = useState(1); // 1: Form, 2: Payment
+  const [enrollmentData, setEnrollmentData] = useState(null);
+  const [paymentAmount, setPaymentAmount] = useState(0);
 
   const {
     handleFileUpload: handleProfileUpload,
@@ -133,12 +137,11 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
   
 
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  const prepareEnrollmentData = async () => {
+    if (!validateForm()) return false;
 
     setLoading(true);
-    const loadingToast = toast.loading("Processing your enrollment...");
+    const loadingToast = toast.loading("Preparing enrollment...");
 
     try {
       const fileName = `profile-${Date.now()}`;
@@ -151,85 +154,147 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
         throw new Error("Failed to upload image");
       }
 
-      // Modify the rate calculation based on whether it's hourly or not
+      // Calculate the rate based on whether it's hourly or not
       const selectedRate = formData.rateType === "hourly" 
         ? Number(hour) + 1 
         : rateOptions.find((opt) => opt.id === formData.rateType)?.rate;
 
-        const enrollmentData = {
-          mentorIdCl: mentor.userIdCl,
-          mentorName: mentor.name,
-          mentorEmail: mentor.email,
-          mentorMobile: mentor.mobile,
-          mentorwhatsapp: mentor.whatsapp,
-          mentorProfileImage: mentor.profileImage,
-          clientIdCl: userDetailData?.userIdCl,
-          clientName: formData.fullName,
-          clientEmail: formData.email,
-          clientDetails: {
-            ...(userDetailData
-              ? {
-                  gender: userDetailData.userGender,
-                  birthDate: userDetailData.userBirthDate,
-                  height: userDetailData.userHeight,
-                  weight: latestWeight?.userWeights,
-                  goals: userDetailData.helpYou,
-                  activityLevel: userDetailData.activityLevel,
-                }
-              : {}),
-          },
-          package: {
-            type: formData.rateType,
-            rate: selectedRate,
-            fullName: formData.fullName,
-            phoneNumber: formData.phoneNumber,
-            biography: formData.biography,
-            availability: formData.availability,
-            trainingLocations: selectedLocations,
-            profileImage: imageUrl,
-          },
-          enrolledAt: new Date().toISOString(),
-          status: 'pending', 
-        };
-        
+      // Validate selectedRate
+      if (!selectedRate || isNaN(selectedRate) || selectedRate <= 0) {
+        console.error("Rate calculation error:", {
+          selectedRate,
+          rateType: formData.rateType,
+          hour,
+          rateOptions: rateOptions.map(opt => ({ id: opt.id, rate: opt.rate }))
+        });
+        throw new Error("Invalid rate calculation");
+      }
 
-      await addDoc(collection(db, "enrollments"), enrollmentData);
 
-      toast.dismiss(loadingToast);
-      toast.success("Successfully enrolled with the coach!");
-      router.push("/");
-
-      // Reset form
-      setFormData({
-        fullName: "",
-        email: user?.primaryEmailAddress?.emailAddress || "",
-        phoneNumber: "",
-        availability: {
-          days: [],
-          timeSlot: "",
+      const preparedEnrollmentData = {
+        mentorIdCl: mentor.userIdCl,
+        mentorName: mentor.name,
+        mentorEmail: mentor.email,
+        mentorMobile: mentor.mobile,
+        mentorwhatsapp: mentor.whatsapp,
+        mentorProfileImage: mentor.profileImage,
+        clientIdCl: userDetailData?.userIdCl,
+        clientName: formData.fullName,
+        clientEmail: formData.email,
+        clientDetails: {
+          ...(userDetailData
+            ? {
+                gender: userDetailData.userGender,
+                birthDate: userDetailData.userBirthDate,
+                height: userDetailData.userHeight,
+                weight: latestWeight?.userWeights,
+                goals: userDetailData.helpYou,
+                activityLevel: userDetailData.activityLevel,
+              }
+            : {}),
         },
-        rateType: "",
-        biography: "",
-      });
-      setHour("");
-      setSelectedLocations([]);
-      handleProfileDelete();
-    } catch (error) {
-      console.error("Enrollment error:", error);
+        package: {
+          type: formData.rateType,
+          rate: selectedRate,
+          fullName: formData.fullName,
+          phoneNumber: formData.phoneNumber,
+          biography: formData.biography,
+          availability: formData.availability,
+          trainingLocations: selectedLocations,
+          profileImage: imageUrl,
+        },
+        enrolledAt: new Date().toISOString(),
+        status: 'pending', 
+      };
+
+      setEnrollmentData(preparedEnrollmentData);
+      setPaymentAmount(Number(selectedRate)); // Ensure it's a number
+      setCurrentStep(2);
       toast.dismiss(loadingToast);
-      toast.error(
-        error.message || "Failed to complete enrollment. Please try again."
-      );
+      toast.success("Ready for payment!");
+      return true;
+    } catch (error) {
+      console.error("Enrollment preparation error:", error);
+      toast.dismiss(loadingToast);
+      toast.error(error.message || "Failed to prepare enrollment. Please try again.");
+      return false;
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePaymentSuccess = async (paymentData) => {
+    if (!enrollmentData) {
+      toast.error("Enrollment data not found");
+      return;
+    }
+
+    const loadingToast = toast.loading("Completing enrollment...");
+
+    try {
+      // Add payment information to enrollment data
+      const finalEnrollmentData = {
+        ...enrollmentData,
+        paymentDetails: {
+          razorpayPaymentId: paymentData.razorpay_payment_id,
+          razorpayOrderId: paymentData.razorpay_order_id,
+          amount: paymentAmount,
+          currency: "INR",
+          status: "completed",
+          paidAt: new Date().toISOString(),
+        },
+        status: 'paid_pending', // Status indicating payment is done, waiting for mentor approval
+      };
+
+      await addDoc(collection(db, "enrollments"), finalEnrollmentData);
+
+      toast.dismiss(loadingToast);
+      toast.success("Enrollment and payment completed successfully!");
+      router.push("/");
+
+    } catch (error) {
+      console.error("Enrollment completion error:", error);
+      toast.dismiss(loadingToast);
+      toast.error("Payment successful but enrollment failed. Please contact support.");
+    }
+  };
+
+  const handlePaymentFailure = (error) => {
+    console.error("Payment failed:", error);
+    toast.error("Payment failed. Please try again.");
+    setCurrentStep(1); // Go back to form
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await prepareEnrollmentData();
   };
 
   return (
     <div>
       <h1 className="mb-6 text-xl font-semibold">Gym Instructor Enrollment</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Step indicator */}
+      <div className="mb-6 flex justify-center">
+        <div className="flex items-center space-x-4">
+          <div className={`flex items-center ${currentStep >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
+              1
+            </div>
+            <span className="ml-2">Details</span>
+          </div>
+          <div className="w-12 h-1 bg-gray-300"></div>
+          <div className={`flex items-center ${currentStep >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
+              2
+            </div>
+            <span className="ml-2">Payment</span>
+          </div>
+        </div>
+      </div>
+
+      {currentStep === 1 ? (
+        <form onSubmit={handleSubmit} className="space-y-6">
         <div className="mt-4">
           <label className="text-[#8a8a8a] mb-1 block">
             Upload your Recent Photo for Analysis *
@@ -403,9 +468,49 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
           disabled={loading}
           className="w-full py-3 text-white transition-colors bg-black rounded-lg hover:bg-gray-900 disabled:bg-gray-600 disabled:cursor-not-allowed"
         >
-          {loading ? "Submitting..." : "Submit Enrollment"}
+          {loading ? "Preparing..." : "Proceed to Payment"}
         </button>
       </form>
+      ) : (
+        <div className="space-y-6">
+          <h2 className="text-lg font-semibold">Payment Details</h2>
+          <div className="p-4 bg-gray-50 rounded-lg">
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Mentor:</span>
+                <span className="font-medium">{mentor.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Plan:</span>
+                <span className="font-medium">
+                  {rateOptions.find(opt => opt.id === formData.rateType)?.label || 'Custom Hourly'}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Amount:</span>
+                <span className="font-medium text-green-600">₹{paymentAmount}</span>
+              </div>
+            </div>
+          </div>
+          
+          <SecurePaymentComponent
+            onSuccess={handlePaymentSuccess}
+            onFailure={handlePaymentFailure}
+            transactionId={`enrollment_${userDetailData?.userIdCl}_${Date.now()}`}
+            amount={paymentAmount}
+            description={`Enrollment with ${mentor.name}`}
+            buttonText={`Pay ₹${paymentAmount}`}
+            buttonClassName="w-full py-3 text-white transition-colors bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed"
+          />
+          
+          <button
+            onClick={() => setCurrentStep(1)}
+            className="w-full py-3 text-gray-700 transition-colors bg-gray-200 rounded-lg hover:bg-gray-300"
+          >
+            Back to Form
+          </button>
+        </div>
+      )}
     </div>
   );
 };

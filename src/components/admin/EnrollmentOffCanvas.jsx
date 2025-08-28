@@ -98,6 +98,7 @@ const EnrollmentOffCanvas = ({ show, onHide, mentorId, mentorName }) => {
   const getStatusBadge = (status) => {
     const statusColors = {
       pending: "warning",
+      paid_pending: "primary",
       active: "success",
       completed: "info",
       cancelled: "danger"
@@ -177,6 +178,10 @@ const EnrollmentOffCanvas = ({ show, onHide, mentorId, mentorName }) => {
                 <div className="col">
                   <div className="fw-bold text-warning">{stats.pending || 0}</div>
                   <small className="text-muted">Pending</small>
+                </div>
+                <div className="col">
+                  <div className="fw-bold text-primary">{stats.paid_pending || 0}</div>
+                  <small className="text-muted">Paid Pending</small>
                 </div>
                 <div className="col">
                   <div className="fw-bold text-success">{stats.active || 0}</div>

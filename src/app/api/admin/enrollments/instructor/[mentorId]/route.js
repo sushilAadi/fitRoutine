@@ -59,11 +59,12 @@ export async function GET(request, { params }) {
     const stats = {
       total: enrollments.length,
       pending: enrollments.filter(e => e.status === 'pending').length,
+      paid_pending: enrollments.filter(e => e.status === 'paid_pending').length,
       active: enrollments.filter(e => e.status === 'active').length,
       completed: enrollments.filter(e => e.status === 'completed').length,
       cancelled: enrollments.filter(e => e.status === 'cancelled').length,
       totalRevenue: enrollments
-        .filter(e => e.status === 'active' || e.status === 'completed')
+        .filter(e => e.status === 'active' || e.status === 'completed' || e.status === 'paid_pending')
         .reduce((sum, e) => sum + (e.package?.rate || 0), 0),
       latestEnrollment: enrollments[0]?.enrolledAt || null
     };

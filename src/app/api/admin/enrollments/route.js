@@ -75,6 +75,7 @@ export async function GET(request) {
     const statusCounts = {
       total: enrollments.length,
       pending: enrollments.filter(e => e.status === 'pending').length,
+      paid_pending: enrollments.filter(e => e.status === 'paid_pending').length,
       active: enrollments.filter(e => e.status === 'active').length,
       completed: enrollments.filter(e => e.status === 'completed').length,
       cancelled: enrollments.filter(e => e.status === 'cancelled').length

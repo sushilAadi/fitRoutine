@@ -49,12 +49,12 @@ const MentorContent = ({ mentor }) => {
           where("status", "==", "active")
         );
 
-        // Check for pending enrollments
+        // Check for pending enrollments (including paid_pending)
         const pendingEnrollmentsRef = collection(db, "enrollments");
         const pendingQuery = query(
           pendingEnrollmentsRef,
           where("clientIdCl", "==", userDetailData.userIdCl),
-          where("status", "==", "pending")
+          where("status", "in", ["pending", "paid_pending"])
         );
 
         const [activeSnapshot, pendingSnapshot] = await Promise.all([
@@ -189,21 +189,30 @@ const MentorContent = ({ mentor }) => {
     const isEnrolledAtOver = enrollmentTime < currentTime;
     // First check for pending enrollment
     if (pendingEnrollment) {
+      const isPaidPending = pendingEnrollment.status === 'paid_pending';
+      const bgColor = isPaidPending ? 'bg-blue-500' : 'bg-yellow-500';
+      const statusText = isPaidPending 
+        ? 'Your payment has been completed! Waiting for mentor approval.'
+        : 'You have a pending enrollment request. Please wait for their response before making new enrollment requests.';
+      
       return (
         <>
-          <div className="p-4 text-center bg-yellow-500 rounded-lg">
-            <p className="font-medium">
-              You have a pending enrollment request with{" "}
-              {pendingEnrollment?.mentorName}. Please wait for their response
-              before making new enrollment requests.
+          <div className={`p-4 text-center ${bgColor} rounded-lg`}>
+            <p className="font-medium text-white">
+              {statusText} Mentor: {pendingEnrollment?.mentorName}
             </p>
+            {isPaidPending && (
+              <p className="mt-2 text-sm text-white opacity-90">
+                Amount paid: ₹{pendingEnrollment?.paymentDetails?.amount || pendingEnrollment?.package?.rate}
+              </p>
+            )}
           </div>
-          {isEnrolledAtOver && (
+          {isEnrolledAtOver && !isPaidPending && (
             <button
               onClick={() => handleEnrollmentAction("reject")}
               className="px-4 py-2 mt-2 text-white bg-red-600 rounded-lg hover:bg-red-700 w-100"
             >
-              Reject
+              Cancel Request
             </button>
           )}
         </>

@@ -78,7 +78,7 @@ const ClientCard = ({client}) => {
   };
 
   const checkEnrollmentStatus = async () => {
-    if (client?.status === 'pending' || client?.status === 'rejected') {
+    if (client?.status === 'pending' || client?.status === 'paid_pending' || client?.status === 'rejected') {
       return client?.status;
     }
 
@@ -154,10 +154,12 @@ const ClientCard = ({client}) => {
     switch (status) {
       case 'pending':
         return 'bg-yellow-600';
+      case 'paid_pending':
+        return 'bg-blue-600';
       case 'active':
         return 'bg-green-600';
       case 'completed':
-        return 'bg-blue-600';
+        return 'bg-gray-600';
       case 'rejected':
         return 'bg-red-600';
       default:
@@ -213,14 +215,14 @@ const ClientCard = ({client}) => {
             <p className="text-sm text-black"><span className='font-semibold'>Weight:</span> {client?.clientDetails?.weight} <span className='font-semibold'>Height:</span> {client?.clientDetails?.height}</p>
             <p className="text-sm text-gray-600">{client?.package?.phoneNumber}</p>
             <div className={`px-2 py-1 text-sm text-center text-white rounded-full w-100 ${getStatusColor(enrollmentStatus)}`}>
-          {enrollmentStatus?.charAt(0).toUpperCase() + enrollmentStatus?.slice(1)}
+          {enrollmentStatus === 'paid_pending' ? 'Paid Pending' : enrollmentStatus?.charAt(0).toUpperCase() + enrollmentStatus?.slice(1)}
         </div>
           </div>
         </div>
         
        
       </div>
-      {enrollmentStatus === 'pending' && 
+      {(enrollmentStatus === 'pending' || enrollmentStatus === 'paid_pending') && 
       <div className="mt-3 space-y-3">
         <Select 
           label="Assign Workout Plan" 
@@ -258,7 +260,7 @@ const ClientCard = ({client}) => {
       }
       
       {/* Action buttons */}
-      {enrollmentStatus === 'pending' && 
+      {(enrollmentStatus === 'pending' || enrollmentStatus === 'paid_pending') && 
       <div className="flex gap-3 mt-4">
       {selectedWorkoutPlan && 
         <button disabled={!selectedWorkoutPlan} onClick={() => handleEnrollmentAction('accept')} className="w-full px-4 py-2 text-sm font-medium text-white rounded-full bg-success">

@@ -108,6 +108,7 @@ const EnrollmentManagement = () => {
   const getStatusBadge = (status) => {
     const statusColors = {
       pending: "warning",
+      paid_pending: "primary",
       active: "success",
       completed: "info",
       cancelled: "danger"
@@ -262,6 +263,14 @@ const EnrollmentManagement = () => {
               <div className="col-md-2">
                 <div className="text-center card">
                   <div className="card-body">
+                    <h5 className="card-title text-primary">{statusCounts.paid_pending || 0}</h5>
+                    <p className="card-text small text-muted">Paid Pending</p>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-2">
+                <div className="text-center card">
+                  <div className="card-body">
                     <h5 className="card-title text-success">{statusCounts.active || 0}</h5>
                     <p className="card-text small text-muted">Active</p>
                   </div>
@@ -302,6 +311,7 @@ const EnrollmentManagement = () => {
                 >
                   <option value="all">All Status</option>
                   <option value="pending">Pending</option>
+                  <option value="paid_pending">Paid Pending</option>
                   <option value="active">Active</option>
                   <option value="completed">Completed</option>
                   <option value="cancelled">Cancelled</option>

@@ -47,7 +47,7 @@ const ClientCard = ({ client }) => {
   };
 
   const checkEnrollmentStatus = async () => {
-    if (client.status === 'pending' || client.status === 'rejected') {
+    if (client.status === 'pending' || client.status === 'paid_pending' || client.status === 'rejected') {
       return client.status;
     }
 
@@ -116,10 +116,12 @@ const ClientCard = ({ client }) => {
     switch (status) {
       case 'pending':
         return 'bg-yellow-600';
+      case 'paid_pending':
+        return 'bg-blue-600';
       case 'active':
         return 'bg-green-600';
       case 'completed':
-        return 'bg-blue-600';
+        return 'bg-gray-600';
       case 'rejected':
         return 'bg-red-600';
       default:
@@ -175,11 +177,11 @@ const ClientCard = ({ client }) => {
           </div>
         </div>
         <div className={`px-3 py-1 text-sm text-white rounded-full ${getStatusColor(enrollmentStatus)}`}>
-          {enrollmentStatus ? enrollmentStatus.charAt(0).toUpperCase() + enrollmentStatus.slice(1) : 'Pending'}
+          {enrollmentStatus === 'paid_pending' ? 'Paid Pending' : enrollmentStatus ? enrollmentStatus.charAt(0).toUpperCase() + enrollmentStatus.slice(1) : 'Pending'}
         </div>
       </div>
 
-      {enrollmentStatus === 'pending' && (
+      {(enrollmentStatus === 'pending' || enrollmentStatus === 'paid_pending') && (
         <div className="flex gap-3 mt-4">
           <button
             onClick={() => handleEnrollmentAction('accept')}

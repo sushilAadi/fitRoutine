@@ -65,7 +65,7 @@ const SecurePaymentComponent = ({
           razorpay_signature: paymentData.razorpay_signature,
           user_data: userDetailData,
           transaction_id: transactionId,
-          amount: amount,
+          amount: Number(amount), // Ensure amount is a number
         }),
       });
 
@@ -91,10 +91,16 @@ const SecurePaymentComponent = ({
       return;
     }
 
+    if (isNaN(Number(amount))) {
+      toast.error("Payment amount must be a valid number");
+      return;
+    }
+
     if (!userDetailData?.userName || !userDetailData?.userEmail) {
       toast.error("User information is incomplete");
       return;
     }
+
 
     setIsProcessing(true);
 

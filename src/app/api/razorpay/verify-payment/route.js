@@ -14,6 +14,16 @@ export async function POST(request) {
       amount
     } = await request.json();
 
+    // Debug logging (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Payment verification request:', {
+        amount,
+        amountType: typeof amount,
+        transaction_id,
+        razorpay_payment_id: razorpay_payment_id?.substring(0, 10) + '...'
+      });
+    }
+
     // Validate required fields
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return NextResponse.json(
@@ -38,12 +48,21 @@ export async function POST(request) {
       );
     }
 
-    // Validate amount is positive number
-    if (amount && (typeof amount !== 'number' || amount <= 0)) {
-      return NextResponse.json(
-        { error: 'Invalid amount value' },
-        { status: 400 }
-      );
+    // Validate amount is positive number (convert string to number if needed)
+    if (amount !== undefined && amount !== null) {
+      const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+      if (typeof numAmount !== 'number' || isNaN(numAmount) || numAmount <= 0) {
+        console.error('Amount validation failed:', { 
+          amount, 
+          amountType: typeof amount, 
+          numAmount, 
+          numAmountType: typeof numAmount 
+        });
+        return NextResponse.json(
+          { error: `Invalid amount value: ${amount} (type: ${typeof amount})` },
+          { status: 400 }
+        );
+      }
     }
 
     // Verify signature using sanitized values
@@ -65,12 +84,13 @@ export async function POST(request) {
     }
 
     // Payment is verified, save to database
+    const finalAmount = amount ? (typeof amount === 'string' ? parseFloat(amount) : amount) : 0;
     const paymentData = {
       userId: user_data?.userIdCl || 'N/A',
       userName: user_data?.userName || 'N/A',
       userEmail: user_data?.userEmail || 'N/A',
       transactionId: transaction_id || 'N/A',
-      amount: amount,
+      amount: finalAmount,
       currency: 'INR',
       status: 'verified',
       razorpayPaymentId: sanitizedPaymentId,
