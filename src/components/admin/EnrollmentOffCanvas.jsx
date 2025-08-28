@@ -124,6 +124,24 @@ const EnrollmentOffCanvas = ({ show, onHide, mentorId, mentorName }) => {
     });
   };
 
+  const isEndingSoon = (endDate) => {
+    if (!endDate) return false;
+    const end = new Date(endDate);
+    const now = new Date();
+    const diffTime = end.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 7 && diffDays > 0;
+  };
+
+  const getDaysRemaining = (endDate) => {
+    if (!endDate) return null;
+    const end = new Date(endDate);
+    const now = new Date();
+    const diffTime = end.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
   return (
     <Offcanvas 
       show={show} 
@@ -190,13 +208,18 @@ const EnrollmentOffCanvas = ({ show, onHide, mentorId, mentorName }) => {
                       <th>Rate</th>
                       <th>Status</th>
                       <th>Enrolled Date</th>
+                      <th>Accepted</th>
+                      <th>End Date</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {enrollments.map((enrollment) => (
+                    {enrollments.map((enrollment) => {
+                      const endingSoon = isEndingSoon(enrollment.endDate);
+                      const daysRemaining = getDaysRemaining(enrollment.endDate);
+                      return (
                       <React.Fragment key={enrollment.id}>
-                        <tr>
+                        <tr className={endingSoon ? 'table-danger' : ''}>
                           <td>
                             <div className="d-flex align-items-center">
                               {enrollment.package?.profileImage && (
@@ -226,6 +249,29 @@ const EnrollmentOffCanvas = ({ show, onHide, mentorId, mentorName }) => {
                             <small>{formatDate(enrollment.enrolledAt)}</small>
                           </td>
                           <td>
+                            <small className={enrollment.acceptedAt ? "text-success" : "text-muted"}>
+                              {enrollment.acceptedAt ? formatDate(enrollment.acceptedAt) : 'Pending'}
+                            </small>
+                          </td>
+                          <td>
+                            {enrollment.endDate ? (
+                              <div>
+                                <small className={endingSoon ? 'text-danger fw-bold' : 'text-info'}>
+                                  {formatDate(enrollment.endDate)}
+                                </small>
+                                {endingSoon && (
+                                  <div>
+                                    <small className="badge bg-danger">
+                                      {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} left
+                                    </small>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <small className="text-muted">Not set</small>
+                            )}
+                          </td>
+                          <td>
                             <Button
                               variant={expandedEnrollment === enrollment.id ? "primary" : "outline-primary"}
                               size="sm"
@@ -245,7 +291,7 @@ const EnrollmentOffCanvas = ({ show, onHide, mentorId, mentorName }) => {
                               exit={{ opacity: 0, height: 0 }}
                               transition={{ duration: 0.3 }}
                             >
-                              <td colSpan="6" className="bg-light">
+                              <td colSpan="8" className="bg-light">
                                 <motion.div
                                   className="p-3"
                                   initial={{ y: -10, opacity: 0 }}
@@ -304,6 +350,25 @@ const EnrollmentOffCanvas = ({ show, onHide, mentorId, mentorName }) => {
                                       
                                       <div className="mt-3">
                                         <p className="mb-1"><strong>Enrolled:</strong> {formatDate(enrollment.enrolledAt)}</p>
+                                        <p className="mb-1"><strong>Accepted:</strong> 
+                                          <span className={enrollment.acceptedAt ? "text-success ms-1" : "text-muted ms-1"}>
+                                            {enrollment.acceptedAt ? formatDate(enrollment.acceptedAt) : 'Not accepted yet'}
+                                          </span>
+                                        </p>
+                                        <p className="mb-1"><strong>End Date:</strong> 
+                                          {enrollment.endDate ? (
+                                            <span className={endingSoon ? 'text-danger fw-bold ms-1' : 'text-info ms-1'}>
+                                              {formatDate(enrollment.endDate)}
+                                              {endingSoon && (
+                                                <span className="badge bg-danger ms-2">
+                                                  {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} left!
+                                                </span>
+                                              )}
+                                            </span>
+                                          ) : (
+                                            <span className="text-muted ms-1">Not set</span>
+                                          )}
+                                        </p>
                                         {enrollment.updatedAt && enrollment.updatedAt !== enrollment.enrolledAt && (
                                           <p className="mb-1"><strong>Last Updated:</strong> {formatDate(enrollment.updatedAt)}</p>
                                         )}
@@ -316,7 +381,8 @@ const EnrollmentOffCanvas = ({ show, onHide, mentorId, mentorName }) => {
                           )}
                         </AnimatePresence>
                       </React.Fragment>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </Table>
               ) : (

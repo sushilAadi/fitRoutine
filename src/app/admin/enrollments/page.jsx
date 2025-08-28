@@ -151,6 +151,14 @@ const EnrollmentManagement = () => {
           aValue = a.status?.toLowerCase() || "pending";
           bValue = b.status?.toLowerCase() || "pending";
           break;
+        case "acceptedAt":
+          aValue = new Date(a.acceptedAt || 0);
+          bValue = new Date(b.acceptedAt || 0);
+          break;
+        case "endDate":
+          aValue = new Date(a.endDate || 0);
+          bValue = new Date(b.endDate || 0);
+          break;
         case "enrolledAt":
         default:
           aValue = new Date(a.enrolledAt || 0);
@@ -181,12 +189,24 @@ const EnrollmentManagement = () => {
     });
   };
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(amount);
+  const isEndingSoon = (endDate) => {
+    if (!endDate) return false;
+    const end = new Date(endDate);
+    const now = new Date();
+    const diffTime = end.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 7 && diffDays > 0;
   };
+
+  const getDaysRemaining = (endDate) => {
+    if (!endDate) return null;
+    const end = new Date(endDate);
+    const now = new Date();
+    const diffTime = end.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
 
   // Check if user has access
   if (userRole !== "admin" && userRole !== "coach") {
@@ -296,8 +316,12 @@ const EnrollmentManagement = () => {
                     setSortOrder(order);
                   }}
                 >
-                  <option value="enrolledAt-desc">Latest First</option>
-                  <option value="enrolledAt-asc">Oldest First</option>
+                  <option value="enrolledAt-desc">Latest Enrolled</option>
+                  <option value="enrolledAt-asc">Oldest Enrolled</option>
+                  <option value="acceptedAt-desc">Recently Accepted</option>
+                  <option value="acceptedAt-asc">Oldest Accepted</option>
+                  <option value="endDate-desc">Latest End Date</option>
+                  <option value="endDate-asc">Earliest End Date</option>
                   <option value="clientName-asc">Client A-Z</option>
                   <option value="clientName-desc">Client Z-A</option>
                   <option value="mentorName-asc">Mentor A-Z</option>
@@ -318,13 +342,18 @@ const EnrollmentManagement = () => {
                         <th>Rate</th>
                         <th>Status</th>
                         <th>Enrolled Date</th>
+                        <th>Accepted Date</th>
+                        <th>End Date</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredAndSortedEnrollments.map((enrollment) => (
+                      {filteredAndSortedEnrollments.map((enrollment) => {
+                        const endingSoon = isEndingSoon(enrollment.endDate);
+                        const daysRemaining = getDaysRemaining(enrollment.endDate);
+                        return (
                         <React.Fragment key={enrollment.id}>
-                          <tr>
+                          <tr className={endingSoon ? 'table-danger' : ''}>
                             <td>
                               <div className="d-flex align-items-center ">
                                 {enrollment.package?.profileImage && (
@@ -372,6 +401,27 @@ const EnrollmentManagement = () => {
                               <small>{formatDate(enrollment.enrolledAt)}</small>
                             </td>
                             <td>
+                              <small>{enrollment.acceptedAt ? formatDate(enrollment.acceptedAt) : 'Not accepted'}</small>
+                            </td>
+                            <td>
+                              {enrollment.endDate ? (
+                                <div>
+                                  <small className={endingSoon ? 'text-danger fw-bold' : ''}>
+                                    {formatDate(enrollment.endDate)}
+                                  </small>
+                                  {endingSoon && (
+                                    <div>
+                                      <small className="badge bg-danger">
+                                        {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} left
+                                      </small>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <small>Not set</small>
+                              )}
+                            </td>
+                            <td>
                               <Button
                                 variant={expandedRow === enrollment.id ? "primary" : "outline-primary"}
                                 size="sm"
@@ -391,7 +441,7 @@ const EnrollmentManagement = () => {
                                 exit={{ opacity: 0, height: 0 }}
                                 transition={{ duration: 0.3 }}
                               >
-                                <td colSpan="7" className="bg-light">
+                                <td colSpan="9" className="bg-light">
                                   <motion.div
                                     className="p-4"
                                     initial={{ y: -20, opacity: 0 }}
@@ -450,6 +500,21 @@ const EnrollmentManagement = () => {
                                         )}
                                         
                                         <p><strong>Enrolled:</strong> {formatDate(enrollment.enrolledAt)}</p>
+                                        <p><strong>Accepted:</strong> {enrollment.acceptedAt ? formatDate(enrollment.acceptedAt) : 'Not accepted'}</p>
+                                        <p><strong>End Date:</strong> 
+                                          {enrollment.endDate ? (
+                                            <span className={endingSoon ? 'text-danger fw-bold ms-1' : 'ms-1'}>
+                                              {formatDate(enrollment.endDate)}
+                                              {endingSoon && (
+                                                <span className="badge bg-danger ms-2">
+                                                  {daysRemaining} day{daysRemaining !== 1 ? 's' : ''} left!
+                                                </span>
+                                              )}
+                                            </span>
+                                          ) : (
+                                            <span className="ms-1">Not set</span>
+                                          )}
+                                        </p>
                                         <p><strong>Status:</strong> {getStatusBadge(enrollment.status)}</p>
                                       </Col>
                                     </Row>
@@ -459,7 +524,8 @@ const EnrollmentManagement = () => {
                             )}
                           </AnimatePresence>
                         </React.Fragment>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </Table>
                 </div>

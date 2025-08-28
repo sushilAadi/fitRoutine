@@ -9,7 +9,10 @@ const ClientCard = ({ client }) => {
   
 
   const calculateAge = (birthDate) => {
+    if (!birthDate) return 'N/A';
     const birth = new Date(birthDate);
+    if (isNaN(birth.getTime())) return 'N/A';
+    
     const today = new Date();
     let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
@@ -26,7 +29,8 @@ const ClientCard = ({ client }) => {
     const packageType = enrollment.package.type;
     
     if (packageType === 'hourly') {
-      const minutes = parseInt(enrollment.package.rate) || 0;
+      const rate = enrollment.package.rate;
+      const minutes = (rate && !isNaN(parseInt(rate))) ? parseInt(rate) : 0;
       return new Date(startDate.getTime() + minutes * 60000);
     } else {
       const packageDays = {
@@ -80,11 +84,24 @@ const ClientCard = ({ client }) => {
     try {
       const enrollmentRef = doc(db, 'enrollments', client.id);
       const status = action === 'accept' ? 'active' : 'rejected';
-      const updateData = {
+      const now = new Date().toISOString();
+      
+      let updateData = {
         status,
-        ...(status === 'active' && { acceptedAt: new Date().toISOString() }),
+        ...(status === 'active' && { acceptedAt: now }),
         ...(status === "rejected" && { rejectedBy: "mentor" }),
       };
+      
+      // Calculate endDate when accepting
+      if (status === 'active') {
+        const endDate = calculateEndDate({
+          acceptedAt: now,
+          package: client.package
+        });
+        if (endDate) {
+          updateData.endDate = endDate.toISOString();
+        }
+      }
       
       await updateDoc(enrollmentRef, updateData);
       setEnrollmentStatus(status);
@@ -139,11 +156,11 @@ const ClientCard = ({ client }) => {
           <h3 className="mb-2 text-xl font-bold text-white">{client.clientName}</h3>
           <div className="space-y-2 text-gray-300">
             <p>Age: {calculateAge(client.clientDetails?.birthDate)} years</p>
-            <p>Gender: {client.clientDetails?.gender}</p>
-            <p>Goals: {client.clientDetails?.goals}</p>
+            <p>Gender: {client.clientDetails?.gender || 'N/A'}</p>
+            <p>Goals: {client.clientDetails?.goals || 'N/A'}</p>
             <div className="mt-4">
-              <p>Height: {client.clientDetails?.height} cm</p>
-              <p>Weight: {client.clientDetails?.weight} kg</p>
+              <p>Height: {client.clientDetails?.height || 'N/A'} cm</p>
+              <p>Weight: {client.clientDetails?.weight || 'N/A'} kg</p>
             </div>
             <div className="mt-4">
               <p className="font-semibold">Activity Level:</p>
@@ -158,7 +175,7 @@ const ClientCard = ({ client }) => {
           </div>
         </div>
         <div className={`px-3 py-1 text-sm text-white rounded-full ${getStatusColor(enrollmentStatus)}`}>
-          {enrollmentStatus?.charAt(0).toUpperCase() + enrollmentStatus?.slice(1)}
+          {enrollmentStatus ? enrollmentStatus.charAt(0).toUpperCase() + enrollmentStatus.slice(1) : 'Pending'}
         </div>
       </div>
 

@@ -58,6 +58,8 @@ export async function GET(request) {
         },
         clientDetails: data.clientDetails,
         enrolledAt: data.enrolledAt,
+        acceptedAt: data.acceptedAt || null,
+        endDate: data.endDate || null,
         status: data.status || 'pending',
         updatedAt: data.updatedAt || data.enrolledAt
       };

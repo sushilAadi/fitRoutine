@@ -12,6 +12,7 @@ const ClientCard = ({client}) => {
   const {plans,userDetailData} = useContext(GlobalContext);
   const [enrollmentStatus, setEnrollmentStatus] = useState(client?.status);
   const [selectedWorkoutPlan, setSelectedWorkoutPlan] = useState(null);
+  const [workoutPlanName, setWorkoutPlanName] = useState('');
   const assignablePlans = plans?.filter(plan => !plan?.workoutPlanDB?.progress);
 
   
@@ -22,13 +23,19 @@ const ClientCard = ({client}) => {
       return;
     }
     
-    selectedWorkoutPlan.userIdCl = client?.clientIdCl
-    selectedWorkoutPlan.mentorName = userDetailData?.userName
-    selectedWorkoutPlan.mentorEmail = userDetailData?.userEmail
-    selectedWorkoutPlan.mentorId = userDetailData?.userIdCl
+    const planToAssign = { ...selectedWorkoutPlan };
+    planToAssign.userIdCl = client?.clientIdCl;
+    planToAssign.mentorName = userDetailData?.userName;
+    planToAssign.mentorEmail = userDetailData?.userEmail;
+    planToAssign.mentorId = userDetailData?.userIdCl;
+    
+    // Use custom name if provided, otherwise use original name
+    if (workoutPlanName.trim()) {
+      planToAssign.planName = `workoutPlan_${workoutPlanName.trim()}`;
+    }
+    
     try {
-      await addDoc(collection(db, 'workoutPlans'), selectedWorkoutPlan);
-
+      await addDoc(collection(db, 'workoutPlans'), planToAssign);
       toast.success('Workout plan assigned successfully');
     } catch (error) {
       console.error('Error assigning workout plan:', error);
@@ -108,16 +115,34 @@ const ClientCard = ({client}) => {
     try {
       const enrollmentRef = doc(db, 'enrollments', client.id);
       const status = action === 'accept' ? 'active' : 'rejected';
-      const updateData = {
+      const now = new Date().toISOString();
+      
+      let updateData = {
         status,
-        ...(status === 'active' && { acceptedAt: new Date().toISOString() }),
+        ...(status === 'active' && { acceptedAt: now }),
         ...(status === "rejected" && { rejectedBy: "mentor" }),
       };
-      if(selectedWorkoutPlan){
+      
+      // Calculate endDate when accepting
+      if (status === 'active') {
+        const endDate = calculateEndDate({
+          acceptedAt: now,
+          package: client.package
+        });
+        if (endDate) {
+          updateData.endDate = endDate.toISOString();
+        }
+      }
+      
+      if(action === 'accept' && selectedWorkoutPlan) {
         await updateDoc(enrollmentRef, updateData);
         setEnrollmentStatus(status);
         toast.success(`Successfully ${action}ed enrollment`);
-        handleWorkoutPlanAssignment()
+        handleWorkoutPlanAssignment();
+      } else if(action === 'reject') {
+        await updateDoc(enrollmentRef, updateData);
+        setEnrollmentStatus(status);
+        toast.success(`Successfully ${action}ed enrollment`);
       }
     } catch (error) {
       console.error('Error updating enrollment:', error);
@@ -202,6 +227,9 @@ const ClientCard = ({client}) => {
           onChange={(value) => {
             const plan = assignablePlans.find(p => p.id === value);
             setSelectedWorkoutPlan(plan);
+            if (plan) {
+              setWorkoutPlanName(plan.planName.replace('workoutPlan_', ''));
+            }
           }}
         >
           {assignablePlans?.map((plan) => (
@@ -210,6 +238,21 @@ const ClientCard = ({client}) => {
             </Option>
           ))}
         </Select>
+        
+        {selectedWorkoutPlan && (
+          <div className="mt-3">
+            <input
+              type="text"
+              placeholder="Enter custom workout plan name"
+              value={workoutPlanName}
+              onChange={(e) => setWorkoutPlanName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              This will be the name assigned to the client. Leave default or customize.
+            </p>
+          </div>
+        )}
         
       </div>
       }

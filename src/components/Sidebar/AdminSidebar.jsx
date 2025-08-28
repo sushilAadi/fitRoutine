@@ -1,22 +1,34 @@
 "use client";
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useEffect } from "react";
 import { Card, List, ListItem, ListItemPrefix } from "@material-tailwind/react";
 import { Offcanvas } from "react-bootstrap";
 import Image from "next/image";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { UserButton, useClerk, useUser } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import { GlobalContext } from "@/context/GloablContext";
 import logo from "@/assets/neeed.jpg";
 
 const AdminSidebar = () => {
-  const { handleOpenClose, fullName, user } = useContext(GlobalContext);
+  const { user } = useContext(GlobalContext);
   const { signOut, openUserProfile } = useClerk();
   const { user: clerkUser } = useUser();
   const [showSidebar, setShowSidebar] = useState(false);
-  const pathname = usePathname();
+  const [activeComponent, setActiveComponent] = useState('instructor-management');
   
   const userRole = user?.publicMetadata?.role;
+
+  // Listen for admin navigation events to keep sidebar active state in sync
+  useEffect(() => {
+    const handleSidebarNavigation = (event) => {
+      const { component } = event.detail;
+      setActiveComponent(component);
+    };
+    
+    window.addEventListener('admin-navigate', handleSidebarNavigation);
+    
+    return () => {
+      window.removeEventListener('admin-navigate', handleSidebarNavigation);
+    };
+  }, []);
 
   const adminMenuItems = [
     { name: "Instructor Management", component: "instructor-management", icon: "fa-solid fa-chalkboard-user" },
@@ -86,7 +98,7 @@ const AdminSidebar = () => {
           <div className="flex-grow-1 overflow-auto">
             <List className="p-2">
               {adminMenuItems.map((item, index) => {
-                const isActive = pathname.includes(item.component) || (item.component === 'instructor-management' && pathname === '/admin/dashboard');
+                const isActive = activeComponent === item.component;
                 return (
                   <div
                     key={index}
@@ -165,7 +177,7 @@ const AdminSidebar = () => {
           {/* Navigation Menu */}
           <List className="p-2">
             {adminMenuItems.map((item, index) => {
-              const isActive = pathname.includes(item.component) || (item.component === 'instructor-management' && pathname === '/admin/dashboard');
+              const isActive = activeComponent === item.component;
               return (
                 <div
                   key={index}
