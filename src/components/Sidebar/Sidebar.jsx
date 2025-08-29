@@ -50,7 +50,7 @@ const Sidebar = () => {
       name: "Sign Out", 
       action: () => {
         handleOpenClose();
-        signOut();
+        signOut({ redirectUrl: window.location.origin });
       }, 
       icon: "fa-sign-out" 
     },

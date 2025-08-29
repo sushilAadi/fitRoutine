@@ -62,7 +62,7 @@ const AdminSidebar = () => {
       name: "Sign Out", 
       action: () => {
         setShowSidebar(false);
-        signOut();
+        signOut({ redirectUrl: window.location.origin });
       }, 
       icon: "fa-sign-out" 
     },
