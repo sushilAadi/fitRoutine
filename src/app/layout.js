@@ -16,7 +16,8 @@ import "animate.css";
 import { Toaster } from 'react-hot-toast';
 import { PrimeReactProvider } from 'primereact/api';
 import "primereact/resources/primereact.min.css";
-import "primereact/resources/themes/lara-light-indigo/theme.css"; 
+import "primereact/resources/themes/lara-light-indigo/theme.css";
+import NotificationInit from '@/components/NotificationInit'; 
 
 const queryClient = new QueryClient();
 
@@ -167,6 +168,7 @@ export default function RootLayout({ children }) {
                 <main className="min-h-screen">
                   {children}
                 </main>
+                <NotificationInit />
                 <Toaster/>
               </ThemeProvider>
               <Analytics />

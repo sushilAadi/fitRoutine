@@ -1,6 +1,7 @@
 // firebase/firebaseConfig.js
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Firebase configuration
@@ -24,4 +25,10 @@ export const geminiModel = genAI.getGenerativeModel({
 
 const db = getFirestore(app);
 
-export { app, db };
+// Initialize Firebase Messaging (only on client side)
+let messaging;
+if (typeof window !== 'undefined') {
+  messaging = getMessaging(app);
+}
+
+export { app, db, messaging };

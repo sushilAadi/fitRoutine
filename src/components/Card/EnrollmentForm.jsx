@@ -10,6 +10,7 @@ import { addDoc, collection } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import toast from "react-hot-toast";
 import SecurePaymentComponent from "../SecurePaymentComponent";
+import { sendNotificationToUsers } from "@/services/notificationService";
 
 const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
   const router = useRouter();
@@ -248,6 +249,30 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
 
       await addDoc(collection(db, "enrollments"), finalEnrollmentData);
 
+      // Send push notifications to mentor and admin
+      try {
+        // Get admin email(s) - you might want to store this in your config or database
+        const adminEmails = ['sushiluidev@gmail.com']; // Replace with actual admin email(s)
+        const mentorEmail = mentor.email;
+        const allRecipients = [...adminEmails, mentorEmail];
+        
+        await sendNotificationToUsers(
+          allRecipients,
+          'New Enrollment Alert!',
+          `${formData.fullName} has enrolled with mentor ${mentor.name}. Payment completed: ₹${paymentAmount}`,
+          {
+            type: 'enrollment',
+            clientName: formData.fullName,
+            mentorName: mentor.name,
+            amount: paymentAmount
+          }
+        );
+      } catch (notificationError) {
+        console.error('Failed to send notifications:', notificationError);
+        toast.error('Failed to send notifications:');
+        // Don't block the enrollment process if notifications fail
+      }
+
       toast.dismiss(loadingToast);
       toast.success("Enrollment and payment completed successfully!");
       router.push("/");
@@ -275,7 +300,7 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
       <h1 className="mb-6 text-xl font-semibold">Gym Instructor Enrollment</h1>
 
       {/* Step indicator */}
-      <div className="mb-6 flex justify-center">
+      <div className="flex justify-center mb-6">
         <div className="flex items-center space-x-4">
           <div className={`flex items-center ${currentStep >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-300'}`}>
@@ -474,7 +499,7 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
       ) : (
         <div className="space-y-6">
           <h2 className="text-lg font-semibold">Payment Details</h2>
-          <div className="p-4 bg-gray-50 rounded-lg">
+          <div className="p-4 rounded-lg bg-gray-50">
             <div className="space-y-2">
               <div className="flex justify-between">
                 <span>Mentor:</span>
