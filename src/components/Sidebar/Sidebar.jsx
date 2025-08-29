@@ -24,6 +24,7 @@ const Sidebar = () => {
       onClick: plansRefetch,
     },
     { name: "Health Report", path: "/healthReport", icon: "fa-notes-medical" },
+    { name: "Notifications", path: "/notifications", icon: "fa-bell" },
     { name: "Angle", path: "/angle", icon: "fa-solid fa-angle" },
     { name: "Instructor", path: "/mentors", icon: "fa-solid fa-person-chalkboard" },
     {

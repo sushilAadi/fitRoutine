@@ -3,8 +3,8 @@ import { getToken, onMessage } from "firebase/messaging";
 import { addDoc, collection } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 
-// Your web app's Firebase configuration VAPID key (you'll need to get this from Firebase Console)
-const VAPID_KEY = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
+// Your web app's Firebase configuration VAPID key
+const VAPID_KEY = "BGTO1XYFkLwlSnYQKJu7sbX9Dwv2IMDU933Bp5apGYQEEHGcscF_ln938dfF5CqDMebA4czXHQOGCE5aieM4M8g";
 
 /**
  * Request permission for push notifications and get FCM token
@@ -43,10 +43,11 @@ export const requestNotificationPermission = async () => {
 };
 
 /**
- * Store FCM token in Firestore for a user
+ * Store FCM token and create notifications collection for user
  */
 export const storeFCMToken = async (userId, userEmail, token, userType = 'client') => {
   try {
+    // Store FCM token
     await addDoc(collection(db, "fcm_tokens"), {
       userId,
       userEmail,
@@ -55,6 +56,18 @@ export const storeFCMToken = async (userId, userEmail, token, userType = 'client
       createdAt: new Date().toISOString(),
       isActive: true
     });
+
+    // Create a notification entry for testing
+    await addDoc(collection(db, "notifications"), {
+      userId,
+      userEmail,
+      title: "Welcome to Fit App!",
+      body: "Push notifications are now enabled for your account.",
+      type: "welcome",
+      isRead: false,
+      createdAt: new Date().toISOString()
+    });
+
     console.log('FCM token stored successfully');
   } catch (error) {
     console.error('Error storing FCM token:', error);
@@ -84,10 +97,24 @@ export const setupForegroundMessageListener = () => {
 };
 
 /**
- * Send notification to specific users via API
+ * Send notification to specific users and store in database
  */
 export const sendNotificationToUsers = async (userEmails, title, body, data = {}) => {
   try {
+    // Store notifications in database for each user
+    for (const email of userEmails) {
+      await addDoc(collection(db, "notifications"), {
+        userEmail: email,
+        title,
+        body,
+        type: data.type || "enrollment",
+        data,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      });
+    }
+
+    // Also try to send push notification via API
     const response = await fetch('/api/send-notification', {
       method: 'POST',
       headers: {
@@ -101,12 +128,8 @@ export const sendNotificationToUsers = async (userEmails, title, body, data = {}
       }),
     });
     
-    if (!response.ok) {
-      throw new Error('Failed to send notification');
-    }
-    
     const result = await response.json();
-    console.log('Notification sent successfully:', result);
+    console.log('Notification stored and sent:', result);
     return result;
   } catch (error) {
     console.error('Error sending notification:', error);
