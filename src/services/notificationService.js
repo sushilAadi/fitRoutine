@@ -123,6 +123,45 @@ export const setupForegroundMessageListener = () => {
 };
 
 /**
+ * Send enrollment notifications with different messages for admin vs mentor
+ */
+export const sendEnrollmentNotifications = async (adminEmails, mentorEmail, clientName, mentorName, amount) => {
+  try {
+    const enrollmentData = {
+      type: 'enrollment',
+      clientName,
+      mentorName,
+      amount: String(amount)
+    };
+
+    // Send notification to admin(s)
+    if (adminEmails && adminEmails.length > 0) {
+      await sendNotificationToUsers(
+        adminEmails,
+        '💰 New Enrollment - Payment Received!',
+        `${clientName} enrolled with ${mentorName}. Payment: ₹${amount}. Review and approve the enrollment.`,
+        enrollmentData
+      );
+    }
+
+    // Send notification to mentor
+    if (mentorEmail) {
+      await sendNotificationToUsers(
+        [mentorEmail],
+        '🎉 New Student Enrolled!',
+        `${clientName} has enrolled for your training program. Payment completed: ₹${amount}. Welcome your new student!`,
+        enrollmentData
+      );
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error sending enrollment notifications:', error);
+    return false;
+  }
+};
+
+/**
  * Send notification to specific users and store in database
  */
 export const sendNotificationToUsers = async (userEmails, title, body, data = {}) => {

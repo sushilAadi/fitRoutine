@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/firebase/firebaseConfig';
+import { messaging } from '@/lib/firebaseAdmin';
 
 // This would typically use Firebase Admin SDK for server-side
 // For now, we'll create a simple endpoint that could be enhanced
@@ -38,16 +39,49 @@ export async function POST(request) {
       });
     }
 
-    // For now, we'll simulate sending notifications using browser Notification API
-    // In production, you would use Firebase Admin SDK here
-    console.log('Sending notifications to tokens:', tokens.length);
-    console.log('Notification details:', { title, body, data });
-    
-    // Simulate successful sending
+    // Send FCM notifications using Firebase Admin SDK
+    let successCount = 0;
+    let failureCount = 0;
+
+    if (tokens.length > 0) {
+      try {
+        // Prepare the message payload
+        const message = {
+          notification: {
+            title: title,
+            body: body,
+          },
+          data: {
+            type: data.type || 'general',
+            ...Object.fromEntries(
+              Object.entries(data).map(([key, value]) => [key, String(value)])
+            )
+          },
+          tokens: tokens
+        };
+
+        // Send multicast message
+        const response = await messaging.sendMulticast(message);
+        successCount = response.successCount;
+        failureCount = response.failureCount;
+
+        if (response.failureCount > 0) {
+          console.log('FCM sending failures:', response.responses.filter(r => !r.success));
+        }
+
+        console.log(`FCM notifications sent: ${successCount} success, ${failureCount} failures`);
+      } catch (error) {
+        console.error('FCM sending error:', error);
+        failureCount = tokens.length;
+      }
+    }
+
     return NextResponse.json({
-      message: 'Notification sent successfully',
-      sentCount: tokens.length,
-      success: true
+      message: 'Notification processing completed',
+      totalTokens: tokens.length,
+      successCount,
+      failureCount,
+      success: successCount > 0
     });
 
   } catch (error) {

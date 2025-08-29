@@ -22,17 +22,21 @@ messaging.onBackgroundMessage((payload) => {
   console.log('Received background message:', payload);
 
   const { title, body, icon } = payload.notification || {};
+  const data = payload.data || {};
   
   const notificationOptions = {
     body: body || 'You have a new notification from Fit App',
     icon: icon || '/icon-192x192.png',
     badge: '/icon-192x192.png',
-    tag: 'fit-app-notification',
+    tag: `fit-app-${data.type || 'general'}-${Date.now()}`,
     requireInteraction: true,
+    vibrate: [200, 100, 200],
+    data: data,
     actions: [
       {
         action: 'open',
-        title: 'Open App'
+        title: 'View Details',
+        icon: '/icon-192x192.png'
       },
       {
         action: 'dismiss',
@@ -51,9 +55,35 @@ messaging.onBackgroundMessage((payload) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
+  const data = event.notification.data || {};
+  
   if (event.action === 'open' || !event.action) {
+    let targetUrl = '/';
+    
+    // Navigate to specific pages based on notification type
+    if (data.type === 'enrollment') {
+      targetUrl = '/notifications';
+    } else if (data.type === 'welcome') {
+      targetUrl = '/notifications';
+    }
+    
     event.waitUntil(
-      clients.openWindow('/')
+      clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        // If the app is already open, focus it and navigate
+        for (const client of clientList) {
+          if (client.url.includes(self.location.origin)) {
+            client.focus();
+            client.postMessage({
+              type: 'NOTIFICATION_CLICK',
+              url: targetUrl,
+              data: data
+            });
+            return;
+          }
+        }
+        // If app is not open, open it
+        return clients.openWindow(targetUrl);
+      })
     );
   }
 });

@@ -9,7 +9,7 @@ import { addDoc, collection } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import toast from "react-hot-toast";
 import SecurePaymentComponent from "../SecurePaymentComponent";
-import { sendNotificationToUsers } from "@/services/notificationService";
+import { sendEnrollmentNotifications } from "@/services/notificationService";
 
 const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
   const router = useRouter();
@@ -248,27 +248,20 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
 
       await addDoc(collection(db, "enrollments"), finalEnrollmentData);
 
-      // Send push notifications to mentor and admin
+      // Send push notifications to mentor and admin with different messages
       try {
-        // Get admin email(s) - you might want to store this in your config or database
-        const adminEmails = ["sushiluidev@gmail.com"]; // Replace with actual admin email(s)
+        const adminEmails = ["sushiluidev@gmail.com"];
         const mentorEmail = mentor.email;
-        const allRecipients = [...adminEmails, mentorEmail];
         
-        await sendNotificationToUsers(
-          allRecipients,
-          'New Enrollment Alert!',
-          `${formData.fullName} has enrolled with mentor ${mentor.name}. Payment completed: ₹${paymentAmount}`,
-          {
-            type: 'enrollment',
-            clientName: formData.fullName,
-            mentorName: mentor.name,
-            amount: paymentAmount
-          }
+        await sendEnrollmentNotifications(
+          adminEmails,
+          mentorEmail,
+          formData.fullName,
+          mentor.name,
+          paymentAmount
         );
       } catch (notificationError) {
         console.error('Failed to send notifications:', notificationError);
-        toast.error('Failed to send notifications:');
         // Don't block the enrollment process if notifications fail
       }
 
