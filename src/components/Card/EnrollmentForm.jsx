@@ -252,7 +252,7 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
       // Send push notifications to mentor and admin
       try {
         // Get admin email(s) - you might want to store this in your config or database
-        const adminEmails = ['sushiluidev@gmail.com']; // Replace with actual admin email(s)
+        const adminEmails = ["sushiluidev@gmail.com"]; // Replace with actual admin email(s)
         const mentorEmail = mentor.email;
         const allRecipients = [...adminEmails, mentorEmail];
         
