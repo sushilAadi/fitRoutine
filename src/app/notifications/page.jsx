@@ -31,8 +31,29 @@ const NotificationsPage = () => {
           ...doc.data()
         }));
 
+        // Remove duplicates based on title, type, and userEmail (keep the latest one)
+        const uniqueNotifications = notificationsList.reduce((acc, current) => {
+          const existingIndex = acc.findIndex(item => 
+            item.title === current.title && 
+            item.type === current.type && 
+            item.userEmail === current.userEmail
+          );
+          
+          if (existingIndex === -1) {
+            acc.push(current);
+          } else {
+            // Keep the one with the latest createdAt
+            const existingDate = new Date(acc[existingIndex].createdAt);
+            const currentDate = new Date(current.createdAt);
+            if (currentDate > existingDate) {
+              acc[existingIndex] = current;
+            }
+          }
+          return acc;
+        }, []);
+
         // Sort by createdAt in descending order (newest first)
-        const sortedNotifications = notificationsList.sort((a, b) => 
+        const sortedNotifications = uniqueNotifications.sort((a, b) => 
           new Date(b.createdAt) - new Date(a.createdAt)
         );
 

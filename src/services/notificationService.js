@@ -1,6 +1,6 @@
 import { messaging } from "@/firebase/firebaseConfig";
 import { getToken, onMessage } from "firebase/messaging";
-import { addDoc, collection } from "firebase/firestore";
+import { addDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 
 // Your web app's Firebase configuration VAPID key
@@ -43,32 +43,58 @@ export const requestNotificationPermission = async () => {
 };
 
 /**
- * Store FCM token and create notifications collection for user
+ * Store FCM token and create welcome notification if not exists
  */
 export const storeFCMToken = async (userId, userEmail, token, userType = 'client') => {
   try {
-    // Store FCM token
-    await addDoc(collection(db, "fcm_tokens"), {
-      userId,
-      userEmail,
-      token,
-      userType, // 'client', 'mentor', or 'admin'
-      createdAt: new Date().toISOString(),
-      isActive: true
-    });
+    // Check if FCM token already exists for this user
+    const tokensQuery = query(
+      collection(db, "fcm_tokens"),
+      where("userId", "==", userId),
+      where("token", "==", token),
+      where("isActive", "==", true)
+    );
+    const existingTokens = await getDocs(tokensQuery);
+    
+    if (existingTokens.empty) {
+      // Store FCM token only if it doesn't exist
+      await addDoc(collection(db, "fcm_tokens"), {
+        userId,
+        userEmail,
+        token,
+        userType, // 'client', 'mentor', or 'admin'
+        createdAt: new Date().toISOString(),
+        isActive: true
+      });
+      console.log('New FCM token stored successfully');
+    } else {
+      console.log('FCM token already exists for this user');
+    }
 
-    // Create a notification entry for testing
-    await addDoc(collection(db, "notifications"), {
-      userId,
-      userEmail,
-      title: "Welcome to Fit App!",
-      body: "Push notifications are now enabled for your account.",
-      type: "welcome",
-      isRead: false,
-      createdAt: new Date().toISOString()
-    });
+    // Check if welcome notification already exists
+    const welcomeQuery = query(
+      collection(db, "notifications"),
+      where("userEmail", "==", userEmail),
+      where("type", "==", "welcome")
+    );
+    const existingWelcome = await getDocs(welcomeQuery);
 
-    console.log('FCM token stored successfully');
+    if (existingWelcome.empty) {
+      // Create welcome notification only if it doesn't exist
+      await addDoc(collection(db, "notifications"), {
+        userId,
+        userEmail,
+        title: "Welcome to Fit App!",
+        body: "Push notifications are now enabled for your account.",
+        type: "welcome",
+        isRead: false,
+        createdAt: new Date().toISOString()
+      });
+      console.log('Welcome notification created');
+    } else {
+      console.log('Welcome notification already exists');
+    }
+
   } catch (error) {
     console.error('Error storing FCM token:', error);
   }
@@ -103,14 +129,46 @@ export const sendNotificationToUsers = async (userEmails, title, body, data = {}
   try {
     // Store notifications in database for each user
     for (const email of userEmails) {
-      await addDoc(collection(db, "notifications"), {
-        userEmail: email,
-        title,
+      // Check if similar notification already exists to prevent duplicates
+      const existingQuery = query(
+        collection(db, "notifications"),
+        where("userEmail", "==", email),
+        where("title", "==", title),
+        where("type", "==", data.type || "enrollment")
+      );
+      const existingNotifications = await getDocs(existingQuery);
+      
+      // Only create if no similar notification exists in the last 5 minutes
+      const now = new Date();
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+      
+      let shouldCreate = true;
+      existingNotifications.forEach(doc => {
+        const notificationDate = new Date(doc.data().createdAt);
+        if (notificationDate > fiveMinutesAgo) {
+          shouldCreate = false;
+        }
+      });
+
+      if (shouldCreate) {
+        await addDoc(collection(db, "notifications"), {
+          userEmail: email,
+          title,
+          body,
+          type: data.type || "enrollment",
+          data,
+          isRead: false,
+          createdAt: new Date().toISOString()
+        });
+      }
+    }
+
+    // Show browser notification if permission is granted
+    if (Notification.permission === 'granted') {
+      new Notification(title, {
         body,
-        type: data.type || "enrollment",
-        data,
-        isRead: false,
-        createdAt: new Date().toISOString()
+        icon: '/icon-192x192.png',
+        tag: `fit-app-${Date.now()}`,
       });
     }
 
