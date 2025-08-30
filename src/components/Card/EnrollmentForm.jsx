@@ -9,7 +9,7 @@ import { addDoc, collection } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import toast from "react-hot-toast";
 import SecurePaymentComponent from "../SecurePaymentComponent";
-import { sendEnrollmentNotifications } from "@/services/notificationService";
+import whatsappService from "@/services/whatsappService";
 
 const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
   const router = useRouter();
@@ -248,20 +248,33 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
 
       await addDoc(collection(db, "enrollments"), finalEnrollmentData);
 
-      // Send push notifications to mentor and admin with different messages
+      // Send WhatsApp notifications to mentor and admin
       try {
-        const adminEmails = ["sushiluidev@gmail.com"];
-        const mentorEmail = mentor.email;
+        const adminPhone = "+919876543210"; // Replace with actual admin WhatsApp number
+        const mentorPhone = mentor.whatsapp || mentor.mobile; // Use whatsapp field or fallback to mobile
         
-        await sendEnrollmentNotifications(
-          adminEmails,
-          mentorEmail,
-          formData.fullName,
-          mentor.name,
-          paymentAmount
-        );
+        // Send to admin
+        if (adminPhone) {
+          const adminResult = await whatsappService.sendAdminEnrollmentAlert(
+            adminPhone,
+            formData.fullName,
+            mentor.name,
+            paymentAmount
+          );
+          console.log('Admin WhatsApp notification result:', adminResult);
+        }
+
+        // Send to mentor
+        if (mentorPhone) {
+          const mentorResult = await whatsappService.sendMentorNewStudentAlert(
+            mentorPhone,
+            formData.fullName,
+            paymentAmount
+          );
+          console.log('Mentor WhatsApp notification result:', mentorResult);
+        }
       } catch (notificationError) {
-        console.error('Failed to send notifications:', notificationError);
+        console.error('Failed to send WhatsApp notifications:', notificationError);
         // Don't block the enrollment process if notifications fail
       }
 
