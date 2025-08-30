@@ -10,6 +10,7 @@ import { db } from "@/firebase/firebaseConfig";
 import toast from "react-hot-toast";
 import SecurePaymentComponent from "../SecurePaymentComponent";
 import whatsappService from "@/services/whatsappService";
+import { sendEnrollmentNotifications } from "@/services/notificationService";
 
 const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
   const router = useRouter();
@@ -248,33 +249,61 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
 
       await addDoc(collection(db, "enrollments"), finalEnrollmentData);
 
-      // Send WhatsApp notifications to mentor and admin
+      // Send notifications - Both WhatsApp and Firebase
       try {
+        const adminEmails = ["sushiluidev@gmail.com"];
+        const mentorEmail = mentor.email;
         const adminPhone = "+919876543210"; // Replace with actual admin WhatsApp number
         const mentorPhone = mentor.whatsapp || mentor.mobile; // Use whatsapp field or fallback to mobile
         
-        // Send to admin
+        // 1. Store notifications in Firebase (for in-app notifications)
+        await sendEnrollmentNotifications(
+          adminEmails,
+          mentorEmail,
+          formData.fullName,
+          mentor.name,
+          paymentAmount
+        );
+        console.log('Firebase notifications stored successfully');
+
+        // 2. Send WhatsApp notifications (external notifications)
+        const whatsappPromises = [];
+        
         if (adminPhone) {
-          const adminResult = await whatsappService.sendAdminEnrollmentAlert(
-            adminPhone,
-            formData.fullName,
-            mentor.name,
-            paymentAmount
+          whatsappPromises.push(
+            whatsappService.sendAdminEnrollmentAlert(
+              adminPhone,
+              formData.fullName,
+              mentor.name,
+              paymentAmount
+            )
           );
-          console.log('Admin WhatsApp notification result:', adminResult);
         }
 
-        // Send to mentor
         if (mentorPhone) {
-          const mentorResult = await whatsappService.sendMentorNewStudentAlert(
-            mentorPhone,
-            formData.fullName,
-            paymentAmount
+          whatsappPromises.push(
+            whatsappService.sendMentorNewStudentAlert(
+              mentorPhone,
+              formData.fullName,
+              paymentAmount
+            )
           );
-          console.log('Mentor WhatsApp notification result:', mentorResult);
         }
+
+        // Wait for all WhatsApp messages to be sent
+        if (whatsappPromises.length > 0) {
+          const whatsappResults = await Promise.allSettled(whatsappPromises);
+          whatsappResults.forEach((result, index) => {
+            if (result.status === 'fulfilled') {
+              console.log(`WhatsApp notification ${index + 1} sent successfully:`, result.value);
+            } else {
+              console.error(`WhatsApp notification ${index + 1} failed:`, result.reason);
+            }
+          });
+        }
+
       } catch (notificationError) {
-        console.error('Failed to send WhatsApp notifications:', notificationError);
+        console.error('Failed to send notifications:', notificationError);
         // Don't block the enrollment process if notifications fail
       }
 

@@ -123,51 +123,13 @@ export const setupForegroundMessageListener = () => {
 };
 
 /**
- * Send enrollment notifications with different messages for admin vs mentor
+ * Store notification in Firebase (for in-app notification display)
+ * This replaces the old FCM push notification sending
  */
-export const sendEnrollmentNotifications = async (adminEmails, mentorEmail, clientName, mentorName, amount) => {
-  try {
-    const enrollmentData = {
-      type: 'enrollment',
-      clientName,
-      mentorName,
-      amount: String(amount)
-    };
-
-    // Send notification to admin(s)
-    if (adminEmails && adminEmails.length > 0) {
-      await sendNotificationToUsers(
-        adminEmails,
-        '💰 New Enrollment - Payment Received!',
-        `${clientName} enrolled with ${mentorName}. Payment: ₹${amount}. Review and approve the enrollment.`,
-        enrollmentData
-      );
-    }
-
-    // Send notification to mentor
-    if (mentorEmail) {
-      await sendNotificationToUsers(
-        [mentorEmail],
-        '🎉 New Student Enrolled!',
-        `${clientName} has enrolled for your training program. Payment completed: ₹${amount}. Welcome your new student!`,
-        enrollmentData
-      );
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error sending enrollment notifications:', error);
-    return false;
-  }
-};
-
-/**
- * Send notification to specific users and store in database
- */
-export const sendNotificationToUsers = async (userEmails, title, body, data = {}) => {
+export const storeNotificationInFirebase = async (userEmails, title, body, data = {}) => {
   try {
     // Store notifications in database for each user
-    for (const email of userEmails) {
+    const notificationPromises = userEmails.map(async (email) => {
       // Check if similar notification already exists to prevent duplicates
       const existingQuery = query(
         collection(db, "notifications"),
@@ -199,10 +161,13 @@ export const sendNotificationToUsers = async (userEmails, title, body, data = {}
           isRead: false,
           createdAt: new Date().toISOString()
         });
+        console.log(`Notification stored for ${email}`);
       }
-    }
+    });
 
-    // Show browser notification if permission is granted
+    await Promise.all(notificationPromises);
+    
+    // Show browser notification if permission is granted (local only)
     if (Notification.permission === 'granted') {
       new Notification(title, {
         body,
@@ -211,25 +176,59 @@ export const sendNotificationToUsers = async (userEmails, title, body, data = {}
       });
     }
 
-    // Also try to send push notification via API
-    const response = await fetch('/api/send-notification', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        userEmails,
-        title,
-        body,
-        data
-      }),
-    });
-    
-    const result = await response.json();
-    console.log('Notification stored and sent:', result);
-    return result;
+    return { success: true, message: 'Notifications stored successfully' };
   } catch (error) {
-    console.error('Error sending notification:', error);
-    return null;
+    console.error('Error storing notifications:', error);
+    return { success: false, error: error.message };
   }
+};
+
+/**
+ * Send enrollment notifications - Updated to store in Firebase only
+ * WhatsApp notifications are now handled separately in EnrollmentForm
+ */
+export const sendEnrollmentNotifications = async (adminEmails, mentorEmail, clientName, mentorName, amount) => {
+  try {
+    const enrollmentData = {
+      type: 'enrollment',
+      clientName,
+      mentorName,
+      amount: String(amount)
+    };
+
+    // Store notification for admin(s) in Firebase
+    if (adminEmails && adminEmails.length > 0) {
+      await storeNotificationInFirebase(
+        adminEmails,
+        '💰 New Enrollment - Payment Received!',
+        `${clientName} enrolled with ${mentorName}. Payment: ₹${amount}. Review and approve the enrollment.`,
+        enrollmentData
+      );
+    }
+
+    // Store notification for mentor in Firebase
+    if (mentorEmail) {
+      await storeNotificationInFirebase(
+        [mentorEmail],
+        '🎉 New Student Enrolled!',
+        `${clientName} has enrolled for your training program. Payment completed: ₹${amount}. Welcome your new student!`,
+        enrollmentData
+      );
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error storing enrollment notifications:', error);
+    return false;
+  }
+};
+
+/**
+ * DEPRECATED: This function no longer sends FCM push notifications
+ * It only stores notifications in Firebase for in-app display
+ * WhatsApp notifications are handled separately via whatsappService
+ */
+export const sendNotificationToUsers = async (userEmails, title, body, data = {}) => {
+  console.warn('sendNotificationToUsers is deprecated. Use storeNotificationInFirebase for in-app notifications and whatsappService for WhatsApp messages.');
+  return await storeNotificationInFirebase(userEmails, title, body, data);
 };
