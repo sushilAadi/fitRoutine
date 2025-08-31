@@ -287,6 +287,23 @@ const ClientCard = ({client}) => {
           </span>
           {client?.acceptedAt && <p className=""><span  className='font-semibold'>Enrolled:</span> {new Date(client?.acceptedAt).toLocaleDateString()}</p>}
       </div>
+      
+      {/* Specific Times */}
+      {client?.package?.availability?.specificTimes && client?.package?.availability?.specificTimes.length > 0 && (
+        <div className="mb-2">
+          <span className='font-semibold'>Preferred Times:</span>
+          <div className="flex gap-2 mt-1 overflow-auto flex-nowrap">
+            {client.package.availability.specificTimes.map((timeSlot, index) => (
+              <span 
+                key={index} 
+                className="px-2 py-1 text-xs text-gray-700 bg-gray-200 rounded-full min-w-max"
+              >
+                {timeSlot}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
       {client?.acceptedAt && (
                 <p className='mb-2'><span  className='font-semibold'>End Date:</span>  {formatEndDate(client)}</p>
             )}

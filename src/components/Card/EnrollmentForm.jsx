@@ -11,6 +11,7 @@ import toast from "react-hot-toast";
 import SecurePaymentComponent from "../SecurePaymentComponent";
 import whatsappService from "@/services/whatsappService";
 import { sendEnrollmentNotifications } from "@/services/notificationService";
+import Select from "react-select";
 
 const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
   const router = useRouter();
@@ -21,6 +22,7 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
   const [currentStep, setCurrentStep] = useState(1); // 1: Form, 2: Payment
   const [enrollmentData, setEnrollmentData] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState(0);
+  const [currentTimeSlot, setCurrentTimeSlot] = useState({ fromTime: "", toTime: "" });
 
   const {
     handleFileUpload: handleProfileUpload,
@@ -40,6 +42,7 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
     availability: {
       days: [],
       timeSlot: "",
+      specificTimes: [], // Array to store specific time ranges
     },
     rateType: "",
     biography: "",
@@ -51,6 +54,126 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
       ...prev,
       [name]: value,
     }));
+  };
+
+  // Handle adding specific time slots
+  const handleAddTimeSlot = () => {
+    const { fromTime, toTime } = currentTimeSlot;
+    
+    if (!fromTime || !toTime) {
+      toast.error("Please select both start and end times");
+      return;
+    }
+    
+    if (fromTime >= toTime) {
+      toast.error("Start time must be before end time");
+      return;
+    }
+    
+    // Check if maximum limit reached
+    if (formData.availability.specificTimes.length >= 4) {
+      toast.error("Maximum 4 time slots allowed");
+      return;
+    }
+    
+    const timeSlotString = `${fromTime} - ${toTime}`;
+    
+    // Check for duplicates
+    if (formData.availability.specificTimes.includes(timeSlotString)) {
+      toast.error("This time slot is already added");
+      return;
+    }
+    
+    setFormData((prev) => ({
+      ...prev,
+      availability: {
+        ...prev.availability,
+        specificTimes: [...prev.availability.specificTimes, timeSlotString]
+      }
+    }));
+    
+    // Reset current time slot
+    setCurrentTimeSlot({ fromTime: "", toTime: "" });
+    toast.success("Time slot added successfully");
+  };
+
+  // Handle removing specific time slots
+  const handleRemoveTimeSlot = (timeSlotToRemove) => {
+    setFormData((prev) => ({
+      ...prev,
+      availability: {
+        ...prev.availability,
+        specificTimes: prev.availability.specificTimes.filter(slot => slot !== timeSlotToRemove)
+      }
+    }));
+    toast.success("Time slot removed");
+  };
+
+  // Generate time options for react-select
+  const generateTimeOptions = () => {
+    const times = [];
+    for (let hour = 5; hour <= 23; hour++) {
+      for (let minute of [0, 30]) {
+        const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        times.push({ value: time, label: time });
+      }
+    }
+    return times;
+  };
+
+  const timeOptions = generateTimeOptions();
+
+  // Custom styles for react-select to match InputBlk
+  const selectStyles = {
+    control: (provided) => ({
+      ...provided,
+      minHeight: '36px',
+      backgroundColor: '#2a2929',
+      border: 'none',
+      borderRadius: '4px',
+      '&:hover': {
+        borderColor: 'none'
+      },
+      '&:focus': {
+        borderColor: 'none',
+        boxShadow: 'none'
+      }
+    }),
+    singleValue: (provided) => ({
+      ...provided,
+      color: 'white'
+    }),
+    placeholder: (provided) => ({
+      ...provided,
+      color: '#8a8a8a'
+    }),
+    input: (provided) => ({
+      ...provided,
+      color: 'white'
+    }),
+    menu: (provided) => ({
+      ...provided,
+      backgroundColor: '#2a2929',
+      border: '1px solid #404040'
+    }),
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isSelected ? '#3b82f6' : state.isFocused ? '#404040' : '#2a2929',
+      color: 'white',
+      '&:hover': {
+        backgroundColor: '#404040'
+      }
+    }),
+    dropdownIndicator: (provided) => ({
+      ...provided,
+      color: '#8a8a8a',
+      '&:hover': {
+        color: 'white'
+      }
+    }),
+    indicatorSeparator: () => ({
+      display: 'none'
+    })
   };
 
 
@@ -114,6 +237,10 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
       !formData.availability.timeSlot
     ) {
       toast.error("Please select your availability");
+      return false;
+    }
+    if (formData.availability.specificTimes.length === 0) {
+      toast.error("Please add at least one specific time slot");
       return false;
     }
     if (!formData.rateType) {
@@ -453,6 +580,84 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
             ))}
           </div>
         </div>
+
+        {/* Specific Time Selection */}
+        {formData.availability.timeSlot && (
+          <div className="mt-6">
+            <label className="text-[#8a8a8a] mb-3 block">
+              Add Specific Time Slots for {formData.availability.timeSlot}
+            </label>
+            
+            <div className="flex items-end gap-3 mb-4">
+              <div className="flex-1">
+                <label className="block text-sm text-white mb-1">
+                  From Time
+                </label>
+                <Select
+                  value={timeOptions.find(option => option.value === currentTimeSlot.fromTime)}
+                  onChange={(selectedOption) => setCurrentTimeSlot(prev => ({...prev, fromTime: selectedOption?.value || ""}))}
+                  options={timeOptions}
+                  styles={selectStyles}
+                  placeholder="Select start time"
+                  isSearchable={false}
+                />
+              </div>
+              
+              <div className="flex-1">
+                <label className="block text-sm text-white mb-1">
+                  To Time
+                </label>
+                <Select
+                  value={timeOptions.find(option => option.value === currentTimeSlot.toTime)}
+                  onChange={(selectedOption) => setCurrentTimeSlot(prev => ({...prev, toTime: selectedOption?.value || ""}))}
+                  options={timeOptions}
+                  styles={selectStyles}
+                  placeholder="Select end time"
+                  isSearchable={false}
+                />
+              </div>
+              
+              {formData.availability.specificTimes.length < 4 && (
+                <button
+                  type="button"
+                  onClick={handleAddTimeSlot}
+                  className="h-[36px] px-3 bg-red-600 text-white rounded hover:bg-red-700 transition-colors text-sm"
+                  title="Add Time Slot"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 5V19M5 12H19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </button>
+              )}
+            </div>
+            
+            {/* Show message when max limit reached */}
+            {formData.availability.specificTimes.length >= 4 && (
+              <p className="text-sm text-yellow-600 mb-2">Maximum 4 time slots reached. Remove a slot to add another.</p>
+            )}
+            
+            {/* Display Added Time Slots - Text Only */}
+            {formData.availability.specificTimes.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-white mb-2">Added Time Slots:</h4>
+                <div className="space-y-1">
+                  {formData.availability.specificTimes.map((timeSlot, index) => (
+                    <div key={index} className="flex items-center justify-between text-white">
+                      <span className="text-sm">{timeSlot}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveTimeSlot(timeSlot)}
+                        className="text-red-600 hover:text-red-800 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Rate Options */}
         <div>

@@ -81,6 +81,48 @@ const MyEnrollmentCard = ({ enrollment, calculateEndDate, formatDateTime }) => {
             )}
           </span>
         </div>
+
+        {/* Availability Information */}
+        {enrollment.package?.availability && (
+          <div className="mb-3 space-y-1">
+            {enrollment.package.availability.days && enrollment.package.availability.days.length > 0 && (
+              <div className="flex items-center text-gray-600">
+                <div className="w-4 h-4 mr-2">📅</div>
+                <span className="text-sm">
+                  Days: {enrollment.package.availability.days.join(", ")}
+                </span>
+              </div>
+            )}
+            
+            {enrollment.package.availability.timeSlot && (
+              <div className="flex items-center text-gray-600">
+                <div className="w-4 h-4 mr-2">🕐</div>
+                <span className="text-sm">
+                  Time: {enrollment.package.availability.timeSlot}
+                </span>
+              </div>
+            )}
+
+            {enrollment.package.availability.specificTimes && enrollment.package.availability.specificTimes.length > 0 && (
+              <div className="flex items-start text-gray-600">
+                <div className="w-4 h-4 mr-2 mt-0.5">⏰</div>
+                <div className="text-sm">
+                  <span className="block mb-1">Preferred Times:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {enrollment.package.availability.specificTimes.map((timeSlot, index) => (
+                      <span 
+                        key={index} 
+                        className="px-2 py-1 text-xs text-gray-700 bg-gray-200 rounded-full"
+                      >
+                        {timeSlot}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         <CountdownTimer endDate={calculateEndDate(enrollment)} />
       </div>}
 

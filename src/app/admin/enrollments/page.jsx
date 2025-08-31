@@ -492,6 +492,16 @@ const EnrollmentManagement = () => {
                                               ))}
                                             </div>
                                             <p><strong>Time Slot:</strong> {safeRender(enrollment.package.availability.timeSlot)}</p>
+                                            {enrollment.package.availability.specificTimes && enrollment.package.availability.specificTimes.length > 0 && (
+                                              <>
+                                                <p className="mb-1"><strong>Preferred Times:</strong></p>
+                                                <div className="flex-wrap gap-1 mb-2 d-flex">
+                                                  {enrollment.package.availability.specificTimes.map((timeSlot, index) => (
+                                                    <Badge key={index} bg="light" text="dark" className="small">{timeSlot}</Badge>
+                                                  ))}
+                                                </div>
+                                              </>
+                                            )}
                                           </>
                                         )}
                                         
