@@ -2,11 +2,12 @@
 
 import { createContext, useMemo, useState, useEffect } from "react";
 import { useAuth, useUser } from "@clerk/nextjs";
-import { doc, getDoc, collection, getDocs, query, where } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, query, where, orderBy, limit } from "firebase/firestore";
 
 import _ from "lodash";
 import { calculateAge } from "@/utils";
 import { db } from "@/firebase/firebaseConfig";
+import { getUserLatestMetrics } from "@/utils/metricsHelper";
 
 export const GlobalContext = createContext("");
 
@@ -19,9 +20,11 @@ export default function GlobalContextProvider({ children }) {
 
   const [userDetail, setUserDetail] = useState(null);
   const [userWeightData, setUserWeightData] = useState([]);
+  const [userMetricsData, setUserMetricsData] = useState([]);
   const [plans, setPlans] = useState([]);
   const [isFetchingUser, setIsFetchingUser] = useState(false);
   const [isFetchingWeight, setIsFetchingWeight] = useState(false);
+  const [isFetchingMetrics, setIsFetchingMetrics] = useState(false);
   const [isFetchingPlans, setIsFetchingPlans] = useState(false);
 
   const [gender, setGender] = useState(null);
@@ -70,6 +73,27 @@ export default function GlobalContextProvider({ children }) {
     }
   };
 
+  const fetchUserMetrics = async () => {
+    try {
+      setIsFetchingMetrics(true);
+      
+      // Fetch from new unified metrics collection
+      const result = await getUserLatestMetrics(userId, 10); // Get last 10 entries
+      
+      if (result.success) {
+        setUserMetricsData(result.data);
+      } else {
+        console.error("Error fetching metrics:", result.error);
+        setUserMetricsData([]);
+      }
+    } catch (error) {
+      console.error("Error fetching metrics details:", error);
+      setUserMetricsData([]);
+    } finally {
+      setIsFetchingMetrics(false);
+    }
+  };
+
   const fetchPlans = async () => {
     try {
       setIsFetchingPlans(true);
@@ -109,13 +133,17 @@ export default function GlobalContextProvider({ children }) {
   useEffect(() => {
     if (userId) {
       fetchUserDetail();
-      fetchUserWeight();
+      fetchUserWeight(); // Keep for backward compatibility
+      fetchUserMetrics(); // New unified metrics
       fetchPlans();
     }
   }, [userId]);
 
   const userRefetch = fetchUserDetail;
-  const userWeightRefetch = fetchUserWeight;
+  const userWeightRefetch = () => {
+    fetchUserWeight();
+    fetchUserMetrics();
+  };
   const plansRefetch = fetchPlans;
 
   const userDetailData = userDetail || {};
@@ -123,9 +151,28 @@ export default function GlobalContextProvider({ children }) {
   const userAgeCal = calculateAge(userDetailData?.userBirthDate);
 
   const handleOpenClose = () => setShow(!show);
-  const latestWeight = _.maxBy(userWeightData, (entry) => new Date(entry?.created_at));
+  
+  // Smart weight/height resolution with fallbacks
+  const latestMetrics = userMetricsData.length > 0 ? userMetricsData[0] : null;
+  const oldLatestWeight = _.maxBy(userWeightData, (entry) => new Date(entry?.created_at));
+  
+  // Prefer new metrics, fallback to old weight system, then user details
+  const latestWeight = latestMetrics ? {
+    userWeights: latestMetrics.weight,
+    created_at: latestMetrics.timestamp,
+    source: 'metrics'
+  } : oldLatestWeight ? {
+    ...oldLatestWeight,
+    source: 'weight_collection'
+  } : userDetailData?.userWeight ? {
+    userWeights: userDetailData.userWeight,
+    created_at: new Date().toISOString(),
+    source: 'user_details'
+  } : null;
 
-  const isFetching = isFetchingUser || isFetchingWeight || isFetchingPlans;
+  const latestHeight = latestMetrics?.height || userDetailData?.userHeight || null;
+
+  const isFetching = isFetchingUser || isFetchingWeight || isFetchingMetrics || isFetchingPlans;
 
   const contextValue = useMemo(() => {
     return {
@@ -149,6 +196,8 @@ export default function GlobalContextProvider({ children }) {
       userWeightRefetch,
       plansRefetch,
       latestWeight,
+      latestHeight,
+      userMetricsData,
       plans,
       userId,
       userAgeCal,
@@ -166,6 +215,8 @@ export default function GlobalContextProvider({ children }) {
     selectedGoals,
     activityLevel,
     latestWeight,
+    latestHeight,
+    userMetricsData,
     plans,
     userAgeCal,
     isFetching,

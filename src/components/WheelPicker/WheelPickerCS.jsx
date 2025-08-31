@@ -1,9 +1,9 @@
 'use client'
 import React, { useState, useEffect, useRef } from 'react';
 
-const WheelPickerCS = ({ items, onChange }) => {
+const WheelPickerCS = ({ items, onChange, defaultIndex = 0 }) => {
     
-  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(defaultIndex);
   const wheelRef = useRef(null);
   
 
@@ -16,19 +16,34 @@ const WheelPickerCS = ({ items, onChange }) => {
   
   useEffect(() => {
     if (wheelRef.current) {
-      wheelRef.current.scrollTop = selectedIndex * itemHeight;
+      const targetScrollTop = selectedIndex * itemHeight;
+      wheelRef.current.scrollTop = targetScrollTop;
     }
-  }, [selectedIndex]);
+  }, [selectedIndex, itemHeight]);
 
   const handleScroll = () => {
     if (wheelRef.current) {
       const scrollTop = wheelRef.current.scrollTop;
       const index = Math.round(scrollTop / itemHeight);
-      if (index !== selectedIndex) {
+      if (index !== selectedIndex && index >= 0 && index < items.length) {
         setSelectedIndex(index);
       }
     }
   };
+
+  const snapToCenter = () => {
+    if (wheelRef.current) {
+      const scrollTop = wheelRef.current.scrollTop;
+      const index = Math.round(scrollTop / itemHeight);
+      const targetScrollTop = index * itemHeight;
+      wheelRef.current.scrollTo({
+        top: targetScrollTop,
+        behavior: 'smooth'
+      });
+      setSelectedIndex(index);
+    }
+  };
+
   const handleWheel = (e) => {
     e.preventDefault();
     const newIndex = Math.min(Math.max(selectedIndex + Math.sign(e.deltaY), 0), items.length - 1);
@@ -36,7 +51,7 @@ const WheelPickerCS = ({ items, onChange }) => {
   };
 
   return (
-    <div className="relative h-[200px] w-[200px] overflow-hidden">
+    <div className="relative h-[200px] w-[80px] sm:w-[100px] overflow-hidden">
       <div 
         className="absolute top-0 left-0 right-0 h-[80px] bg-gradient-to-b from-white to-transparent pointer-events-none z-10"
       />
@@ -48,6 +63,8 @@ const WheelPickerCS = ({ items, onChange }) => {
         className="h-full overflow-auto scrollbar-hide"
         onScroll={handleScroll}
         onWheel={handleWheel}
+        onTouchEnd={snapToCenter}
+        onMouseUp={snapToCenter}
         style={{
           paddingTop: `${itemHeight * Math.floor(visibleItems / 2)}px`,
           paddingBottom: `${itemHeight * Math.floor(visibleItems / 2)}px`,
@@ -56,17 +73,21 @@ const WheelPickerCS = ({ items, onChange }) => {
         {items.map((item, index) => (
           <div
             key={index}
-            className={`h-[${itemHeight}px] flex items-center justify-center text-center transition-all duration-150 ${
-              index === selectedIndex ? 'text-red-500 text-lg font-bold' : 'text-gray-400'
+            className={`flex items-center justify-center text-center transition-all duration-150 ${
+              index === selectedIndex ? 'text-red-500 text-base sm:text-lg font-bold' : 'text-gray-400 text-sm'
             }`}
+            style={{ height: `${itemHeight}px` }}
           >
             {item}
           </div>
         ))}
       </div>
       <div 
-        className="absolute top-1/2 left-0 right-0 h-[40px] border-t border-b border-gray-300 pointer-events-none"
-        style={{ transform: 'translateY(-50%)' }}
+        className="absolute top-1/2 left-0 right-0 border-t border-b border-gray-300 pointer-events-none"
+        style={{ 
+          transform: 'translateY(-50%)',
+          height: `${itemHeight}px`
+        }}
       />
     </div>
   );

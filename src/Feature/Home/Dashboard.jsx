@@ -31,7 +31,7 @@ const calculateCalories = (weight, height, age, gender, activityFactor) => {
 
 
 export default function FitnessTrackerDashboard() {
-  const { userDetailData,handleOpenClose,latestWeight } = useContext(GlobalContext);
+  const { userDetailData,handleOpenClose,latestWeight,latestHeight } = useContext(GlobalContext);
 
 
   if (!userDetailData) {
@@ -51,10 +51,14 @@ export default function FitnessTrackerDashboard() {
   const userAgeCal = calculateAge(userBirthDate);
   
 
-  const bmi = calculateBMI(latestWeight?.userWeights, userHeight);
+  // Use latest metrics when available, fallback to user details
+  const currentWeight = latestWeight?.userWeights;
+  const currentHeight = latestHeight || userHeight;
+  
+  const bmi = calculateBMI(currentWeight, currentHeight);
   const maintenanceCalories = calculateCalories(
-    latestWeight?.userWeights,
-    userHeight,
+    currentWeight,
+    currentHeight,
     userAgeCal,
     userGender,
     activityLevel.factor
@@ -88,11 +92,11 @@ export default function FitnessTrackerDashboard() {
     },
     {
       name: "Weight",
-      value: `${latestWeight?.userWeights} kg`, // Show weight directly
+      value: `${currentWeight} kg`, // Show weight directly
       trend: "down",
       color: "bg-[#F2CCFF]",
       textColor: "text-[#B55CC2]",
-      requirement: `Current: ${latestWeight?.userWeights} kg`,
+      requirement: `Current: ${currentWeight} kg`,
     },
   ];
 

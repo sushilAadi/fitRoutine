@@ -13,7 +13,7 @@ import HealthMetricsRange from "@/components/Card/HealthMetricsRange";
 
 
 const healthReport = () => {
-  const { userDetailData,handleOpenClose,latestWeight } = useContext(GlobalContext);
+  const { userDetailData,handleOpenClose,latestWeight,latestHeight } = useContext(GlobalContext);
 
   if (!userDetailData) {
     return (
@@ -34,19 +34,67 @@ const healthReport = () => {
 
   
 
-  if (!latestWeight?.userWeights || !userHeight || !userBirthDate || !userGender) {
+  // Use latest metrics when available, fallback to user details
+  const currentWeight = latestWeight?.userWeights;
+  const currentHeight = latestHeight || userHeight;
+
+  const missingFields = [];
+  if (!currentWeight) missingFields.push('Weight data');
+  if (!currentHeight) missingFields.push('Height');
+  if (!userBirthDate) missingFields.push('Birth date');
+  if (!userGender) missingFields.push('Gender');
+
+  if (missingFields.length > 0) {
     return (
       <SecureComponent>
-        <div className="p-4 text-red-700 bg-red-100 rounded">
-          Missing required health data. Please complete your profile.
+        <div className="flex flex-col h-screen overflow-hidden">
+          <div className="top-0 p-3 bg-tprimary sticky-top stickyCard">
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="pt-3 pb-4 text-white bg-tprimary "
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  
+                  <div>
+                    <h1 className="text-2xl font-semibold">
+                      Hi, {userName?.split(" ")[0]}
+                    </h1>
+                    <p className="text-sm text-gray-500">
+                      Your Health Report
+                    </p>
+                  </div>
+                </div>
+                <motion.img
+                  whileHover={{ scale: 1.1 }}
+                  src="https://www.aiscribbles.com/img/variant/large-preview/43289/?v=cbd7a5"
+                  alt="Profile"
+                  className="object-cover w-10 h-10 border-2 border-gray-100 rounded-full"
+                  onClick={handleOpenClose}
+                />
+              </div>
+            </motion.div>
+          </div>
+          <div className="p-3 mb-2 overflow-auto overflow-x-hidden overflow-y-auto exerciseCard no-scrollbar">
+            <div className="p-4 text-red-700 bg-red-100 rounded">
+              <p className="font-medium">Missing required health data:</p>
+              <ul className="mt-2 ml-4 list-disc">
+                {missingFields.map((field, index) => (
+                  <li key={index}>{field}</li>
+                ))}
+              </ul>
+              <p className="mt-3 text-sm">Please complete your profile to view your health report.</p>
+            </div>
+          </div>
         </div>
       </SecureComponent>
     );
   }
 
   const userAgeCal = calculateAge(userBirthDate);
-  const heightInMeters = userHeight / 100;
-  const weightInKg = Number(latestWeight?.userWeights);
+  const heightInMeters = currentHeight / 100;
+  const weightInKg = Number(currentWeight);
   
 
   const safeCalculate = (calculation, fallback = 0) => {
@@ -59,13 +107,13 @@ const healthReport = () => {
     }
   };
 
-  const bmi = safeCalculate(() => Number(calculateBMI(weightInKg, userHeight)));
+  const bmi = safeCalculate(() => Number(calculateBMI(weightInKg, currentHeight)));
 
   const bmr = safeCalculate(() => {
     if (userGender.toLowerCase() === "male") {
-      return (10 * weightInKg) + (6.25 * userHeight) - (5 * userAgeCal) + 5;
+      return (10 * weightInKg) + (6.25 * currentHeight) - (5 * userAgeCal) + 5;
     } else {
-      return (10 * weightInKg) + (6.25 * userHeight) - (5 * userAgeCal) - 161;
+      return (10 * weightInKg) + (6.25 * currentHeight) - (5 * userAgeCal) - 161;
     }
   });
 
@@ -279,13 +327,15 @@ const healthReport = () => {
             className="pt-3 pb-4 text-white bg-tprimary "
           >
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold">
-                  Hi, {userName?.split(" ")[0]}
-                </h1>
-                <p className="text-sm text-gray-500">
-                  Your Health Report
-                </p>
+              <div className="flex items-center gap-3">
+                <div>
+                  <h1 className="text-2xl font-semibold">
+                    Hi, {userName?.split(" ")[0]}
+                  </h1>
+                  <p className="text-sm text-gray-500">
+                    Your Health Report
+                  </p>
+                </div>
               </div>
               <motion.img
                 whileHover={{ scale: 1.1 }}

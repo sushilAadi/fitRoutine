@@ -36,7 +36,9 @@
       "mcp__reactbits__search_components",
       "mcp__reactbits__list_categories",
       "mcp__reactbits__list_components",
-      "mcp__reactbits__get_component"
+      "mcp__reactbits__get_component",
+      "mcp__shadcn-ui__get_component_demo",
+      "mcp__shadcn-ui__get_component"
     ],
     "deny": []
   }

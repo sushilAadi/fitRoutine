@@ -653,7 +653,7 @@ const createPlanPage = () => {
               <div className="flex gap-3 mb-4">
                 <div className="inputBox">
                   <InputCsTwo
-                    label="Number of Weeks"
+                    label="No. of Weeks"
                     type="number"
                     id="weeks"
                     value={weeks}

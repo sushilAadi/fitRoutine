@@ -10,6 +10,8 @@ import { BackgroundGradientAnimation } from "@/components/AnimatedBackground";
 import { calculateBMI, goals } from "@/utils";
 import { doc, updateDoc, setDoc } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
+import { insertUserMetrics } from "@/utils/metricsHelper";
+import toast from 'react-hot-toast';
 
 const Profile = () => {
   const { user } = useUser();
@@ -37,6 +39,7 @@ const Profile = () => {
   } = userDetailData;
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setWeight(latestWeight?.userWeights);
@@ -55,39 +58,64 @@ const Profile = () => {
 
     // Proceed only if there are fields to update
     if (Object.keys(updateFields).length === 0) {
-      
-      return;
+      return { success: true };
     }
 
     try {
       const userDocRef = doc(db, "users", userId);
       await updateDoc(userDocRef, updateFields);
-      
       userRefetch();
+      return { success: true };
     } catch (error) {
       console.log("Error while updating user details: ", error);
+      return { success: false, error };
     }
   };
 
-  const insertWeight = async () => {
+  const handleSave = async () => {
+    if (!weight || !height) {
+      toast.error('Please enter both weight and height');
+      return;
+    }
+
+    setIsSaving(true);
+    
     try {
-      const weightDocRef = doc(db, "weight", `${userId}_${new Date().toISOString()}`);
-      await setDoc(weightDocRef, {
-        userIdCl: userId,
-        userWeights: weight,
-        created_at: new Date().toISOString(),
-      });
-      
-      userWeightRefetch();
-    } catch (error) {
-      console.log("Error inserting weight: ", error);
-    }
-  };
+      // Show loading toast
+      const loadingToast = toast.loading('Saving your changes...');
 
-  const handleSave = () => {
-    setIsEditing(false);
-    updateUserDetail();
-    insertWeight();
+      // Update user details in users collection
+      const updateResult = await updateUserDetail();
+      if (!updateResult.success) {
+        throw new Error('Failed to update user details');
+      }
+
+      // Insert metrics into unified collection
+      const metricsData = {
+        weight: parseFloat(weight),
+        height: parseFloat(height)
+      };
+
+      const result = await insertUserMetrics(userId, metricsData, 'update', 'profile_edit');
+
+      if (result.success) {
+        // Refresh data
+        userWeightRefetch();
+        userRefetch();
+        
+        setIsEditing(false);
+        
+        // Show success toast
+        toast.success('Profile updated successfully!', { id: loadingToast });
+      } else {
+        throw new Error(result.error || 'Failed to save metrics');
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      toast.error('Failed to save changes. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const splitHelpYou = helpYou?.split(",");
@@ -136,10 +164,14 @@ const Profile = () => {
                     type="number"
                     value={height}
                     onChange={(e) => setHeight(e.target.value)}
-                    className="w-20 px-2 py-1 border rounded"
+                    className="w-20 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="cm"
+                    min="100"
+                    max="250"
+                    disabled={isSaving}
                   />
                 ) : (
-                  <p className="font-semibold text-black">{height} cms</p>
+                  <p className="font-semibold text-black">{height} cm</p>
                 )}
               </div>
               <div className="text-right text-gray-600">
@@ -149,10 +181,14 @@ const Profile = () => {
                     type="number"
                     value={weight}
                     onChange={(e) => setWeight(e.target.value)}
-                    className="w-20 px-2 py-1 border rounded"
+                    className="w-20 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    placeholder="kg"
+                    min="30"
+                    max="300"
+                    disabled={isSaving}
                   />
                 ) : (
-                  <p className="font-semibold text-black">{weight} kgs</p>
+                  <p className="font-semibold text-black">{weight} kg</p>
                 )}
               </div>
             </div>
@@ -169,8 +205,9 @@ const Profile = () => {
             </div>
 
             <ButtonCs
-              title={isEditing ? "Save" : "Edit"}
+              title={isEditing ? (isSaving ? "Saving..." : "Save") : "Edit"}
               className="w-100"
+              disabled={isSaving}
               onClick={isEditing ? handleSave : () => setIsEditing(true)}
             />
           </div>
