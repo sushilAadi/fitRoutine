@@ -9,7 +9,6 @@ import { addDoc, collection } from "firebase/firestore";
 import { db } from "@/firebase/firebaseConfig";
 import toast from "react-hot-toast";
 import SecurePaymentComponent from "../SecurePaymentComponent";
-import whatsappService from "@/services/whatsappService";
 import { sendEnrollmentNotifications } from "@/services/notificationService";
 import Select from "react-select";
 
@@ -393,40 +392,31 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
         );
         console.log('Firebase notifications stored successfully');
 
-        // 2. Send WhatsApp notifications (external notifications)
-        const whatsappPromises = [];
-        
-        if (adminPhone) {
-          whatsappPromises.push(
-            whatsappService.sendAdminEnrollmentAlert(
+        // 2. Send WhatsApp notifications via server-side API
+        try {
+          const whatsappResponse = await fetch('/api/send-whatsapp', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
               adminPhone,
-              formData.fullName,
-              mentor.name,
-              paymentAmount
-            )
-          );
-        }
-
-        if (mentorPhone) {
-          whatsappPromises.push(
-            whatsappService.sendMentorNewStudentAlert(
               mentorPhone,
-              formData.fullName,
-              paymentAmount
-            )
-          );
-        }
-
-        // Wait for all WhatsApp messages to be sent
-        if (whatsappPromises.length > 0) {
-          const whatsappResults = await Promise.allSettled(whatsappPromises);
-          whatsappResults.forEach((result, index) => {
-            if (result.status === 'fulfilled') {
-              console.log(`WhatsApp notification ${index + 1} sent successfully:`, result.value);
-            } else {
-              console.error(`WhatsApp notification ${index + 1} failed:`, result.reason);
-            }
+              clientName: formData.fullName,
+              mentorName: mentor.name,
+              amount: paymentAmount
+            }),
           });
+
+          const whatsappResult = await whatsappResponse.json();
+          
+          if (whatsappResult.success) {
+            console.log('WhatsApp notifications sent successfully:', whatsappResult.results);
+          } else {
+            console.error('WhatsApp notification failed:', whatsappResult.error);
+          }
+        } catch (whatsappError) {
+          console.error('Error sending WhatsApp notifications:', whatsappError);
         }
 
       } catch (notificationError) {
