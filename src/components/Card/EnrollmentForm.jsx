@@ -379,7 +379,7 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
       try {
         const adminEmails = ["sushiluidev@gmail.com"];
         const mentorEmail = mentor.email;
-        const adminPhone = "+15551564744"; // Test WhatsApp number
+        const adminPhone = "+919127281610"; // Admin WhatsApp number
         const mentorPhone = mentor.whatsapp || mentor.mobile; // Use whatsapp field or fallback to mobile
         
         // 1. Store notifications in Firebase (for in-app notifications)
