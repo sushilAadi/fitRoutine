@@ -17,10 +17,12 @@ module.exports = withMT({
           'blur-20': 'blur(20px)',
           'blur-25': 'blur(25px)',
         },
+      colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',
-      colors: {
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
         tprimary: '#171717',
         tsecondary: '#feb602',
       },

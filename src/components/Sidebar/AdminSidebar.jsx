@@ -12,7 +12,7 @@ const AdminSidebar = () => {
   const { signOut, openUserProfile } = useClerk();
   const { user: clerkUser } = useUser();
   const [showSidebar, setShowSidebar] = useState(false);
-  const [activeComponent, setActiveComponent] = useState('instructor-management');
+  const [activeComponent, setActiveComponent] = useState('dashboard-overview');
   
   const userRole = user?.publicMetadata?.role;
 
@@ -31,12 +31,77 @@ const AdminSidebar = () => {
   }, []);
 
   const adminMenuItems = [
-    { name: "Instructor Management", component: "instructor-management", icon: "fa-solid fa-chalkboard-user" },
-    { name: "Enrollment Management", component: "enrollment-management", icon: "fa-solid fa-user-plus" },
+    // 📊 DASHBOARD OVERVIEW - HIGH PRIORITY
+    { 
+      name: "Dashboard Overview", 
+      component: "dashboard-overview", 
+      icon: "fa-solid fa-chart-line",
+      priority: "HIGH" 
+    },
+    
+    // ✅ EXISTING - Already Working
+    { 
+      name: "Instructor Management", 
+      component: "instructor-management", 
+      icon: "fa-solid fa-chalkboard-user" 
+    },
+    
+    // ✅ EXISTING - Already Working
+    { 
+      name: "Enrollment Management", 
+      component: "enrollment-management", 
+      icon: "fa-solid fa-user-plus" 
+    },
+    
+    // 👥 CLIENT MANAGEMENT - NEW HIGH PRIORITY
+    { 
+      name: "Client Management", 
+      component: "client-management", 
+      icon: "fa-solid fa-users",
+      priority: "HIGH"
+    },
+    
+    // 💰 FINANCIAL DASHBOARD - NEW HIGH PRIORITY
+    { 
+      name: "Financial Reports", 
+      component: "financial-reports", 
+      icon: "fa-solid fa-chart-pie",
+      priority: "HIGH"
+    },
+    
+    // 💪 WORKOUT MANAGEMENT - NEW MEDIUM PRIORITY
+    { 
+      name: "Workout Management", 
+      component: "workout-management", 
+      icon: "fa-solid fa-dumbbell",
+      priority: "MEDIUM"
+    },
+    
+    // 📢 COMMUNICATION CENTER - NEW MEDIUM PRIORITY
+    { 
+      name: "Communication Center", 
+      component: "communication-center", 
+      icon: "fa-solid fa-bullhorn",
+      priority: "MEDIUM"
+    },
+    
+    // Admin-only sections
     ...(userRole === "admin" ? [
-      { name: "User Management", component: "user-management", icon: "fa-solid fa-users" },
-      { name: "System Settings", component: "system-settings", icon: "fa-solid fa-gear" },
-      { name: "Analytics", component: "analytics", icon: "fa-solid fa-chart-bar" },
+      // 📊 ANALYTICS & REPORTS - MEDIUM PRIORITY
+      { 
+        name: "Analytics & Reports", 
+        component: "analytics-reports", 
+        icon: "fa-solid fa-chart-bar",
+        priority: "MEDIUM"
+      },
+      
+      // ⚙️ SYSTEM SETTINGS - LOW PRIORITY
+      { 
+        name: "System Settings", 
+        component: "system-settings", 
+        icon: "fa-solid fa-gear",
+        priority: "LOW"
+      }
     ] : []),
   ];
   

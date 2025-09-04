@@ -10,12 +10,19 @@ import {
   SystemSettings, 
   Analytics 
 } from "@/features/admin";
+import DashboardOverview from "@/features/admin/DashboardOverview";
 import EnrollmentManagement from "@/app/admin/enrollments/page";
+import ClientManagement from "@/app/admin/clients/page";
+import FinancialReports from "@/app/admin/finance/page";
+import WorkoutManagement from "@/app/admin/workouts/page";
+import CommunicationCenter from "@/app/admin/communications/page";
+import AnalyticsReports from "@/app/admin/analytics/page";
+import SystemSettingsPage from "@/app/admin/settings/page";
 import "./dashboard.css";
 
 const AdminDashboard = () => {
   const { user, handleOpenClose } = useContext(GlobalContext);
-  const [activeComponent, setActiveComponent] = useState('instructor-management');
+  const [activeComponent, setActiveComponent] = useState('dashboard-overview');
   
   // Prevent body scroll when dashboard is mounted
   useEffect(() => {
@@ -44,18 +51,31 @@ const AdminDashboard = () => {
   // Component mapping
   const getActiveComponent = () => {
     switch (activeComponent) {
+      case 'dashboard-overview':
+        return <DashboardOverview />;
       case 'instructor-management':
         return <InstructorManagement />;
       case 'enrollment-management':
         return <EnrollmentManagement />;
+      case 'client-management':
+        return <ClientManagement />;
+      case 'financial-reports':
+        return <FinancialReports />;
+      case 'workout-management':
+        return <WorkoutManagement />;
+      case 'communication-center':
+        return <CommunicationCenter />;
+      case 'analytics-reports':
+        return <AnalyticsReports />;
+      case 'system-settings':
+        return <SystemSettingsPage />;
+      // Legacy mappings for existing components
       case 'user-management':
         return <UserManagement />;
-      case 'system-settings':
-        return <SystemSettings />;
       case 'analytics':
         return <Analytics />;
       default:
-        return <InstructorManagement />;
+        return <DashboardOverview />;
     }
   };
 
