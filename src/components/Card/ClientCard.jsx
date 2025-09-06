@@ -9,11 +9,26 @@ import { Select, Option } from "@material-tailwind/react";
 import { GlobalContext } from '@/context/GloablContext';
 
 const ClientCard = ({client}) => {
-  const {plans,userDetailData} = useContext(GlobalContext);
+  const {plans, dietPlans, userDetailData} = useContext(GlobalContext);
   const [enrollmentStatus, setEnrollmentStatus] = useState(client?.status);
   const [selectedWorkoutPlan, setSelectedWorkoutPlan] = useState(null);
   const [workoutPlanName, setWorkoutPlanName] = useState('');
-  const assignablePlans = plans?.filter(plan => !plan?.workoutPlanDB?.progress);
+  const [selectedDietPlan, setSelectedDietPlan] = useState(null);
+  const [dietPlanName, setDietPlanName] = useState('');
+  // Show ALL workout plans of the current user (no progress filtering)
+  const assignablePlans = plans || [];
+  // Show only original diet plans (not assigned copies) of the current user
+  const assignableDietPlans = dietPlans?.filter(plan => !plan?.isAssigned) || [];
+
+  // Debug logging to help troubleshoot
+  useEffect(() => {
+    console.log('🍽️ Diet Plans Debug:', {
+      currentUserId: userDetailData?.userIdCl,
+      totalUserDietPlans: dietPlans?.length || 0,
+      assignableDietPlans: assignableDietPlans?.length || 0,
+      dietPlansData: dietPlans
+    });
+  }, [dietPlans, assignableDietPlans, userDetailData]);
 
   
 
@@ -29,6 +44,13 @@ const ClientCard = ({client}) => {
     planToAssign.mentorEmail = userDetailData?.userEmail;
     planToAssign.mentorId = userDetailData?.userIdCl;
     
+    // Reset progress and status for the assigned plan
+    if (planToAssign.workoutPlanDB) {
+      planToAssign.workoutPlanDB.progress = 0;
+      delete planToAssign.workoutPlanDB.status;
+      delete planToAssign.workoutPlanDB.progressData;
+    }
+    
     // Use custom name if provided, otherwise use original name
     if (workoutPlanName.trim()) {
       planToAssign.planName = `workoutPlan_${workoutPlanName.trim()}`;
@@ -40,6 +62,44 @@ const ClientCard = ({client}) => {
     } catch (error) {
       console.error('Error assigning workout plan:', error);
       toast.error('Failed to assign workout plan');
+    }
+  };
+
+  const handleDietPlanAssignment = async () => {
+    if (!selectedDietPlan) {
+      toast.error('Please select a diet plan');
+      return;
+    }
+    
+    // Create a copy of the diet plan for the client (don't modify original)
+    const dietPlanToAssign = { ...selectedDietPlan };
+    
+    // Assign to client
+    dietPlanToAssign.userIdCl = client?.clientIdCl;
+    dietPlanToAssign.originalMentorId = userDetailData?.userIdCl; // Keep reference to original mentor
+    dietPlanToAssign.mentorName = userDetailData?.userName;
+    dietPlanToAssign.mentorEmail = userDetailData?.userEmail;
+    dietPlanToAssign.mentorId = userDetailData?.userIdCl;
+    dietPlanToAssign.assignedAt = new Date().toISOString();
+    dietPlanToAssign.isActive = true;
+    dietPlanToAssign.isAssigned = true; // Mark as assigned copy
+    
+    // Use custom name if provided, otherwise use original name with client prefix
+    if (dietPlanName.trim()) {
+      dietPlanToAssign.planName = dietPlanName.trim();
+    } else {
+      dietPlanToAssign.planName = `${client?.clientName || 'Client'} - ${selectedDietPlan.planName || selectedDietPlan.title || 'Diet Plan'}`;
+    }
+    
+    // Remove the original document ID so it creates a new document
+    delete dietPlanToAssign.id;
+    
+    try {
+      await addDoc(collection(db, 'diet_AI'), dietPlanToAssign);
+      toast.success('Diet plan assigned successfully');
+    } catch (error) {
+      console.error('Error assigning diet plan:', error);
+      toast.error('Failed to assign diet plan');
     }
   };
 
@@ -134,11 +194,21 @@ const ClientCard = ({client}) => {
         }
       }
       
-      if(action === 'accept' && selectedWorkoutPlan) {
+      if(action === 'accept' && (selectedWorkoutPlan || selectedDietPlan)) {
         await updateDoc(enrollmentRef, updateData);
         setEnrollmentStatus(status);
+        
+        // Assign workout plan if selected
+        if (selectedWorkoutPlan) {
+          await handleWorkoutPlanAssignment();
+        }
+        
+        // Assign diet plan if selected
+        if (selectedDietPlan) {
+          await handleDietPlanAssignment();
+        }
+        
         toast.success(`Successfully ${action}ed enrollment`);
-        handleWorkoutPlanAssignment();
       } else if(action === 'reject') {
         await updateDoc(enrollmentRef, updateData);
         setEnrollmentStatus(status);
@@ -255,6 +325,44 @@ const ClientCard = ({client}) => {
             </p>
           </div>
         )}
+
+        <Select 
+          label="Assign Diet Plan" 
+          onChange={(value) => {
+            const plan = assignableDietPlans.find(p => p.id === value);
+            setSelectedDietPlan(plan);
+            if (plan) {
+              setDietPlanName(plan.planName || plan.title || 'Custom Diet Plan');
+            }
+          }}
+        >
+          {assignableDietPlans && assignableDietPlans.length > 0 ? (
+            assignableDietPlans.map((plan) => (
+              <Option key={plan.id} value={plan.id}>
+                {plan.planName || plan.title || `Diet Plan ${plan.id.substring(0, 8)}`}
+              </Option>
+            ))
+          ) : (
+            <Option value="" disabled>
+              {dietPlans?.length === 0 ? 'No diet plans available' : 'All diet plans are assigned'}
+            </Option>
+          )}
+        </Select>
+        
+        {selectedDietPlan && (
+          <div className="mt-3">
+            <input
+              type="text"
+              placeholder="Enter custom diet plan name"
+              value={dietPlanName}
+              onChange={(e) => setDietPlanName(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              This will be the name assigned to the diet plan for the client.
+            </p>
+          </div>
+        )}
         
       </div>
       }
@@ -262,13 +370,33 @@ const ClientCard = ({client}) => {
       {/* Action buttons */}
       {(enrollmentStatus === 'pending' || enrollmentStatus === 'paid_pending') && 
       <div className="flex gap-3 mt-4">
-      {selectedWorkoutPlan && 
-        <button disabled={!selectedWorkoutPlan} onClick={() => handleEnrollmentAction('accept')} className="w-full px-4 py-2 text-sm font-medium text-white rounded-full bg-success">
+      {(selectedWorkoutPlan || selectedDietPlan) && 
+        <button 
+          disabled={!(selectedWorkoutPlan || selectedDietPlan)} 
+          onClick={() => handleEnrollmentAction('accept')} 
+          className="w-full px-4 py-2 text-sm font-medium text-white rounded-full bg-success"
+        >
           Accept
         </button>}
         <button onClick={() => handleEnrollmentAction('reject')} className="w-full px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-full">
           Reject
         </button>
+      </div>}
+      
+      {/* Plan assignment info */}
+      {(enrollmentStatus === 'pending' || enrollmentStatus === 'paid_pending') && 
+      <div className="mt-3 text-xs text-gray-600">
+        {!selectedWorkoutPlan && !selectedDietPlan && (
+          <p className="text-red-500">* Please select at least one plan (Workout or Diet) to accept the enrollment</p>
+        )}
+        {(selectedWorkoutPlan || selectedDietPlan) && (
+          <p className="text-green-600">
+            ✓ Ready to assign: 
+            {selectedWorkoutPlan && " Workout Plan"}
+            {selectedWorkoutPlan && selectedDietPlan && " + "}
+            {selectedDietPlan && " Diet Plan"}
+          </p>
+        )}
       </div>}
       
       {/* Skills */}

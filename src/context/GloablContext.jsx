@@ -115,6 +115,7 @@ export default function GlobalContextProvider({ children }) {
     if (userId) {
       try {
         const dietCollectionRef = collection(db, 'diet_AI');
+        // Fetch diet plans that belong to current user (userIdCl === userId)
         const q = query(dietCollectionRef, where("userIdCl", "==", userId)); 
         const querySnapshot = await getDocs(q);
 
@@ -123,6 +124,7 @@ export default function GlobalContextProvider({ children }) {
           dietPlansData.push({ id: doc.id, ...doc.data() });
         });
 
+        console.log('🍽️ Fetched current user diet plans from Firebase:', dietPlansData);
         setDietPlans(dietPlansData);
       } catch (error) {
         console.error("Error fetching diet plans:", error);
@@ -136,6 +138,7 @@ export default function GlobalContextProvider({ children }) {
       fetchUserWeight(); // Keep for backward compatibility
       fetchUserMetrics(); // New unified metrics
       fetchPlans();
+      fetchDietPlans(); // Add diet plans fetching
     }
   }, [userId]);
 

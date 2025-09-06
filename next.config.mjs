@@ -78,9 +78,6 @@ const nextConfig = withPWA({
       ],
     },
 
-    // Enable optimization for production
-    swcMinify: process.env.NODE_ENV === 'production',
-    
     webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
       // Enable optimization in production
       if (process.env.NODE_ENV === 'production') {

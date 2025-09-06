@@ -1,18 +1,24 @@
 "use client";
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, Suspense } from "react";
 import { Card, List, ListItem, ListItemPrefix } from "@material-tailwind/react";
 import { Offcanvas } from "react-bootstrap";
 import Image from "next/image";
 import { useClerk, useUser } from "@clerk/nextjs";
+import { useSearchParams } from "next/navigation";
 import { GlobalContext } from "@/context/GloablContext";
 import logo from "@/assets/neeed.jpg";
 
-const AdminSidebar = () => {
+const AdminSidebarContent = () => {
   const { user } = useContext(GlobalContext);
   const { signOut, openUserProfile } = useClerk();
   const { user: clerkUser } = useUser();
+  const searchParams = useSearchParams();
   const [showSidebar, setShowSidebar] = useState(false);
-  const [activeComponent, setActiveComponent] = useState('dashboard-overview');
+  
+  // Get initial active component from URL params
+  const [activeComponent, setActiveComponent] = useState(() => {
+    return searchParams.get('page') || 'dashboard-overview';
+  });
   
   const userRole = user?.publicMetadata?.role;
 
@@ -29,6 +35,14 @@ const AdminSidebar = () => {
       window.removeEventListener('admin-navigate', handleSidebarNavigation);
     };
   }, []);
+  
+  // Sync with URL parameters changes (browser back/forward)
+  useEffect(() => {
+    const pageParam = searchParams.get('page') || 'dashboard-overview';
+    if (pageParam !== activeComponent) {
+      setActiveComponent(pageParam);
+    }
+  }, [searchParams, activeComponent]);
 
   const adminMenuItems = [
     // 📊 DASHBOARD OVERVIEW - HIGH PRIORITY
@@ -318,6 +332,29 @@ const AdminSidebar = () => {
         }
       `}</style>
     </>
+  );
+};
+
+// Loading component for Suspense fallback
+const SidebarLoading = () => (
+  <div className="sidebar-loading p-4">
+    <div className="animate-pulse">
+      <div className="h-8 bg-gray-300 rounded mb-4"></div>
+      <div className="space-y-3">
+        <div className="h-4 bg-gray-300 rounded"></div>
+        <div className="h-4 bg-gray-300 rounded"></div>
+        <div className="h-4 bg-gray-300 rounded"></div>
+      </div>
+    </div>
+  </div>
+);
+
+// Main component wrapped with Suspense
+const AdminSidebar = () => {
+  return (
+    <Suspense fallback={<SidebarLoading />}>
+      <AdminSidebarContent />
+    </Suspense>
   );
 };
 
