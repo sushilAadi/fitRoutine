@@ -555,7 +555,7 @@ const PlanDetail = ({ params }) => {
         </div>
          
       </div>
-      {progressStats && (
+      {/* {progressStats && (
       <ProgressBar animated
               percentage={progressStats?.progressPlannedOnlyPercent} 
               label={`Planned Sets Completed ${progressStats?.progressPlannedOnlyPercent}%`} 
@@ -572,7 +572,7 @@ const PlanDetail = ({ params }) => {
               variant="success"
               min={0}
               max={100}
-            />)}
+            />)} */}
       {/* {progressStats && (
         <ProgressRealTime progressStats={progressStats} />
       )} */}
