@@ -1483,7 +1483,7 @@ const SetAndRepsForm = ({
       </div>
 
       {/* Navigation Arrows */}
-      <div className="flex items-center justify-between my-6">
+      <div className="flex items-center justify-between mt-6">
         <button
           onClick={goPrev}
           className="flex items-center justify-center p-2 text-lg text-gray-700 bg-gray-200 rounded-full hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed aspect-square w-9 h-9"

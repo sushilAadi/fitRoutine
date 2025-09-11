@@ -540,7 +540,7 @@ const PlanDetail = ({ params }) => {
   return (
     <>
       <FloatingNavbar title={workoutData?.planName || "Workout Plan"} />
-      <div className="flex flex-col pt-16 bg-gray-50 hide-scrollbar">
+      <div className="flex flex-col pt-16 hide-scrollbar">
       {/* Header */}
       
       <div className="p-3 pb-1 bg-white border-b sticky-top">
