@@ -169,7 +169,32 @@ export default function RootLayout({ children }) {
                   {children}
                 </main>
                 <NotificationInit />
-                <Toaster/>
+                <Toaster
+                  position="top-center"
+                  toastOptions={{
+                    duration: 12000, 
+                    style: {
+                      maxWidth: '300px',
+                    },
+                    success: {
+                      duration: 12000,
+                      iconTheme: {
+                        primary: '#10B981',
+                        secondary: '#FFFFFF',
+                      },
+                    },
+                    error: {
+                      duration: 12000,
+                      iconTheme: {
+                        primary: '#EF4444',
+                        secondary: '#FFFFFF',
+                      },
+                    },
+                  }}
+                  containerStyle={{
+                    top: 20,
+                  }}
+                />
               </ThemeProvider>
               <Analytics />
               <SpeedInsights />
