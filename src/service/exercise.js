@@ -30,12 +30,23 @@ export const getExercises = async () => {
     handleApiError(error);
   }
 };
-export const getExercisesGif = async (id="0001") => {
+export const getExercisesGif = async (exerciseId = '0025') => {
+  const options = {
+    method: 'GET',
+    url: `https://exercisedb.p.rapidapi.com/exercises/exercise/${exerciseId}`,
+    headers: {
+      'x-rapidapi-key': 'cf325e0189msh07fcc3b82a6c904p13d070jsndf9019517f04',
+      'x-rapidapi-host': 'exercisedb.p.rapidapi.com'
+    }
+  };
+
   try {
-    const response = await exerciseApi.get(`/exercises/exercise/${id}`);
+    const response = await axios.request(options);
+    console.log("fetched image", response.data);
     return response.data.gifUrl;
   } catch (error) {
-    handleApiError(error);
+    console.error(error);
+    throw error;
   }
 };
 

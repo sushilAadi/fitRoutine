@@ -1,0 +1,95 @@
+{
+  "name": "Sushil Sharma",
+  "title": "React.js UI Developer",
+  "location": "Guwahati, Assam, India",
+  "contact": {
+    "phone": "+91 78928 08101",
+    "email": "jsushilsharmab@gmail.com",
+    "linkedin": "https://linkedin.com/in/sushil62",
+    "portfolio": "Available on request"
+  },
+  "professional_summary": "Experienced UI Developer with 6+ years delivering responsive and scalable web and mobile applications. Worked on React.js and React Native projects across fintech, government, EV/cleantech, and ecommerce/health domains. Skilled in building clean, accessible user interfaces with modern tools like Next.js, Tailwind, Algolia, and Firebase.",
+  "experience": [
+    {
+      "role": "UI Developer",
+      "company": "Flooid (Service-based)",
+      "location": "Guwahati, Assam",
+      "duration": "Aug 2023 – Present",
+      "responsibilities": [
+        "Led front-end development for fintech, PWA, government dashboards, and ecommerce domains",
+        "Built and enhanced UI architecture for Centrum Wealth & Wealthverse dashboards focused on stock, mutual funds, investments tracking using React.js",
+        "Built HerKey (PWA) platform supporting women professionals with jobs and mentorship",
+        "Created EV-Ready India Dashboard for electric vehicle ecosystem insights",
+        "Delivered full UI for ecommerce/health platforms (Kuremeds & Riyaah) with Algolia-powered product search and multi-language support",
+        "Implemented performance optimizations and accessibility improvements using Next.js, Tailwind, Algolia, and Firebase",
+        "Collaborated with product, design, and backend teams to deliver high-quality features"
+      ]
+    },
+    {
+      "role": "UI Developer",
+      "company": "Cloudberry360",
+      "location": "Bangalore",
+      "duration": "Sep 2021 – July 2023",
+      "responsibilities": [
+        "Developed and maintained internal payment system dashboard using React.js focusing on secure transaction monitoring and payment processing",
+        "Delivered responsive, cross-browser compatible, accessible websites",
+        "Built scalable reusable components and front-end libraries",
+        "Converted UI designs and wireframes into high-quality code"
+      ]
+    },
+    {
+      "role": "UI Developer",
+      "company": "NVEST Technology",
+      "location": "Bangalore",
+      "duration": "Sep 2019 – Aug 2021",
+      "responsibilities": [
+        "Developed and maintained Nvest Wallet, an Ethereum transaction browser extension",
+        "Enhanced UI/UX for complex crypto transactions",
+        "Integrated Ethereum blockchain and DApps",
+        "Delivered security features including private key storage and recovery",
+        "Integrated payment systems including Bitcoin and Ethereum"
+      ]
+    }
+  ],
+  "skills": {
+    "frontend": ["React.js", "Next.js", "React Native", "PWA", "JavaScript (ES6+)", "TailwindCSS", "Bootstrap", "CSS3", "HTML5", "Sass"],
+    "uiux": ["Wireframing", "Prototyping", "Accessibility", "Responsive Design", "Cross-browser Compatibility"],
+    "performance": ["Lighthouse Auditing", "Web Vitals Optimization", "Code Splitting", "Caching Strategies"],
+    "apis_integrations": ["Algolia", "Firebase", "Razorpay", "Apple Pay", "AI/ML APIs"],
+    "testing": ["Jest", "React Testing Library"],
+    "devops": ["Git", "GitLab", "VS Code"]
+  },
+  "education": [
+    {
+      "degree": "MCA",
+      "institution": "New Horizon College of Engineering, Bangalore (VTU)",
+      "period": "2015–2018"
+    },
+    {
+      "degree": "BCA",
+      "institution": "Asian Institute of Management and Science, Guwahati (PTU)",
+      "period": "2011–2014"
+    },
+    {
+      "degree": "Higher Secondary (Class 12, Science)",
+      "institution": "Luit Academy, Guwahati",
+      "period": "2009–2011"
+    },
+    {
+      "degree": "High School (Class 10)",
+      "institution": "South Point School, Guwahati",
+      "year": "2009"
+    }
+  ],
+  "personal_projects": [
+    {
+      "title": "AI-powered Custom Fitness App",
+      "description": "Developed a PWA app allowing users to create custom workout routines, generate AI-driven workout and diet plans, and analyze nutrition from food photos. Built with Next.js integrating Firebase backend and Razorpay seamless payment. Utilized AI APIs for personalized fitness coaching and instructor management."
+    }
+  ],
+  "additional_information": [
+    "Experienced in building reusable React UI libraries.",
+    "Strong collaborator with cross-functional teams.",
+    "Interests include AI tools in development and fitness technology."
+  ]
+}
