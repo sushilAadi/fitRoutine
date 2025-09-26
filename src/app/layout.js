@@ -17,9 +17,22 @@ import { Toaster } from 'react-hot-toast';
 import { PrimeReactProvider } from 'primereact/api';
 import "primereact/resources/primereact.min.css";
 import "primereact/resources/themes/lara-light-indigo/theme.css";
-import NotificationInit from '@/components/NotificationInit'; 
+import NotificationInit from '@/components/NotificationInit';
+import { usePathname } from 'next/navigation'; 
 
 const queryClient = new QueryClient();
+
+// Component to conditionally render navbar based on route
+const ConditionalNavbar = () => {
+  const pathname = usePathname();
+
+  // Hide navbar on SavedPlan detail routes (dynamic routes like /SavedPlan/[plan])
+  if (pathname && pathname.startsWith('/SavedPlan/') && pathname !== '/SavedPlan') {
+    return null;
+  }
+
+  return <NavbarComponent />;
+};
 
 export default function RootLayout({ children }) {
   
@@ -162,7 +175,7 @@ export default function RootLayout({ children }) {
                   
                   {/* Global Hamburger Menu - Fixed Position */}
                   <div className="fixed top-4 right-4 z-[999999] lg:top-6 lg:right-6">
-                    {<NavbarComponent />}
+                    <ConditionalNavbar />
                   </div>
                 </SignedIn>
                 <main className="min-h-screen">

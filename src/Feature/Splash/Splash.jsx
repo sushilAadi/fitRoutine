@@ -2,7 +2,7 @@
 import ButtonCs from '@/components/Button/ButtonCs'
 import React, { useEffect } from 'react'
 import splashImag from '@/assets/splash.jpeg'
-import logo from '../../assets/neeed.jpg'
+import logo from '../../assets/logo.png'
 import Link from 'next/link'
 import { useAuth } from '@clerk/nextjs'
 import Image from 'next/image'
@@ -45,9 +45,9 @@ const Splash = ({ setStep }) => {
           <Image 
             src={logo} 
             alt="splash" 
-            width={120}
+            width={180}
             height={120}
-            className='object-cover shadow-xl w-[120px] h-[120px] rounded-3xl'
+            className='object-cover  h-[120px] '
           />
           
         </div>
@@ -61,9 +61,11 @@ const Splash = ({ setStep }) => {
         </div>
 
         {/* Button */}
-        <Link href="/sign-in">
-          <ButtonCs title="Let's Go" icon={<i className="ml-2 fa-solid fa-arrow-right "></i>} type="submit" className="mt-[36px] btnStyle min-w-[184px] " />
-        </Link>
+        <div className="flex justify-center">
+          <Link href="/sign-in">
+            <ButtonCs title="Let's Go" icon={<i className="ml-2 fa-solid fa-arrow-right "></i>} type="submit" className="mt-[36px] btnStyle min-w-[184px] " />
+          </Link>
+        </div>
       </div>
     </div>
   )

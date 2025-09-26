@@ -102,10 +102,10 @@ const ExerciseItem = ({ exercise, index }) => {
       {/* Exercise Header */}
       <div className="flex items-start space-x-2">
         <div className="flex-shrink-0">
-          <div className="w-8 h-8 overflow-hidden bg-gray-200 rounded relative">
+          <div className="relative w-8 h-8 overflow-hidden bg-gray-200 rounded">
             {isLoading && (
               <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
-                <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-3 h-3 border border-gray-400 rounded-full border-t-transparent animate-spin"></div>
               </div>
             )}
             {imageUrl && !imageError && (
@@ -126,7 +126,7 @@ const ExerciseItem = ({ exercise, index }) => {
         </div>
 
         <div className="flex-1 min-w-0">
-          <h4 className="text-xs font-semibold text-gray-900 capitalize leading-tight">
+          <h4 className="text-xs font-semibold leading-tight text-gray-900 capitalize">
             {_.capitalize(exercise.name)}
           </h4>
           <p className="text-xs text-gray-600">
@@ -135,7 +135,7 @@ const ExerciseItem = ({ exercise, index }) => {
 
           {/* Set Info */}
           {exercise.weeklySetConfig && (
-            <div className="mt-1 flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1 mt-1">
               <span className="inline-flex items-center px-1.5 py-0.5 text-xs text-blue-800 bg-blue-100 rounded">
                 {exercise.weeklySetConfig.sets} sets
               </span>
@@ -200,27 +200,22 @@ const ExerciseListCanvas = ({
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b bg-gray-50 flex-shrink-0">
+        <div className="flex justify-between flex-shrink-0 p-3 border-b bg-gray-50">
           <div>
             <h3 className="text-base font-semibold text-gray-900">
               {dayName || 'Today\'s Workout'}
             </h3>
             <p className="text-xs text-gray-600">{weekName}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-gray-500 transition-colors rounded-full hover:text-gray-700 hover:bg-gray-200"
-            aria-label="Close"
-          >
-            <i className="text-sm fas fa-times"></i>
-          </button>
+         
+            <i onClick={onClose} className="text-sm text-red-500 fas fa-times"></i>
         </div>
 
         {/* Exercise List */}
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex-1 p-3 overflow-y-auto">
           {exercises.length === 0 ? (
             <div className="py-6 text-center">
-              <p className="text-gray-500 text-sm">No exercises scheduled for today</p>
+              <p className="text-sm text-gray-500">No exercises scheduled for today</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -236,7 +231,7 @@ const ExerciseListCanvas = ({
         </div>
 
         {/* Footer */}
-        <div className="p-2 border-t bg-gray-50 flex-shrink-0">
+        <div className="flex-shrink-0 p-2 border-t bg-gray-50">
           <div className="text-xs text-center text-gray-600">
             <span className="font-medium">{exercises.length}</span> exercises total
           </div>
