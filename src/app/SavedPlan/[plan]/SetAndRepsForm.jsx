@@ -1505,7 +1505,7 @@ const SetAndRepsForm = ({
             onClick={handleGoNext}
             className={`p-2 text-lg rounded-full hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed aspect-square flex items-center justify-center w-9 h-9 text-gray-700 bg-gray-200`}
             aria-label="Next Exercise"
-            disabled={ isLastExercise || !isAllSetsCompleted || activeTimer !== null }
+            disabled={isLastExercise || !isAllSetsCompleted || activeTimer !== null}
             title={
               !isAllSetsCompleted
                 ? "Complete all sets to advance"
@@ -1521,7 +1521,6 @@ const SetAndRepsForm = ({
         )}
         {isLastExercise && <div className="w-9 h-9"></div>}
       </div>
-      
     </>
   );
 };

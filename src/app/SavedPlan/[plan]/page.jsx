@@ -14,6 +14,7 @@ import { calculateDetailedWorkoutProgress } from "@/utils/progress";
 import { ProgressBar } from "react-bootstrap";
 import FloatingNavbar from "@/components/Navbar/FloatingNavbar";
 import { calculateTodayCalories, saveCaloriesToFirestore } from "@/utils/caloriesCalculation";
+import ExerciseListCanvas from "./ExerciseListCanvas";
 
 const PlanDetail = ({ params }) => {
   const resolvedParams = React.use(params);
@@ -27,6 +28,7 @@ const PlanDetail = ({ params }) => {
   const [selectedDay, setSelectedDay] = useState(null);
   const [firebaseStoredData, setFirebaseStoredData] = useState(undefined); // Use undefined initially to distinguish from null (no data found)
   const [progressStats, setProgressStats] = useState(null);
+  const [isCanvasOpen, setIsCanvasOpen] = useState(false);
 
   const selectedPlanId = decodeURIComponent(resolvedParams?.plan);
 
@@ -517,18 +519,22 @@ const PlanDetail = ({ params }) => {
 
   const updateProgressStats = () => {
     if (!transFormedData) return;
-    
+
     // Get all current localStorage data to include the latest changes
     const currentLocalData = getAllLocalStorageData(selectedPlanId);
-    
+
     // Merge with Firebase data, prioritizing local changes
     const mergedData = { ...firebaseStoredData, ...currentLocalData };
-    
+
     // Calculate progress using the existing function
     const progress = calculateDetailedWorkoutProgress(transFormedData, mergedData);
-    
+
     setProgressStats(progress);
   };
+
+  // Canvas handlers
+  const handleOpenCanvas = () => setIsCanvasOpen(true);
+  const handleCloseCanvas = () => setIsCanvasOpen(false);
 
 
 
@@ -539,11 +545,21 @@ const PlanDetail = ({ params }) => {
 
   return (
     <>
-      <FloatingNavbar title={workoutData?.planName || "Workout Plan"} />
+      <FloatingNavbar
+        title={workoutData?.planName || "Workout Plan"}
+        onClick={handleOpenCanvas}
+      />
+      <ExerciseListCanvas
+        isOpen={isCanvasOpen}
+        onClose={handleCloseCanvas}
+        exercises={filteredExercises}
+        dayName={dayTabsData.find(d => d.value === selectedDay)?.label}
+        weekName={selectedWeek?.weekName}
+      />
       <div className="flex flex-col pt-16 hide-scrollbar">
       {/* Header */}
       
-      <div className="p-3 pb-1 bg-white border-b sticky-top">
+      <div className="p-3 pb-1 bg-white border-b sticky-top z-10">
         <h2 className="text-lg font-semibold capitalize">{_.capitalize(transFormedData?.name)}</h2>
         <div className="flex justify-between">
         <p className="text-xs text-gray-500">

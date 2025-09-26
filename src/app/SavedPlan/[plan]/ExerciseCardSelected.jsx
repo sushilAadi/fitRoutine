@@ -256,11 +256,12 @@ const ExerciseCardSelected = ({
       {/* <div className="flex justify-end p-2 bg-white"> <button className="px-3 py-1 text-sm text-red-600 border border-red-300 rounded hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50" onClick={handleSkipDay}>Skip Day</button> </div> */}
       {/* Swiper */}
       <Swiper
-        ref={swiperRef} slidesPerView={1} spaceBetween={10} pagination={{ clickable: true, dynamicBullets: false }} modules={[Pagination]}
+        ref={swiperRef} slidesPerView={1} spaceBetween={10} pagination={{ clickable: false, dynamicBullets: false }} modules={[Pagination]}
         className="w-full exercise-swiper" onSlideChange={handleSlideChange}
         // Key ensures Swiper remounts/updates on major context change
         key={`${selectedWeek?.week}-${selectedDay}`}
         initialSlide={currentSlideIndex} observer={true} observeParents={true}
+        allowTouchMove={false}
       >
         {filteredExercises.map((exercise, index) => {
           const setData = exercise?.weeklySetConfig;

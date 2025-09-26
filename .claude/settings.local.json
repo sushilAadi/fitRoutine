@@ -40,7 +40,8 @@
       "mcp__shadcn-ui__get_component_demo",
       "mcp__shadcn-ui__get_component",
       "Bash(git push:*)",
-      "WebFetch(domain:evilcharts.com)"
+      "WebFetch(domain:evilcharts.com)",
+      "Bash(open \"https://console.firebase.google.com/v1/r/project/neeed-fit/firestore/indexes?create_composite=Ck5wcm9qZWN0cy9uZWVlZC1maXQvZGF0YWJhc2VzLyhkZWZhdWx0KS9jb2xsZWN0aW9uR3JvdXBzL3VzZXJfbWV0cmljcy9pbmRleGVzL18QARoMCgh1c2VySWRDbBABGg0KCXRpbWVzdGFtcBACGgwKCF9fbmFtZV9fEAI\")"
     ],
     "deny": []
   }

@@ -83,7 +83,7 @@ const ExerciseDetailHeader = ({data, toggleOpen, open}) => {
                     <div>
                         <div className="flex items-center">
                             <h2 
-                                onClick={() => setShowImage(!showImage)} 
+                                // onClick={() => setShowImage(!showImage)} 
                                 className="text-xl font-bold text-gray-900 cursor-pointer"
                             >
                                 {_.capitalize(data?.name)} ({data?.id})
