@@ -392,31 +392,34 @@ const EnrollmentForm = ({ mentor, rateOptions, timeSlots, availableDays }) => {
         );
         console.log('Firebase notifications stored successfully');
 
-        // 2. Send WhatsApp notifications via server-side API
+        // 2. Send WhatsApp/SMS/Email notifications via Twilio API
         try {
-          const whatsappResponse = await fetch('/api/send-whatsapp', {
+          const notificationResponse = await fetch('/api/send-twilio-whatsapp', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              adminPhone,
-              mentorPhone,
               clientName: formData.fullName,
               mentorName: mentor.name,
-              amount: paymentAmount
+              mentorPhone: mentorPhone,
+              mentorEmail: mentor.email,
+              amount: paymentAmount,
+              selectedTime: formData.availability.timeSlot,
+              clientEmail: formData.email,
+              clientPhone: formData.phoneNumber
             }),
           });
 
-          const whatsappResult = await whatsappResponse.json();
+          const notificationResult = await notificationResponse.json();
           
-          if (whatsappResult.success) {
-            console.log('WhatsApp notifications sent successfully:', whatsappResult.results);
+          if (notificationResult.success) {
+            console.log('Notifications sent successfully:', notificationResult);
           } else {
-            console.error('WhatsApp notification failed:', whatsappResult.error);
+            console.error('Notification failed:', notificationResult.error);
           }
-        } catch (whatsappError) {
-          console.error('Error sending WhatsApp notifications:', whatsappError);
+        } catch (notificationError) {
+          console.error('Error sending notifications:', notificationError);
         }
 
       } catch (notificationError) {
